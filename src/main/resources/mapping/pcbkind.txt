@@ -1,0 +1,69 @@
+PUT pcbkind
+{
+  "settings": {
+    "index": {
+      "number_of_shards": "1",
+      "number_of_replicas": "0",
+      "max_result_window": "1000000000",
+      "analysis": {
+        "analyzer": {
+          "nori": {
+            "tokenizer": "nori_tokenizer"
+          },
+          "ngram_analyzer": {
+            "tokenizer": "ngram_tokenizer"
+          },
+          "ngram_analyzer_case_insensitive": {
+            "tokenizer": "ngram_tokenizer",
+            "filter": [
+              "lowercase"
+            ]
+          },
+          "ngram_analyzer_case_insensitive_keyword": {
+            "tokenizer": "ngram_tokenizer",
+            "filter": [
+              "lowercase"
+            ]
+          }
+        },
+        "normalizer": {
+          "keyword_normalizer": {
+            "type": "custom",
+            "filter": [
+              "lowercase"
+            ]
+          }
+        },
+        "tokenizer": {
+          "ngram_tokenizer": {
+            "type": "ngram",
+            "min_gram": 2,
+            "max_gram": 2,
+            "token_chars": []
+          }
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "pId": {
+        "type": "keyword"
+      },
+      "itemName": {
+        "type": "text",
+        "analyzer": "ngram_analyzer_case_insensitive",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          },
+          "normalize": {
+            "type": "keyword",
+            "normalizer": "keyword_normalizer"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,102 @@
+PUT pcbparts
+{
+  "settings": {
+    "index": {
+      "number_of_shards": "1",
+      "number_of_replicas": "0",
+      "analysis": {
+        "analyzer": {
+          "ngram_analyzer": {
+            "tokenizer": "ngram_tokenizer"
+          },
+          "ngram_analyzer_case_insensitive": {
+            "tokenizer": "ngram_tokenizer",
+            "filter": [
+              "lowercase"
+            ]
+          },
+          "ngram_analyzer4_case_insensitive": {
+            "tokenizer": "ngram_tokenizer4",
+            "filter": [
+              "lowercase"
+            ]
+          },
+          "ngram_analyzer6_case_insensitive": {
+            "tokenizer": "ngram_tokenizer6",
+            "filter": [
+              "lowercase"
+            ]
+          },
+          "samplepcb_analyzer": {
+            "tokenizer": "samplepcb_number_tokenizer",
+            "filter": [
+              "lowercase"
+            ]
+          },
+          "keyword_lowercase_analyzer": {
+            "tokenizer": "keyword",
+            "filter": [
+              "lowercase"
+            ]
+          }
+        },
+        "tokenizer": {
+          "ngram_tokenizer": {
+            "type": "ngram",
+            "min_gram": 2
+          },
+          "ngram_tokenizer4": {
+            "type": "ngram",
+            "min_gram": 4,
+            "max_gram": 4
+          },
+          "ngram_tokenizer6": {
+            "type": "ngram",
+            "min_gram": 6,
+            "max_gram": 6
+          }
+        },
+        "normalizer": {
+          "keyword_normalizer": {
+            "type": "custom",
+            "filter": [
+              "lowercase"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "partName": {
+        "type": "text",
+        "analyzer": "ngram_analyzer6_case_insensitive",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          },
+          "normalize": {
+            "type": "keyword",
+            "normalizer": "keyword_normalizer"
+          }
+        }
+      },
+      "manufacturerName": {
+        "type": "text",
+        "analyzer": "ngram_analyzer4_case_insensitive",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          },
+          "normalize": {
+            "type": "keyword",
+            "normalizer": "keyword_normalizer"
+          }
+        }
+      }
+    }
+  }
+}

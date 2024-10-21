@@ -6,3 +6,20 @@ spring:
     application.name: samplepcb_xpse
     elasticsearch:
         uris: http://localhost:9200
+
+logging:
+    level:
+        org:
+            apache:
+                http:
+                    wire: DEBUG
+    pattern:
+        console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+application:
+    cors:
+        allowed-origins: "*"
+        allowed-methods: GET, PUT, POST, DELETE, OPTIONS
+        allowed-headers: "*"
+        exposed-headers: "authorization, content-type, date, connection, transfer-encoding, x-application-context, x-content-type-options, x-xss-protection"
+        max-age: 1800

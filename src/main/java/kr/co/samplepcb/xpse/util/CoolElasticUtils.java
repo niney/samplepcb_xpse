@@ -1,5 +1,7 @@
 package kr.co.samplepcb.xpse.util;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.configurationprocessor.json.JSONException;
@@ -10,10 +12,7 @@ import org.springframework.core.type.classreading.CachingMetadataReaderFactory;
 import org.springframework.core.type.classreading.MetadataReader;
 import org.springframework.core.type.classreading.MetadataReaderFactory;
 import org.springframework.data.elasticsearch.annotations.Document;
-import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
-import org.springframework.data.elasticsearch.core.IndexOperations;
-import org.springframework.data.elasticsearch.core.SearchHitSupport;
-import org.springframework.data.elasticsearch.core.SearchHits;
+import org.springframework.data.elasticsearch.core.*;
 import org.springframework.data.elasticsearch.core.index.PutIndexTemplateRequest;
 import org.springframework.data.elasticsearch.core.index.Settings;
 import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
@@ -22,7 +21,10 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -32,6 +34,10 @@ public class CoolElasticUtils {
 
     private static final Logger logger = LoggerFactory.getLogger(CoolElasticUtils.class);
     private static final String ENTITY_PACKAGE = "kr.co.samplepcb.xpse.domain";
+
+    private static final ObjectMapper objectMapper = new ObjectMapper()
+            .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
+
 
     /**
      * Elasticsearch 인덱스를 처리합니다. 인덱스가 존재할 경우 업데이트를 수행하고, 존재하지 않을 경우 새로 생성합니다.
@@ -181,5 +187,42 @@ public class CoolElasticUtils {
     @SuppressWarnings("unchecked")
     public static <T> List<T> unwrapSearchHits(SearchHits<T> searchHits) {
         return (List<T>) SearchHitSupport.unwrapSearchHits(searchHits);
+    }
+
+    /**
+     * 주어진 SearchHits 객체에서 검색 결과를 추출하고, 하이라이트된 정보와 추가적인 메타데이터를 포함한 리스트를 반환합니다.
+     *
+     * @param <T> 검색 결과 엔티티의 타입
+     * @param searchHits 검색 결과를 포함한 SearchHits 객체
+     * @return 검색 결과, 하이라이트된 정보 및 추가 메타데이터를 포함한 리스트
+     */
+    @SuppressWarnings("unchecked")
+    public static <T> List<Map<String, Object>> getSourceWithHighlight(SearchHits<T> searchHits) {
+        List<Map<String, Object>> resultList = new ArrayList<>();
+        for (SearchHit<T> searchHit : searchHits.getSearchHits()) {
+
+            // Convert content to Map
+            T content = searchHit.getContent();
+            Map<String, Object> contentMap = objectMapper.convertValue(content, Map.class);
+
+            // Add the converted content
+            Map<String, Object> resultMap = new HashMap<>(contentMap);
+
+            // Add score
+            resultMap.put("_score", searchHit.getScore());
+
+            // Add highlight information
+            Map<String, List<String>> highlightFields = searchHit.getHighlightFields();
+            if (!highlightFields.isEmpty()) {
+                resultMap.put("highlight", highlightFields);
+            }
+
+            // Add any additional metadata
+            resultMap.put("_id", searchHit.getId());
+            resultMap.put("_index", searchHit.getIndex());
+
+            resultList.add(resultMap);
+        }
+        return resultList;
     }
 }

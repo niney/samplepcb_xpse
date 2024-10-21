@@ -1,13 +1,21 @@
 package kr.co.samplepcb.xpse.service;
 
+import coolib.common.CCObjectResult;
+import coolib.common.CCPagingResult;
+import coolib.common.CCResult;
+import coolib.common.QueryParam;
 import coolib.util.CommonUtils;
 import kr.co.samplepcb.xpse.domain.PcbKindSearch;
 import kr.co.samplepcb.xpse.domain.PcbPartsSearch;
 import kr.co.samplepcb.xpse.domain.PcbUnitSearch;
 import kr.co.samplepcb.xpse.pojo.PcbPartsSearchField;
+import kr.co.samplepcb.xpse.pojo.PcbPartsSearchVM;
+import kr.co.samplepcb.xpse.pojo.adapter.PagingAdapter;
 import kr.co.samplepcb.xpse.repository.PcbKindSearchRepository;
 import kr.co.samplepcb.xpse.repository.PcbPartsSearchRepository;
+import kr.co.samplepcb.xpse.service.common.sub.DataExtractorSubService;
 import kr.co.samplepcb.xpse.service.common.sub.ExcelSubService;
+import kr.co.samplepcb.xpse.util.CoolElasticUtils;
 import kr.co.samplepcb.xpse.util.CoolStringUtils;
 import kr.co.samplepcb.xpse.util.PcbPartsUtils;
 import org.apache.commons.collections4.CollectionUtils;
@@ -17,6 +25,16 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.SearchHits;
+import org.springframework.data.elasticsearch.core.query.Criteria;
+import org.springframework.data.elasticsearch.core.query.CriteriaQuery;
+import org.springframework.data.elasticsearch.core.query.HighlightQuery;
+import org.springframework.data.elasticsearch.core.query.Query;
+import org.springframework.data.elasticsearch.core.query.highlight.Highlight;
+import org.springframework.data.elasticsearch.core.query.highlight.HighlightField;
+import org.springframework.data.elasticsearch.core.query.highlight.HighlightParameters;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -24,6 +42,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service
 public class PcbPartsService {
@@ -31,16 +50,20 @@ public class PcbPartsService {
     private static final Logger log = LoggerFactory.getLogger(PcbPartsService.class);
 
     // search
+    private final ElasticsearchOperations elasticsearchOperations;
     private final PcbPartsSearchRepository pcbPartsSearchRepository;
     private final PcbKindSearchRepository pcbKindSearchRepository;
 
     // service
     private final ExcelSubService excelSubService;
+    private final DataExtractorSubService dataExtractorSubService;
 
-    public PcbPartsService(PcbPartsSearchRepository pcbPartsSearchRepository, PcbKindSearchRepository pcbKindSearchRepository, ExcelSubService excelSubService) {
+    public PcbPartsService(ElasticsearchOperations elasticsearchOperations, PcbPartsSearchRepository pcbPartsSearchRepository, PcbKindSearchRepository pcbKindSearchRepository, ExcelSubService excelSubService, DataExtractorSubService dataExtractorSubService) {
+        this.elasticsearchOperations = elasticsearchOperations;
         this.pcbPartsSearchRepository = pcbPartsSearchRepository;
         this.pcbKindSearchRepository = pcbKindSearchRepository;
         this.excelSubService = excelSubService;
+        this.dataExtractorSubService = dataExtractorSubService;
     }
 
     /**
@@ -293,7 +316,7 @@ public class PcbPartsService {
             // watt
             pcbPartsSearch.setWatt(this.parsingToPcbUnitSearch(PcbPartsSearchField.WATT, this.excelSubService.getCellStrValue(row, 2)));
             // tolerance
-            pcbPartsSearch.setTolerance(this.excelSubService.getCellStrValue(row, 3));
+            pcbPartsSearch.setTolerance(this.parsingToPcbUnitSearch(PcbPartsSearchField.TOLERANCE, this.excelSubService.getCellStrValue(row, 3)));
             // ohm
             pcbPartsSearch.setOhm(this.parsingToPcbUnitSearch(PcbPartsSearchField.OHM, this.excelSubService.getCellStrValue(row, 4)));
             // condenser
@@ -385,4 +408,189 @@ public class PcbPartsService {
         }
     }
 
+    /**
+     * 검색 기능을 수행하는 메서드입니다.
+     *
+     * @param pageable 페이징 정보를 담고 있는 Pageable 객체
+     * @param queryParam 검색 요청에 대한 QueryParam 객체
+     * @param pcbPartsSearchVM 검색 조건을 포함하는 PcbPartsSearchVM 객체
+     * @return 검색 결과를 포함하는 CCResult 객체
+     */
+    public CCResult search(Pageable pageable, QueryParam queryParam, PcbPartsSearchVM pcbPartsSearchVM) {
+        if (StringUtils.isNotEmpty(queryParam.getQf()) && queryParam.getQf().equals("parsing")) {
+            return this.parseSearch(pageable, queryParam);
+        }
+        Criteria criteria = new Criteria(PcbPartsSearchField.PART_NAME).is(queryParam.getQ());
+        List<HighlightField> highlightFields = new ArrayList<>();
+        highlightFields.add(new HighlightField(PcbPartsSearchField.PART_NAME));
+
+        HighlightParameters highlightParams = HighlightParameters.builder().build();
+        Highlight highlight = new Highlight(highlightParams, highlightFields);
+        HighlightQuery highlightQuery = new HighlightQuery(highlight, PcbPartsSearch.class);
+
+        Query query = new CriteriaQuery(criteria);
+        query.setHighlightQuery(highlightQuery);
+
+        SearchHits<PcbPartsSearch> searchHits = this.elasticsearchOperations.search(query, PcbPartsSearch.class);
+        return CCObjectResult.setSimpleData(CoolElasticUtils.getSourceWithHighlight(searchHits));
+    }
+
+    /**
+     * 검색 쿼리를 파싱하고 실행한 후 CCResult를 반환합니다.
+     *
+     * @param pageable 페이징 정보를 담고 있는 Pageable 객체
+     * @param queryParam 검색 요청에 대한 QueryParam 객체
+     * @return 쿼리 결과를 포함하는 CCResult 객체
+     */
+    public CCResult parseSearch(Pageable pageable, QueryParam queryParam) {
+        Map<String, List<String>> parsedKeywords = PcbPartsUtils.parseString(queryParam.getQ());
+        Criteria criteria = new Criteria();
+        Set<String> highlightFields = new HashSet<>();
+
+        // spec criteria
+        addSpecCriteria(parsedKeywords, criteria, highlightFields);
+
+        // size criteria
+        CCPagingResult<Object> ccPagingResult = addSizeCriteria(pageable, queryParam, parsedKeywords, criteria, highlightFields);
+        if (ccPagingResult != null) return ccPagingResult;
+
+        Query query = new CriteriaQuery(criteria)
+                .setPageable(pageable);
+        query.setHighlightQuery(createHighlightQuery(highlightFields));
+        SearchHits<PcbPartsSearch> searchHits = this.elasticsearchOperations.search(query, PcbPartsSearch.class);
+        return CCObjectResult.setSimpleData(CoolElasticUtils.getSourceWithHighlight(searchHits));
+    }
+
+    /**
+     * 주어진 Pageable, QueryParam, 키워드 맵, Criteria 및 하이라이트 필드를 사용하여
+     * 특정 조건을 추가하고, 필요한 값이 없을 경우 적절한 메시지와 함께 CCPagingResult 객체를 반환합니다.
+     *
+     * @param pageable 페이징 정보를 담고 있는 Pageable 객체
+     * @param queryParam 검색 요청에 대한 QueryParam 객체
+     * @param parsedKeywords 검색어가 파싱된 후의 키워드 맵
+     * @param criteria 검색 조건을 담고 있는 Criteria 객체
+     * @param highlightFields 하이라이트할 필드들의 집합
+     * @return 특정 조건이 충족되지 않을 경우 메시지와 함께 CCPagingResult 객체를 반환하며,
+     *         조건이 충족되는 경우 null을 반환
+     */
+    private CCPagingResult<Object> addSizeCriteria(Pageable pageable, QueryParam queryParam, Map<String, List<String>> parsedKeywords, Criteria criteria, Set<String> highlightFields) {
+        String extractedSize = this.dataExtractorSubService.extractSizeFromTitle(queryParam.getQ());
+        if (parsedKeywords.get(PcbPartsSearchField.SIZE) == null && StringUtils.isNotEmpty(extractedSize)) {
+            criteria.subCriteria(new Criteria().or(PcbPartsSearchField.SIZE_KEYWORD).is(extractedSize));
+            highlightFields.add(PcbPartsSearchField.SIZE_KEYWORD);
+        }
+
+        if (parsedKeywords.get(PcbPartsSearchField.OHM) != null) {
+            // ohm 이 있다면 Resistor(저항)으로 판단 오차범위는 필수 이다
+            if (CollectionUtils.isEmpty(parsedKeywords.get(PcbPartsSearchField.TOLERANCE))) {
+                // 오차범위가 없다면
+                CCPagingResult<Object> ccPagingResult = PagingAdapter.toCCPagingResult(pageable, new ArrayList<>(), 0);
+                ccPagingResult.setMessage("오차범위 정보가 없습니다.");
+                return ccPagingResult;
+            }
+        }
+
+        if (parsedKeywords.get(PcbPartsSearchField.CONDENSER) != null) {
+            // condenser(콘덴서) 있다면 Capacitor(커패시터)로 판단 하고 전압은 필수 이다
+            if (CollectionUtils.isEmpty(parsedKeywords.get(PcbPartsSearchField.VOLTAGE))) {
+                // 전압이 없다면
+                CCPagingResult<Object> ccPagingResult = PagingAdapter.toCCPagingResult(pageable, new ArrayList<>(), 0);
+                ccPagingResult.setMessage("전압 정보가 없습니다.");
+                return ccPagingResult;
+            }
+        }
+
+        int parsedWithoutProductNameAndSize = checkSizeWithoutProductNameAndSize(parsedKeywords);
+        if (StringUtils.isNotEmpty(extractedSize)) {
+            parsedWithoutProductNameAndSize += 1;
+        }
+        if (parsedWithoutProductNameAndSize < 2) {
+            CCPagingResult<Object> ccPagingResult = PagingAdapter.toCCPagingResult(pageable, new ArrayList<>(), 0);
+            ccPagingResult.setMessage("2개 이상의 값이 필요합니다.");
+            return ccPagingResult;
+        }
+        return null;
+    }
+
+
+    /**
+     * 주어진 필드 이름 목록과 값을 사용하여 Criteria 객체에 조건을 추가합니다.
+     *
+     * @param parseString 조건을 추가할 필드 이름과 값의 맵
+     * @param criteria 기존의 Criteria 객체
+     * @param highlightFields 강조 표시할 필드 이름들의 집합
+     */
+    private static void addSpecCriteria(Map<String, List<String>> parseString, Criteria criteria, Set<String> highlightFields) {
+        for (String fieldName : parseString.keySet()) {
+            List<String> fieldValue = parseString.get(fieldName);
+            String keywords = String.join(" ", fieldValue);
+            criteria = switch (fieldName) {
+                case PcbPartsSearchField.WATT ->
+                        addOrSubCriteria(PcbPartsSearchField.WATT_KEYWORD_LIST, keywords, criteria, highlightFields);
+                case PcbPartsSearchField.TOLERANCE ->
+                        addOrSubCriteria(PcbPartsSearchField.TOLERANCE_KEYWORD_LIST, keywords, criteria, highlightFields);
+                case PcbPartsSearchField.OHM ->
+                        addOrSubCriteria(PcbPartsSearchField.OHM_KEYWORD_LIST, keywords, criteria, highlightFields);
+                case PcbPartsSearchField.CONDENSER ->
+                        addOrSubCriteria(PcbPartsSearchField.CONDENSER_KEYWORD_LIST, keywords, criteria, highlightFields);
+                case PcbPartsSearchField.VOLTAGE ->
+                        addOrSubCriteria(PcbPartsSearchField.VOLTAGE_KEYWORD_LIST, keywords, criteria, highlightFields);
+                case PcbPartsSearchField.CURRENT ->
+                        addOrSubCriteria(PcbPartsSearchField.CURRENT_KEYWORD_LIST, keywords, criteria, highlightFields);
+                case PcbPartsSearchField.INDUCTOR ->
+                        addOrSubCriteria(PcbPartsSearchField.INDUCTOR_KEYWORD_LIST, keywords, criteria, highlightFields);
+                default -> criteria;
+            };
+        }
+    }
+
+
+    /**
+     * 주어진 키워드 필드 이름 목록과 키워드를 사용하여 Criteria 객체에 OR 조건을 추가합니다.
+     *
+     * @param keywordFieldNameList 키워드를 적용할 필드 이름 목록
+     * @param keywords 검색할 키워드
+     * @param refCriteria 기존의 Criteria 객체
+     * @param highlightFields 강조 표시할 필드 이름들의 집합
+     * @return OR 조건이 추가된 Criteria 객체
+     */
+    private static Criteria addOrSubCriteria(List<String> keywordFieldNameList, String keywords, Criteria refCriteria, Set<String> highlightFields) {
+        Criteria subCriteria = new Criteria();
+        for (String keyword : keywordFieldNameList) {
+            subCriteria = subCriteria.or(keyword).is(keywords);
+            highlightFields.add(keyword);
+        }
+        refCriteria = refCriteria.subCriteria(subCriteria);
+        return refCriteria;
+    }
+
+    /**
+     * 주어진 필드 이름들을 강조 표시하는 쿼리를 생성합니다.
+     *
+     * @param fields 강조 표시할 필드 이름들의 집합
+     * @return 생성된 HighlightQuery 객체
+     */
+    private HighlightQuery createHighlightQuery(Set<String> fields) {
+        List<HighlightField> highlightFields = fields.stream()
+                .map(HighlightField::new)
+                .collect(Collectors.toList());
+
+        HighlightParameters highlightParams = HighlightParameters.builder().build();
+
+        Highlight highlight = new Highlight(highlightParams, highlightFields);
+        return new HighlightQuery(highlight, PcbPartsSearch.class);
+    }
+
+    /**
+     * 'PRODUCT_NAME'과 'SIZE' 키를 제외한 키워드 맵의 크기를 확인합니다.
+     *
+     * @param tag parsedKeywords 키워드 맵
+     * @return 'PRODUCT_NAME'과 'SIZE' 키를 제외한 나머지 키의 개수
+     */
+    private static int checkSizeWithoutProductNameAndSize(Map<String, List<String>> parsedKeywords) {
+        HashMap<String, List<String>> copyParsedKeywords = new HashMap<>(parsedKeywords);
+        copyParsedKeywords.remove(PcbPartsSearchField.PRODUCT_NAME);
+        copyParsedKeywords.remove(PcbPartsSearchField.SIZE);
+        return copyParsedKeywords.size();
+    }
 }

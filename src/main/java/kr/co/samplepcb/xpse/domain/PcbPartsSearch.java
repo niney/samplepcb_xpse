@@ -150,7 +150,7 @@ public class PcbPartsSearch implements Persistable<String> {
                     @InnerField(suffix = "ngram", type = FieldType.Text, analyzer = "ngram_analyzer_case_insensitive", fielddata = true)
             }
     )
-    private String tolerance;
+    private PcbUnitSearch tolerance;
     @Field(type = FieldType.Object)
     private PcbUnitSearch ohm;
     @Field(type = FieldType.Object)
@@ -450,11 +450,11 @@ public class PcbPartsSearch implements Persistable<String> {
         this.watt = watt;
     }
 
-    public String getTolerance() {
+    public PcbUnitSearch getTolerance() {
         return tolerance;
     }
 
-    public void setTolerance(String tolerance) {
+    public void setTolerance(PcbUnitSearch tolerance) {
         this.tolerance = tolerance;
     }
 

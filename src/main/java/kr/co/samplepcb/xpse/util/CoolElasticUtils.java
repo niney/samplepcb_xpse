@@ -2,6 +2,8 @@ package kr.co.samplepcb.xpse.util;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import kr.co.samplepcb.xpse.domain.PcbPartsSearch;
+import kr.co.samplepcb.xpse.pojo.PcbPartsSearchField;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.configurationprocessor.json.JSONException;
@@ -16,15 +18,16 @@ import org.springframework.data.elasticsearch.core.*;
 import org.springframework.data.elasticsearch.core.index.PutIndexTemplateRequest;
 import org.springframework.data.elasticsearch.core.index.Settings;
 import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
+import org.springframework.data.elasticsearch.core.query.HighlightQuery;
+import org.springframework.data.elasticsearch.core.query.highlight.Highlight;
+import org.springframework.data.elasticsearch.core.query.highlight.HighlightField;
+import org.springframework.data.elasticsearch.core.query.highlight.HighlightParameters;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -224,5 +227,22 @@ public class CoolElasticUtils {
             resultList.add(resultMap);
         }
         return resultList;
+    }
+
+    /**
+     * 주어진 필드 이름들을 강조 표시하는 쿼리를 생성합니다.
+     *
+     * @param fields 강조 표시할 필드 이름들의 집합
+     * @return 생성된 HighlightQuery 객체
+     */
+    public static HighlightQuery createHighlightQuery(Set<String> fields) {
+        List<HighlightField> highlightFields = fields.stream()
+                .map(HighlightField::new)
+                .collect(Collectors.toList());
+
+        HighlightParameters highlightParams = HighlightParameters.builder().build();
+
+        Highlight highlight = new Highlight(highlightParams, highlightFields);
+        return new HighlightQuery(highlight, PcbPartsSearch.class);
     }
 }

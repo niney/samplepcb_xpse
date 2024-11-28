@@ -42,7 +42,6 @@ import java.io.IOException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 @Service
 public class PcbPartsService {
@@ -421,12 +420,7 @@ public class PcbPartsService {
             return this.parseSearch(pageable, queryParam);
         }
         Criteria criteria = new Criteria(PcbPartsSearchField.PART_NAME).is(queryParam.getQ());
-        List<HighlightField> highlightFields = new ArrayList<>();
-        highlightFields.add(new HighlightField(PcbPartsSearchField.PART_NAME));
-
-        HighlightParameters highlightParams = HighlightParameters.builder().build();
-        Highlight highlight = new Highlight(highlightParams, highlightFields);
-        HighlightQuery highlightQuery = new HighlightQuery(highlight, PcbPartsSearch.class);
+        HighlightQuery highlightQuery = CoolElasticUtils.createHighlightQuery(Set.of(PcbPartsSearchField.PART_NAME));
 
         Query query = new CriteriaQuery(criteria);
         query.setHighlightQuery(highlightQuery);
@@ -456,7 +450,7 @@ public class PcbPartsService {
 
         Query query = new CriteriaQuery(criteria)
                 .setPageable(pageable);
-        query.setHighlightQuery(createHighlightQuery(highlightFields));
+        query.setHighlightQuery(CoolElasticUtils.createHighlightQuery(highlightFields));
         SearchHits<PcbPartsSearch> searchHits = this.elasticsearchOperations.search(query, PcbPartsSearch.class);
         return CCObjectResult.setSimpleData(CoolElasticUtils.getSourceWithHighlight(searchHits));
     }
@@ -562,23 +556,6 @@ public class PcbPartsService {
         }
         refCriteria = refCriteria.subCriteria(subCriteria);
         return refCriteria;
-    }
-
-    /**
-     * 주어진 필드 이름들을 강조 표시하는 쿼리를 생성합니다.
-     *
-     * @param fields 강조 표시할 필드 이름들의 집합
-     * @return 생성된 HighlightQuery 객체
-     */
-    private HighlightQuery createHighlightQuery(Set<String> fields) {
-        List<HighlightField> highlightFields = fields.stream()
-                .map(HighlightField::new)
-                .collect(Collectors.toList());
-
-        HighlightParameters highlightParams = HighlightParameters.builder().build();
-
-        Highlight highlight = new Highlight(highlightParams, highlightFields);
-        return new HighlightQuery(highlight, PcbPartsSearch.class);
     }
 
     /**

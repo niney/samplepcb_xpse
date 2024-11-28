@@ -23,3 +23,5 @@ application:
         allowed-headers: "*"
         exposed-headers: "authorization, content-type, date, connection, transfer-encoding, x-application-context, x-content-type-options, x-xss-protection"
         max-age: 1800
+    splinserver:
+        serverUrl: http://localhost:5000

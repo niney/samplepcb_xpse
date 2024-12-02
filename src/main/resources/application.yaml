@@ -6,6 +6,10 @@ spring:
     application.name: samplepcb_xpse
     elasticsearch:
         uris: http://localhost:9200
+    cache:
+        type: caffeine
+        caffeine:
+            spec: maximumSize=100,expireAfterWrite=50m
 
 logging:
     level:
@@ -25,3 +29,9 @@ application:
         max-age: 1800
     splinserver:
         serverUrl: http://localhost:5000
+    mlServer:
+        serverUrl: http://localhost:8099
+    digikey:
+        baseUrl: https://api.digikey.com
+        clientId: input
+        clientSecret: input

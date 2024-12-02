@@ -5,9 +5,8 @@ import coolib.common.CCPagingResult;
 import coolib.common.CCResult;
 import coolib.common.QueryParam;
 import coolib.util.CommonUtils;
-import kr.co.samplepcb.xpse.domain.PcbKindSearch;
-import kr.co.samplepcb.xpse.domain.PcbPartsSearch;
-import kr.co.samplepcb.xpse.domain.PcbUnitSearch;
+import kr.co.samplepcb.xpse.config.ApplicationProperties;
+import kr.co.samplepcb.xpse.domain.*;
 import kr.co.samplepcb.xpse.pojo.PcbPartsSearchField;
 import kr.co.samplepcb.xpse.pojo.PcbPartsSearchVM;
 import kr.co.samplepcb.xpse.pojo.adapter.PagingAdapter;
@@ -15,6 +14,7 @@ import kr.co.samplepcb.xpse.repository.PcbKindSearchRepository;
 import kr.co.samplepcb.xpse.repository.PcbPartsSearchRepository;
 import kr.co.samplepcb.xpse.service.common.sub.DataExtractorSubService;
 import kr.co.samplepcb.xpse.service.common.sub.ExcelSubService;
+import kr.co.samplepcb.xpse.service.common.sub.DigikeyPartsParserSubService;
 import kr.co.samplepcb.xpse.util.CoolElasticUtils;
 import kr.co.samplepcb.xpse.util.CoolStringUtils;
 import kr.co.samplepcb.xpse.util.PcbPartsUtils;
@@ -25,6 +25,7 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.SearchHits;
@@ -32,11 +33,11 @@ import org.springframework.data.elasticsearch.core.query.Criteria;
 import org.springframework.data.elasticsearch.core.query.CriteriaQuery;
 import org.springframework.data.elasticsearch.core.query.HighlightQuery;
 import org.springframework.data.elasticsearch.core.query.Query;
-import org.springframework.data.elasticsearch.core.query.highlight.Highlight;
-import org.springframework.data.elasticsearch.core.query.highlight.HighlightField;
-import org.springframework.data.elasticsearch.core.query.highlight.HighlightParameters;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
+import reactor.core.publisher.Mono;
 
 import java.io.IOException;
 import java.util.*;
@@ -48,6 +49,8 @@ public class PcbPartsService {
 
     private static final Logger log = LoggerFactory.getLogger(PcbPartsService.class);
 
+    private final ApplicationProperties applicationProperties;
+
     // search
     private final ElasticsearchOperations elasticsearchOperations;
     private final PcbPartsSearchRepository pcbPartsSearchRepository;
@@ -56,13 +59,16 @@ public class PcbPartsService {
     // service
     private final ExcelSubService excelSubService;
     private final DataExtractorSubService dataExtractorSubService;
+    private final DigikeyPartsParserSubService digikeyPartsParserSubService;
 
-    public PcbPartsService(ElasticsearchOperations elasticsearchOperations, PcbPartsSearchRepository pcbPartsSearchRepository, PcbKindSearchRepository pcbKindSearchRepository, ExcelSubService excelSubService, DataExtractorSubService dataExtractorSubService) {
+    public PcbPartsService(ApplicationProperties applicationProperties, ElasticsearchOperations elasticsearchOperations, PcbPartsSearchRepository pcbPartsSearchRepository, PcbKindSearchRepository pcbKindSearchRepository, ExcelSubService excelSubService, DataExtractorSubService dataExtractorSubService, DigikeyPartsParserSubService digikeyPartsParserSubService) {
+        this.applicationProperties = applicationProperties;
         this.elasticsearchOperations = elasticsearchOperations;
         this.pcbPartsSearchRepository = pcbPartsSearchRepository;
         this.pcbKindSearchRepository = pcbKindSearchRepository;
         this.excelSubService = excelSubService;
         this.dataExtractorSubService = dataExtractorSubService;
+        this.digikeyPartsParserSubService = digikeyPartsParserSubService;
     }
 
     /**
@@ -73,74 +79,7 @@ public class PcbPartsService {
      * @return 변환된 PcbUnitSearch 객체
      */
     private PcbUnitSearch parsingToPcbUnitSearch(String propertyName, String value) {
-        PcbUnitSearch pcbUnitSearch = new PcbUnitSearch();
-        List<String> parsedSearchResults = PcbPartsUtils.parseString(value).get(propertyName);
-        if (CollectionUtils.isNotEmpty(parsedSearchResults)) {
-            String searchValue = parsedSearchResults.getFirst();
-            String lowerCaseString = searchValue.toLowerCase();
-            // μF와 µF를 uF로 대체
-            String replacedString = lowerCaseString
-                    .replace("μF", "uF")
-                    .replace("µF", "uF")
-                    .replace("uf", "uF")
-                    .replace("μV", "uV")
-                    .replace("µV", "uV")
-                    .replace("uv", "uV")
-                    .replace("μA", "uA")
-                    .replace("µA", "uA")
-                    .replace("ua", "uA")
-                    .replace("Ω", "Ohm");
-            if (propertyName.equals(PcbPartsSearchField.CONDENSER)) {
-                // 소문자로 변환
-                PcbPartsUtils.FaradsConvert faradsConvert = new PcbPartsUtils.FaradsConvert();
-                Map<PcbPartsUtils.FaradsConvert.Unit, String> faradsMap = faradsConvert.convert(replacedString);
-                pcbUnitSearch.setField1(faradsMap.get(PcbPartsUtils.PcbConvert.Unit.FARADS));
-                pcbUnitSearch.setField2(faradsMap.get(PcbPartsUtils.PcbConvert.Unit.MICROFARADS));
-                pcbUnitSearch.setField3(faradsMap.get(PcbPartsUtils.PcbConvert.Unit.NANOFARADS));
-                pcbUnitSearch.setField4(faradsMap.get(PcbPartsUtils.PcbConvert.Unit.PICOFARADS));
-            }
-
-            if (propertyName.equals(PcbPartsSearchField.TOLERANCE)) {
-                PcbPartsUtils.ToleranceConvert toleranceConvert = new PcbPartsUtils.ToleranceConvert();
-                Map<PcbPartsUtils.PcbConvert.Unit, String> tolerance = toleranceConvert.convert(replacedString);
-                pcbUnitSearch.setField1(tolerance.get(PcbPartsUtils.PcbConvert.Unit.PERCENT));
-                pcbUnitSearch.setField2(tolerance.get(PcbPartsUtils.PcbConvert.Unit.PERCENT_STRING));
-            }
-
-            if (propertyName.equals(PcbPartsSearchField.OHM)) {
-                PcbPartsUtils.OhmConvert ohmConvert = new PcbPartsUtils.OhmConvert();
-                Map<PcbPartsUtils.PcbConvert.Unit, String> tolerance = ohmConvert.convert(replacedString);
-                pcbUnitSearch.setField1(tolerance.get(PcbPartsUtils.PcbConvert.Unit.OHMS));
-                pcbUnitSearch.setField2(tolerance.get(PcbPartsUtils.PcbConvert.Unit.KILOHMS));
-                pcbUnitSearch.setField3(tolerance.get(PcbPartsUtils.PcbConvert.Unit.MEGAOHMS));
-            }
-
-            if (propertyName.equals(PcbPartsSearchField.VOLTAGE)) {
-                PcbPartsUtils.VoltConvert voltageConvert = new PcbPartsUtils.VoltConvert();
-                Map<PcbPartsUtils.PcbConvert.Unit, String> voltage = voltageConvert.convert(replacedString);
-                pcbUnitSearch.setField1(voltage.get(PcbPartsUtils.PcbConvert.Unit.VOLTS));
-                pcbUnitSearch.setField2(voltage.get(PcbPartsUtils.PcbConvert.Unit.KILOVOLTS));
-                pcbUnitSearch.setField3(voltage.get(PcbPartsUtils.PcbConvert.Unit.MILLIVOLTS));
-                pcbUnitSearch.setField4(voltage.get(PcbPartsUtils.PcbConvert.Unit.MICROVOLTS));
-            }
-
-            if (propertyName.equals(PcbPartsSearchField.CURRENT)) {
-                PcbPartsUtils.CurrentConvert currentConvert = new PcbPartsUtils.CurrentConvert();
-                Map<PcbPartsUtils.PcbConvert.Unit, String> current = currentConvert.convert(replacedString);
-                pcbUnitSearch.setField1(current.get(PcbPartsUtils.PcbConvert.Unit.AMPERES));
-                pcbUnitSearch.setField2(current.get(PcbPartsUtils.PcbConvert.Unit.MILLIAMPERES));
-                pcbUnitSearch.setField3(current.get(PcbPartsUtils.PcbConvert.Unit.MICROAMPERES));
-            }
-
-            if (propertyName.equals(PcbPartsSearchField.INDUCTOR)) {
-                PcbPartsUtils.InductorConvert inductorConvert = new PcbPartsUtils.InductorConvert();
-                Map<PcbPartsUtils.PcbConvert.Unit, String> inductor = inductorConvert.convert(replacedString);
-                pcbUnitSearch.setField1(inductor.get(PcbPartsUtils.PcbConvert.Unit.HENRYS));
-                pcbUnitSearch.setField2(inductor.get(PcbPartsUtils.PcbConvert.Unit.MILLIHENRYS));
-                pcbUnitSearch.setField3(inductor.get(PcbPartsUtils.PcbConvert.Unit.MICROHENRYS));
-            }
-        }
-        return pcbUnitSearch;
+        return PcbPartsUtils.parsingToPcbUnitSearch(propertyName, value);
     }
 
     /**
@@ -289,8 +228,8 @@ public class PcbPartsService {
             }
 
             String manufacturerName = checkPcbKindExistForCategory(targetPcbKindSearchMap, row, 12, PcbPartsSearchField.MANUFACTURER_NAME);
-            String packaging = checkPcbKindExistForCategory(targetPcbKindSearchMap, row, 8, PcbPartsSearchField.PACKAGING);
-//            String offerName = checkPcbKindExistForCategory(targetPcbKindSearchMap, row, 17, PcbPartsSearchField.OFFER_NAME);
+//            String packaging = checkPcbKindExistForCategory(targetPcbKindSearchMap, row, 8, PcbPartsSearchField.PACKAGING);
+            String offerName = checkPcbKindExistForCategory(targetPcbKindSearchMap, row, 17, PcbPartsSearchField.OFFER_NAME);
 
 //            pcbPartsSearch.setLargeCategory(largeCategory);
 //            pcbPartsSearch.setMediumCategory(mediumCategory);
@@ -299,7 +238,7 @@ public class PcbPartsService {
             pcbPartsSearch.setDescription(this.excelSubService.getCellStrValue(row, 1));
             pcbPartsSearch.setManufacturerName(manufacturerName);
 //            pcbPartsSearch.setPartsPackaging(this.excelSubService.getCellStrValue(row, 7));
-            pcbPartsSearch.setPackaging(packaging);
+            pcbPartsSearch.setPackaging(this.parsingToPcbUnitSearch(PcbPartsSearchField.PACKAGING, this.excelSubService.getCellStrValue(row, 8)));
 //            pcbPartsSearch.setMoq(this.excelSubService.getCellNumberValue(row, 9).intValue());
             pcbPartsSearch.setPrice1(CoolStringUtils.extractAndRoundNumber(this.excelSubService.getCellStrValue(row, 13)));
             pcbPartsSearch.setPrice2(CoolStringUtils.extractAndRoundNumber(this.excelSubService.getCellStrValue(row, 13)));
@@ -569,5 +508,50 @@ public class PcbPartsService {
         copyParsedKeywords.remove(PcbPartsSearchField.PRODUCT_NAME);
         copyParsedKeywords.remove(PcbPartsSearchField.SIZE);
         return copyParsedKeywords.size();
+    }
+
+    /**
+     * Digikey 응답 객체를 기반으로 인덱싱을 수행하는 메서드입니다.
+     *
+     * @param response Digikey로부터 받은 결과 데이터를 포함하는 CCObjectResult 객체
+     * @return 인덱싱 결과를 나타내는 CCResult 객체. 만약 response가 유효하지 않으면 데이터가 없음을 나타내는 CCResult를 반환
+     */
+    public CCResult indexingByDigikey(CCObjectResult<Map<String, Object>> response) {
+        if (!response.isResult()) {
+            CCResult ccResult = CCResult.dataNotFound();
+            if (StringUtils.isNotEmpty(response.getMessage())) {
+                ccResult.setMessage(response.getMessage());
+            }
+            return ccResult;
+        }
+        CCObjectResult<PcbPartsSearch> result = this.digikeyPartsParserSubService.parseProduct(response.getData());
+        PcbPartsSearch pcbPartsSearch = result.getData();
+        PcbPartsSearch findPcbParts = this.pcbPartsSearchRepository.findByPartNameKeyword(pcbPartsSearch.getPartName());
+        if (findPcbParts != null) {
+            CCResult findResult = CCObjectResult.setSimpleData(findPcbParts);
+            findResult.setMessage("Already exists");
+            return findResult;
+        }
+        return CCObjectResult.setSimpleData(this.pcbPartsSearchRepository.save(pcbPartsSearch));
+    }
+
+    /**
+     * 주어진 부품 번호에 해당하는 Digi-Key 제품 세부 정보를 검색합니다.
+     *
+     * @param partNumber 검색할 Digi-Key 제품의 부품 번호
+     * @return 검색된 제품 세부 정보를 포함하는 CCObjectResult 객체의 Mono
+     */
+    public Mono<CCObjectResult<Map<String, Object>>> searchDigikeyProductDetails(String partNumber) {
+        return WebClient
+                .create(applicationProperties.getMlServer().getServerUrl())
+                .get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/api/digikeyProductDetails")
+                        .queryParam("partNumber", partNumber)  // 단일 문장 쿼리 파라미터
+                        .build())
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<CCObjectResult<Map<String, Object>>>() {})
+                .doOnError(WebClientResponseException.class, ex ->
+                        log.error(ex.getResponseBodyAsString()));
     }
 }

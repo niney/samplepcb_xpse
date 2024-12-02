@@ -36,6 +36,11 @@ dependencies {
     implementation 'org.apache.poi:poi:5.3.0'
     // https://mvnrepository.com/artifact/org.apache.poi/poi-ooxml
     implementation 'org.apache.poi:poi-ooxml:5.3.0'
+    // https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-cache
+    implementation 'org.springframework.boot:spring-boot-starter-cache'
+    // https://mvnrepository.com/artifact/com.github.ben-manes.caffeine/caffeine
+    implementation 'com.github.ben-manes.caffeine:caffeine'
+
 
     implementation files("libs/cool-library-1.4.6.jar")
 }

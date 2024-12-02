@@ -1,6 +1,8 @@
 package kr.co.samplepcb.xpse.util;
 
+import kr.co.samplepcb.xpse.domain.PcbUnitSearch;
 import kr.co.samplepcb.xpse.pojo.PcbPartsSearchField;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.*;
@@ -81,12 +83,14 @@ public class PcbPartsUtils {
     public static abstract class PcbConvert {
         public enum Unit {
             NONE,
+            WATTS, KILOWATTS, MEGAWATTS, MILLIWATTS, MICROWATTS,
             FARADS, MEGAFARADS, KILOFARADS, MILLIFARADS, MICROFARADS, NANOFARADS, PICOFARADS,
             PERCENT, PERCENT_STRING,
             VOLTS, KILOVOLTS, MILLIVOLTS, MICROVOLTS,
             AMPERES, MILLIAMPERES, MICROAMPERES,
             OHMS, KILOHMS, MEGAOHMS,
-            HENRYS, MILLIHENRYS, MICROHENRYS
+            HENRYS, MILLIHENRYS, MICROHENRYS,
+            IMPERIAL, METRIC, IMPERIAL_SIZE, METRIC_SIZE,
         }
 
         abstract Map<Unit, String> convert(String input);
@@ -96,6 +100,104 @@ public class PcbPartsUtils {
         abstract double convert(double value, Unit unit);
 
     }
+
+    public static class WattConvert extends PcbConvert {
+
+        @Override
+        public Map<Unit, String> convert(String input) {
+            String[] parts = input.split("(?<=\\d)(?=\\D)");
+            if (parts.length < 2) {
+                return Collections.emptyMap();
+            }
+
+            if (parts[0].contains("/")) {
+                String[] rangeParts = parts[0].split("/");
+                parts[0] = rangeParts[0];
+            }
+
+            double value = Double.parseDouble(parts[0]);
+            Unit unit = determineUnit(parts[1]);
+            if (unit == Unit.NONE) {
+                return Collections.emptyMap();
+            }
+
+            // Convert to Watts
+            double valueInWatts = convert(value, unit);
+
+            // Convert to other units
+            double valueInKilowatts = convertWattsToKilowatts(valueInWatts);
+            double valueInMegawatts = convertWattsToMegawatts(valueInWatts);
+            double valueInMilliwatts = convertWattsToMilliwatts(valueInWatts);
+            double valueInMicrowatts = convertWattsToMicrowatts(valueInWatts);
+
+            Map<Unit, String> result = new HashMap<>();
+            result.put(Unit.WATTS, stringifyDoubleWithConditionalDecimal(valueInWatts) + "W");
+            result.put(Unit.KILOWATTS, stringifyDoubleWithConditionalDecimal(valueInKilowatts) + "kW");
+            result.put(Unit.MEGAWATTS, stringifyDoubleWithConditionalDecimal(valueInMegawatts) + "MW");
+            result.put(Unit.MILLIWATTS, stringifyDoubleWithConditionalDecimal(valueInMilliwatts) + "mW");
+            result.put(Unit.MICROWATTS, stringifyDoubleWithConditionalDecimal(valueInMicrowatts) + "uW");
+            return result;
+        }
+
+        @Override
+        Unit determineUnit(String unitStr) {
+            unitStr = unitStr.toLowerCase();
+            switch (unitStr) {
+                case "w":
+                case "watt":
+                case "watts":
+                    return Unit.WATTS;
+                case "kw":
+                    return Unit.KILOWATTS;
+                case "mw":
+                case "megaw":
+                    return Unit.MEGAWATTS;
+                case "mlw":
+                case "milliw":
+                    return Unit.MILLIWATTS;
+                case "µw":
+                case "uw":
+                    return Unit.MICROWATTS;
+                default:
+                    return Unit.NONE;
+            }
+        }
+
+        @Override
+        double convert(double value, Unit unit) {
+            switch (unit) {
+                case WATTS:
+                    return value;
+                case KILOWATTS:
+                    return value * 1_000;
+                case MEGAWATTS:
+                    return value * 1_000_000;
+                case MILLIWATTS:
+                    return value / 1_000;
+                case MICROWATTS:
+                    return value / 1_000_000;
+                default:
+                    throw new IllegalArgumentException("Unknown unit: " + unit);
+            }
+        }
+
+        private static double convertWattsToKilowatts(double watts) {
+            return watts / 1_000;
+        }
+
+        private static double convertWattsToMegawatts(double watts) {
+            return watts / 1_000_000;
+        }
+
+        private static double convertWattsToMilliwatts(double watts) {
+            return watts * 1_000;
+        }
+
+        private static double convertWattsToMicrowatts(double watts) {
+            return watts * 1_000_000;
+        }
+    }
+
 
     public static class OhmConvert extends PcbConvert {
 
@@ -505,6 +607,91 @@ public class PcbPartsUtils {
         }
     }
 
+    public static class PackageConvert extends PcbConvert {
+        private static final double INCH_TO_MM = 25.4;
+
+        private static final Map<String, String> IMPERIAL_TO_METRIC = Map.of(
+                "0402", "1005",
+                "0603", "1608",
+                "0805", "2012",
+                "1206", "3216",
+                "1210", "3225",
+                "2010", "5025",
+                "2512", "6332"
+        );
+
+        @Override
+        public Map<Unit, String> convert(String input) {
+            if (input == null || input.trim().isEmpty()) {
+                return Collections.emptyMap();
+            }
+
+            Map<Unit, String> result = new HashMap<>();
+
+            // Case 1: 1206(3216) format
+            Pattern fullPattern = Pattern.compile("^\\s*(\\d{4})\\s*\\(\\s*(\\d{4})\\s*\\)\\s*$");
+            // Case 2: 1206 (3216 Metric) format
+            Pattern metricPattern = Pattern.compile("^\\s*(\\d{4})\\s*\\(\\s*(\\d{4})\\s*(?:Metric)?\\s*\\)\\s*$", Pattern.CASE_INSENSITIVE);
+            // Case 3: 1206 format
+            Pattern singlePattern = Pattern.compile("^\\s*(\\d{4})\\s*$");
+
+            Matcher fullMatcher = fullPattern.matcher(input.trim());
+            Matcher metricMatcher = metricPattern.matcher(input.trim());
+            Matcher singleMatcher = singlePattern.matcher(input.trim());
+
+            if (fullMatcher.find()) {
+                String firstCode = fullMatcher.group(1);
+                String secondCode = fullMatcher.group(2);
+                processPackageCodes(result, firstCode, secondCode);
+            } else if (metricMatcher.find()) {
+                String firstCode = metricMatcher.group(1);
+                String secondCode = metricMatcher.group(2);
+                processPackageCodes(result, firstCode, secondCode);
+            } else if (singleMatcher.find()) {
+                String imperialCode = singleMatcher.group(1);
+                String metricCode = IMPERIAL_TO_METRIC.get(imperialCode);
+                if (metricCode != null) {
+                    processPackageCodes(result, imperialCode, metricCode);
+                }
+            }
+
+            return result;
+        }
+
+        private void processPackageCodes(Map<Unit, String> result, String firstCode, String secondCode) {
+            String imperial, metric;
+            if (IMPERIAL_TO_METRIC.containsValue(firstCode)) {
+                metric = firstCode;
+                imperial = secondCode;
+            } else {
+                imperial = firstCode;
+                metric = secondCode;
+            }
+
+            result.put(Unit.IMPERIAL_SIZE, imperial);
+            result.put(Unit.METRIC_SIZE, metric);
+
+            int imperialLength = Integer.parseInt(imperial.substring(0, 2));
+            int imperialWidth = Integer.parseInt(imperial.substring(2));
+
+            double lengthInMm = Double.parseDouble(metric.substring(0, 2)) / 10.0;
+            double widthInMm = Double.parseDouble(metric.substring(2)) / 10.0;
+
+            result.put(Unit.IMPERIAL, String.format("%dx%d", imperialLength, imperialWidth));
+            result.put(Unit.METRIC, String.format("%.1fx%.1f", lengthInMm, widthInMm));
+        }
+
+        @Override
+        Unit determineUnit(String unitStr) {
+            return Unit.NONE;
+        }
+
+        @Override
+        double convert(double value, Unit unit) {
+            return 0;
+        }
+    }
+
     // 레벤슈타인 거리 계산
     public static int levenshteinDistance(String a, String b) {
         int[][] dp = new int[a.length() + 1][b.length() + 1];
@@ -534,5 +721,95 @@ public class PcbPartsUtils {
         return (1.0 - (double) levenshteinDistance(a, b) / maxLength) * 100;
     }
 
+    public static PcbUnitSearch parsingToPcbUnitSearch(String propertyName, String value) {
+        PcbUnitSearch pcbUnitSearch = new PcbUnitSearch();
+        List<String> parsedSearchResults = PcbPartsUtils.parseString(value).get(propertyName);
+        if (CollectionUtils.isNotEmpty(parsedSearchResults)) {
+            String searchValue = parsedSearchResults.getFirst();
+            String lowerCaseString = searchValue.toLowerCase();
+            // μF와 µF를 uF로 대체
+            String replacedString = lowerCaseString
+                    .replace("μF", "uF")
+                    .replace("µF", "uF")
+                    .replace("uf", "uF")
+                    .replace("μV", "uV")
+                    .replace("µV", "uV")
+                    .replace("uv", "uV")
+                    .replace("μA", "uA")
+                    .replace("µA", "uA")
+                    .replace("ua", "uA")
+                    .replace("Ω", "Ohm")
+                    .replace("±", "");
+            if (propertyName.equals(PcbPartsSearchField.WATT)) {
+                PcbPartsUtils.WattConvert wattConvert = new PcbPartsUtils.WattConvert();
+                Map<PcbPartsUtils.PcbConvert.Unit, String> watt = wattConvert.convert(replacedString);
+                pcbUnitSearch.setField1(watt.get(PcbPartsUtils.PcbConvert.Unit.WATTS));
+                pcbUnitSearch.setField2(watt.get(PcbPartsUtils.PcbConvert.Unit.KILOWATTS));
+                pcbUnitSearch.setField3(watt.get(PcbPartsUtils.PcbConvert.Unit.MEGAWATTS));
+                pcbUnitSearch.setField4(watt.get(PcbPartsUtils.PcbConvert.Unit.MILLIWATTS));
+                pcbUnitSearch.setField5(watt.get(PcbPartsUtils.PcbConvert.Unit.MICROWATTS));
+            }
+
+            if (propertyName.equals(PcbPartsSearchField.CONDENSER)) {
+                // 소문자로 변환
+                PcbPartsUtils.FaradsConvert faradsConvert = new PcbPartsUtils.FaradsConvert();
+                Map<PcbPartsUtils.FaradsConvert.Unit, String> faradsMap = faradsConvert.convert(replacedString);
+                pcbUnitSearch.setField1(faradsMap.get(PcbPartsUtils.PcbConvert.Unit.FARADS));
+                pcbUnitSearch.setField2(faradsMap.get(PcbPartsUtils.PcbConvert.Unit.MICROFARADS));
+                pcbUnitSearch.setField3(faradsMap.get(PcbPartsUtils.PcbConvert.Unit.NANOFARADS));
+                pcbUnitSearch.setField4(faradsMap.get(PcbPartsUtils.PcbConvert.Unit.PICOFARADS));
+            }
+
+            if (propertyName.equals(PcbPartsSearchField.TOLERANCE)) {
+                PcbPartsUtils.ToleranceConvert toleranceConvert = new PcbPartsUtils.ToleranceConvert();
+                Map<PcbPartsUtils.PcbConvert.Unit, String> tolerance = toleranceConvert.convert(replacedString);
+                pcbUnitSearch.setField1(tolerance.get(PcbPartsUtils.PcbConvert.Unit.PERCENT));
+                pcbUnitSearch.setField2(tolerance.get(PcbPartsUtils.PcbConvert.Unit.PERCENT_STRING));
+            }
+
+            if (propertyName.equals(PcbPartsSearchField.OHM)) {
+                PcbPartsUtils.OhmConvert ohmConvert = new PcbPartsUtils.OhmConvert();
+                Map<PcbPartsUtils.PcbConvert.Unit, String> tolerance = ohmConvert.convert(replacedString);
+                pcbUnitSearch.setField1(tolerance.get(PcbPartsUtils.PcbConvert.Unit.OHMS));
+                pcbUnitSearch.setField2(tolerance.get(PcbPartsUtils.PcbConvert.Unit.KILOHMS));
+                pcbUnitSearch.setField3(tolerance.get(PcbPartsUtils.PcbConvert.Unit.MEGAOHMS));
+            }
+
+            if (propertyName.equals(PcbPartsSearchField.VOLTAGE)) {
+                PcbPartsUtils.VoltConvert voltageConvert = new PcbPartsUtils.VoltConvert();
+                Map<PcbPartsUtils.PcbConvert.Unit, String> voltage = voltageConvert.convert(replacedString);
+                pcbUnitSearch.setField1(voltage.get(PcbPartsUtils.PcbConvert.Unit.VOLTS));
+                pcbUnitSearch.setField2(voltage.get(PcbPartsUtils.PcbConvert.Unit.KILOVOLTS));
+                pcbUnitSearch.setField3(voltage.get(PcbPartsUtils.PcbConvert.Unit.MILLIVOLTS));
+                pcbUnitSearch.setField4(voltage.get(PcbPartsUtils.PcbConvert.Unit.MICROVOLTS));
+            }
+
+            if (propertyName.equals(PcbPartsSearchField.CURRENT)) {
+                PcbPartsUtils.CurrentConvert currentConvert = new PcbPartsUtils.CurrentConvert();
+                Map<PcbPartsUtils.PcbConvert.Unit, String> current = currentConvert.convert(replacedString);
+                pcbUnitSearch.setField1(current.get(PcbPartsUtils.PcbConvert.Unit.AMPERES));
+                pcbUnitSearch.setField2(current.get(PcbPartsUtils.PcbConvert.Unit.MILLIAMPERES));
+                pcbUnitSearch.setField3(current.get(PcbPartsUtils.PcbConvert.Unit.MICROAMPERES));
+            }
+
+            if (propertyName.equals(PcbPartsSearchField.INDUCTOR)) {
+                PcbPartsUtils.InductorConvert inductorConvert = new PcbPartsUtils.InductorConvert();
+                Map<PcbPartsUtils.PcbConvert.Unit, String> inductor = inductorConvert.convert(replacedString);
+                pcbUnitSearch.setField1(inductor.get(PcbPartsUtils.PcbConvert.Unit.HENRYS));
+                pcbUnitSearch.setField2(inductor.get(PcbPartsUtils.PcbConvert.Unit.MILLIHENRYS));
+                pcbUnitSearch.setField3(inductor.get(PcbPartsUtils.PcbConvert.Unit.MICROHENRYS));
+            }
+        }
+        if (propertyName.equals(PcbPartsSearchField.PACKAGING)) {
+            PcbPartsUtils.PackageConvert packageConvert = new PcbPartsUtils.PackageConvert();
+            Map<PcbPartsUtils.PcbConvert.Unit, String> packageMap = packageConvert.convert(value);
+            pcbUnitSearch.setField1(packageMap.get(PcbPartsUtils.PcbConvert.Unit.IMPERIAL_SIZE));
+            pcbUnitSearch.setField2(packageMap.get(PcbPartsUtils.PcbConvert.Unit.METRIC_SIZE));
+            pcbUnitSearch.setField3(packageMap.get(PcbPartsUtils.PcbConvert.Unit.IMPERIAL));
+            pcbUnitSearch.setField4(packageMap.get(PcbPartsUtils.PcbConvert.Unit.METRIC));
+        }
+
+        return pcbUnitSearch;
+    }
 
 }

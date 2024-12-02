@@ -33,4 +33,15 @@ public interface PcbPartsSearchRepository extends ElasticsearchRepository<PcbPar
             "    }\n" +
             "  }")
     PcbPartsSearch findByPartNameNormalizeAndMemberId(String partName, String memberId);
+
+    @Query("""
+            {
+              "match": {
+                "partName.keyword": "?0"
+              }
+            }
+            """)
+    PcbPartsSearch findByPartNameKeyword(String partName);
+
+
 }

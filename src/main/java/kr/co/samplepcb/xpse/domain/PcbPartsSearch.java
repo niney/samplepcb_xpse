@@ -76,14 +76,8 @@ public class PcbPartsSearch implements Persistable<String> {
             }
     )
     private String partsPackaging;
-    @MultiField(
-            mainField = @Field(type = FieldType.Text, analyzer = "ngram_analyzer4_case_insensitive", fielddata = true),
-            otherFields = {
-                    @InnerField(suffix = "keyword", type = FieldType.Keyword),
-                    @InnerField(suffix = "normalize", type = FieldType.Keyword, normalizer = "keyword_normalizer")
-            }
-    )
-    private String packaging;
+    @Field(type = FieldType.Object)
+    private PcbUnitSearch packaging;
     @Field(type = FieldType.Integer)
     private Integer moq;
 
@@ -99,6 +93,8 @@ public class PcbPartsSearch implements Persistable<String> {
     private Integer price4; // 500~999
     @Field(type = FieldType.Integer)
     private Integer price5; // 1000~
+    @Field(type = FieldType.Nested)
+    private List<PcbPartsPriceSearch> prices;
 
     @Field(type = FieldType.Integer)
     private Integer inventoryLevel;
@@ -290,11 +286,11 @@ public class PcbPartsSearch implements Persistable<String> {
         this.partsPackaging = partsPackaging;
     }
 
-    public String getPackaging() {
+    public PcbUnitSearch getPackaging() {
         return packaging;
     }
 
-    public void setPackaging(String packaging) {
+    public void setPackaging(PcbUnitSearch packaging) {
         this.packaging = packaging;
     }
 
@@ -352,6 +348,14 @@ public class PcbPartsSearch implements Persistable<String> {
 
     public void setPrice5(Integer price5) {
         this.price5 = price5;
+    }
+
+    public List<PcbPartsPriceSearch> getPrices() {
+        return prices;
+    }
+
+    public void setPrices(List<PcbPartsPriceSearch> prices) {
+        this.prices = prices;
     }
 
     public Integer getInventoryLevel() {

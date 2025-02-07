@@ -6,20 +6,25 @@ import coolib.common.CCResult;
 import coolib.common.QueryParam;
 import coolib.util.CommonUtils;
 import kr.co.samplepcb.xpse.config.ApplicationProperties;
-import kr.co.samplepcb.xpse.domain.*;
+import kr.co.samplepcb.xpse.domain.NonDigikeyPartsSearch;
+import kr.co.samplepcb.xpse.domain.PcbKindSearch;
+import kr.co.samplepcb.xpse.domain.PcbPartsSearch;
+import kr.co.samplepcb.xpse.domain.PcbUnitSearch;
 import kr.co.samplepcb.xpse.pojo.PcbPartsSearchField;
 import kr.co.samplepcb.xpse.pojo.PcbPartsSearchVM;
 import kr.co.samplepcb.xpse.pojo.adapter.PagingAdapter;
+import kr.co.samplepcb.xpse.repository.NonDigikeyPartsSearchRepository;
 import kr.co.samplepcb.xpse.repository.PcbKindSearchRepository;
 import kr.co.samplepcb.xpse.repository.PcbPartsSearchRepository;
 import kr.co.samplepcb.xpse.service.common.sub.DataExtractorSubService;
-import kr.co.samplepcb.xpse.service.common.sub.ExcelSubService;
 import kr.co.samplepcb.xpse.service.common.sub.DigikeyPartsParserSubService;
+import kr.co.samplepcb.xpse.service.common.sub.ExcelSubService;
 import kr.co.samplepcb.xpse.util.CoolElasticUtils;
 import kr.co.samplepcb.xpse.util.CoolStringUtils;
 import kr.co.samplepcb.xpse.util.PcbPartsUtils;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.poi.util.IOUtils;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -55,17 +60,19 @@ public class PcbPartsService {
     private final ElasticsearchOperations elasticsearchOperations;
     private final PcbPartsSearchRepository pcbPartsSearchRepository;
     private final PcbKindSearchRepository pcbKindSearchRepository;
+    private final NonDigikeyPartsSearchRepository nonDigikeyPartsSearchRepository;
 
     // service
     private final ExcelSubService excelSubService;
     private final DataExtractorSubService dataExtractorSubService;
     private final DigikeyPartsParserSubService digikeyPartsParserSubService;
 
-    public PcbPartsService(ApplicationProperties applicationProperties, ElasticsearchOperations elasticsearchOperations, PcbPartsSearchRepository pcbPartsSearchRepository, PcbKindSearchRepository pcbKindSearchRepository, ExcelSubService excelSubService, DataExtractorSubService dataExtractorSubService, DigikeyPartsParserSubService digikeyPartsParserSubService) {
+    public PcbPartsService(ApplicationProperties applicationProperties, ElasticsearchOperations elasticsearchOperations, PcbPartsSearchRepository pcbPartsSearchRepository, PcbKindSearchRepository pcbKindSearchRepository, NonDigikeyPartsSearchRepository nonDigikeyPartsSearchRepository, ExcelSubService excelSubService, DataExtractorSubService dataExtractorSubService, DigikeyPartsParserSubService digikeyPartsParserSubService) {
         this.applicationProperties = applicationProperties;
         this.elasticsearchOperations = elasticsearchOperations;
         this.pcbPartsSearchRepository = pcbPartsSearchRepository;
         this.pcbKindSearchRepository = pcbKindSearchRepository;
+        this.nonDigikeyPartsSearchRepository = nonDigikeyPartsSearchRepository;
         this.excelSubService = excelSubService;
         this.dataExtractorSubService = dataExtractorSubService;
         this.digikeyPartsParserSubService = digikeyPartsParserSubService;
@@ -329,6 +336,8 @@ public class PcbPartsService {
 
         XSSFWorkbook workbook = null;
         try {
+            // 1GB = 1 * 1024 * 1024 * 1024 바이트
+            IOUtils.setByteArrayMaxOverride(1 * 1024 * 1024 * 1024);
             workbook = new XSSFWorkbook(file.getInputStream());
             for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
                 excelIndexingByEleparts(workbook, i, category);
@@ -510,18 +519,29 @@ public class PcbPartsService {
         return copyParsedKeywords.size();
     }
 
+    public CCResult searchNonDigikeyParts(String partName) {
+        List<NonDigikeyPartsSearch> partsSearches = this.nonDigikeyPartsSearchRepository.findByPartNameKeyword(partName);
+        if (partsSearches.isEmpty()) {
+            return CCResult.dataNotFound();
+        }
+        return CCObjectResult.setSimpleData(partsSearches);
+    }
+
     /**
      * Digikey 응답 객체를 기반으로 인덱싱을 수행하는 메서드입니다.
      *
      * @param response Digikey로부터 받은 결과 데이터를 포함하는 CCObjectResult 객체
      * @return 인덱싱 결과를 나타내는 CCResult 객체. 만약 response가 유효하지 않으면 데이터가 없음을 나타내는 CCResult를 반환
      */
-    public CCResult indexingByDigikey(CCObjectResult<Map<String, Object>> response) {
+    public CCResult indexingByDigikey(String partName, CCObjectResult<Map<String, Object>> response) {
         if (!response.isResult()) {
             CCResult ccResult = CCResult.dataNotFound();
             if (StringUtils.isNotEmpty(response.getMessage())) {
                 ccResult.setMessage(response.getMessage());
             }
+            NonDigikeyPartsSearch nonDigikeyPartsSearch = new NonDigikeyPartsSearch();
+            nonDigikeyPartsSearch.setPartName(partName);
+            this.nonDigikeyPartsSearchRepository.save(nonDigikeyPartsSearch);
             return ccResult;
         }
         CCObjectResult<PcbPartsSearch> result = this.digikeyPartsParserSubService.parseProduct(response.getData());

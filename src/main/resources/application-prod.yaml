@@ -1,0 +1,13 @@
+spring:
+    elasticsearch:
+        uris: http://localhost:9201
+
+application:
+    digikey:
+        baseUrl: https://api.digikey.com
+        clientId: QyblfkYoL7g5C5ASpfQUwu2AsDJWxDZA
+        clientSecret: 7GcVGYPJaRvNDm16
+    splinserver:
+        serverUrl: https://lin.easypcb.co.kr
+    mlServer:
+        serverUrl: https://ml.easypcb.co.kr

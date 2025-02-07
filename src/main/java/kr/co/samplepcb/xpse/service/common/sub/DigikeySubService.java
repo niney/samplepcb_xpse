@@ -1,4 +1,4 @@
-package kr.co.samplepcb.xpse.service;
+package kr.co.samplepcb.xpse.service.common.sub;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -33,9 +33,9 @@ import static kr.co.samplepcb.xpse.config.CacheConfig.SEARCH_RESULTS;
 import static org.apache.logging.log4j.message.ParameterizedMessage.ERROR_PREFIX;
 
 @Service
-public class DigikeyService {
+public class DigikeySubService {
 
-    private static final Logger log = LoggerFactory.getLogger(DigikeyService.class);
+    private static final Logger log = LoggerFactory.getLogger(DigikeySubService.class);
 
     public static class TokenResponse {
         @JsonProperty("access_token")
@@ -103,7 +103,7 @@ public class DigikeyService {
         return Paths.get(baseStoragePath, TOKEN_FOLDER, TOKEN_FILE);
     }
 
-    public DigikeyService(ApplicationProperties applicationProperties, WebClient.Builder webClientBuilder, ObjectMapper objectMapper) {
+    public DigikeySubService(ApplicationProperties applicationProperties, WebClient.Builder webClientBuilder, ObjectMapper objectMapper) {
         this.applicationProperties = applicationProperties;
         this.webClientBuilder = webClientBuilder;
         this.objectMapper = objectMapper;
@@ -220,6 +220,16 @@ public class DigikeyService {
                 .uri("/products/v4/search/{partNumber}/productdetails", partNumber)
                 .header("X-DIGIKEY-Locale-Currency", "KRW")
                 .header("X-DIGIKEY-Locale-Site", "KR")
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {})
+                .map(this::createSuccessResult)
+                .onErrorResume(Exception.class, this::createFailureResult);
+    }
+
+    public Mono<CCObjectResult<Map<String, Object>>> getCategories() {
+        return webClientBuilder.build()
+                .get()
+                .uri("/products/v4/search/categories")
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {})
                 .map(this::createSuccessResult)

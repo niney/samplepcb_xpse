@@ -1,12 +1,10 @@
 package kr.co.samplepcb.xpse.resource;
 
-import co.elastic.clients.transport.rest_client.RestClientTransport;
-import coolib.common.CCObjectResult;
 import coolib.common.CCResult;
 import coolib.common.QueryParam;
 import kr.co.samplepcb.xpse.pojo.PcbPartsSearchField;
 import kr.co.samplepcb.xpse.pojo.PcbPartsSearchVM;
-import kr.co.samplepcb.xpse.service.DigikeyService;
+import kr.co.samplepcb.xpse.service.common.sub.DigikeySubService;
 import kr.co.samplepcb.xpse.service.PcbPartsService;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.PageRequest;
@@ -18,19 +16,17 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import reactor.core.publisher.Mono;
 
-import java.util.Map;
-
 @RestController
 @RequestMapping("/api/pcbParts")
 public class PcbPartsResource {
 
     // service
     private final PcbPartsService pcbPartsService;
-    private final DigikeyService digikeyService;
+    private final DigikeySubService digikeySubService;
 
-    public PcbPartsResource(PcbPartsService pcbPartsService, DigikeyService digikeyService) {
+    public PcbPartsResource(PcbPartsService pcbPartsService, DigikeySubService digikeySubService) {
         this.pcbPartsService = pcbPartsService;
-        this.digikeyService = digikeyService;
+        this.digikeySubService = digikeySubService;
     }
 
     @PostMapping(value = "/_uploadItemFileByEleparts")
@@ -53,8 +49,12 @@ public class PcbPartsResource {
 
     @GetMapping("/_indexingByDigikey")
     public Mono<CCResult> indexingByDigikey(String partNumber) {
-        return this.digikeyService.getProductDetails(partNumber)
-                .flatMap(resultMap -> Mono.just(pcbPartsService.indexingByDigikey(resultMap)));
+        CCResult ccResult = this.pcbPartsService.searchNonDigikeyParts(partNumber);
+        if (ccResult.isResult()) {
+            return Mono.just(CCResult.dataNotFound());
+        }
+        return this.digikeySubService.getProductDetails(partNumber)
+                .flatMap(resultMap -> Mono.just(pcbPartsService.indexingByDigikey(partNumber, resultMap)));
     }
 
 }

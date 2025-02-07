@@ -1,14 +1,11 @@
 package kr.co.samplepcb.xpse.service;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
-import co.elastic.clients.elasticsearch._types.InlineScript;
 import co.elastic.clients.elasticsearch._types.Script;
 import co.elastic.clients.elasticsearch._types.query_dsl.MatchAllQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.ScriptScoreQuery;
 import co.elastic.clients.elasticsearch.core.MsearchRequest;
 import co.elastic.clients.elasticsearch.core.MsearchResponse;
-import co.elastic.clients.elasticsearch.core.SearchRequest;
-import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.msearch.*;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.json.JsonData;
@@ -149,7 +146,7 @@ public class PcbColumnService {
         Map<String, JsonData> params = new HashMap<>();
         params.put("query_vector", JsonData.of(queryVector));
 
-        InlineScript inlineScript = new InlineScript.Builder()
+        Script inlineScript = new Script.Builder()
                 .lang("painless")
                 .source("cosineSimilarity(params.query_vector, '" + PcbColumnSearchField.COL_NAME_VECTOR + "') + 1.0")
                 .params(params)
@@ -157,7 +154,7 @@ public class PcbColumnService {
 
         return new ScriptScoreQuery.Builder()
                 .query(new MatchAllQuery.Builder().build()._toQuery())
-                .script(new Script.Builder().inline(inlineScript).build())
+                .script(inlineScript)
                 .build();
     }
 

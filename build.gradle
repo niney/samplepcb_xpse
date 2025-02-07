@@ -1,11 +1,11 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.3.4'
+    id 'org.springframework.boot' version '3.4.2'
     id 'io.spring.dependency-management' version '1.1.6'
 }
 
 group = 'kr.co.samplepcb'
-version = '0.0.1-SNAPSHOT'
+//version = '0.0.1-SNAPSHOT'
 
 java {
     toolchain {
@@ -28,7 +28,8 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
-    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+//    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+    implementation 'org.springframework.boot:spring-boot-configuration-processor'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
@@ -40,11 +41,16 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-cache'
     // https://mvnrepository.com/artifact/com.github.ben-manes.caffeine/caffeine
     implementation 'com.github.ben-manes.caffeine:caffeine'
-
+    // https://mvnrepository.com/artifact/org.json/json
+    implementation 'org.json:json:20240303'
 
     implementation files("libs/cool-library-1.4.6.jar")
 }
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+bootJar {
+    launchScript()
 }

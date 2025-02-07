@@ -1,8 +1,17 @@
+server:
+    port: 8081
+
 spring:
     servlet:
         multipart:
             max-file-size: 50MB
             max-request-size: 100MB
+    data:
+        web:
+            pageable:
+                one-indexed-parameters: true # Whether to expose and assume 1-based page number indexes.
+                default-page-size: 10
+                max-page-size: 1000000000 # 1 billion
     application.name: samplepcb_xpse
     elasticsearch:
         uris: http://localhost:9200
@@ -12,11 +21,11 @@ spring:
             spec: maximumSize=100,expireAfterWrite=50m
 
 logging:
-    level:
-        org:
-            apache:
-                http:
-                    wire: DEBUG
+#    level:
+#        org:
+#            apache:
+#                http:
+#                    wire: DEBUG
     pattern:
         console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 
@@ -28,7 +37,7 @@ application:
         exposed-headers: "authorization, content-type, date, connection, transfer-encoding, x-application-context, x-content-type-options, x-xss-protection"
         max-age: 1800
     splinserver:
-        serverUrl: http://localhost:5000
+        serverUrl: http://localhost:8098
     mlServer:
         serverUrl: http://localhost:8099
     digikey:

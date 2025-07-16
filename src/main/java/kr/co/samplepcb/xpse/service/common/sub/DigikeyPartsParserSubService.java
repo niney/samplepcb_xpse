@@ -1,12 +1,14 @@
 package kr.co.samplepcb.xpse.service.common.sub;
 
 import coolib.common.CCObjectResult;
+import coolib.common.CCResult;
 import kr.co.samplepcb.xpse.domain.PcbPartsPriceSearch;
 import kr.co.samplepcb.xpse.domain.PcbPartsPriceStepSearch;
 import kr.co.samplepcb.xpse.domain.PcbPartsSearch;
 import kr.co.samplepcb.xpse.domain.PcbUnitSearch;
 import kr.co.samplepcb.xpse.pojo.PcbPartsSearchField;
 import kr.co.samplepcb.xpse.util.PcbPartsUtils;
+import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -82,6 +84,22 @@ public class DigikeyPartsParserSubService {
         return CCObjectResult.setSimpleData(pcbParts);
     }
 
+    public CCResult parseProductsFirst(Map<String, Object> root) {
+        List list = (List) root.get("Products");
+        if (CollectionUtils.isEmpty(list)) {
+            return CCResult.dataNotFound();
+        }
+        Map<String, Object> product = (Map) list.getFirst();
+        PcbPartsSearch pcbParts = new PcbPartsSearch();
+
+        setBasicInfo(pcbParts, product);
+        setCategoryInfo(pcbParts, product);
+        setPriceInfo(pcbParts, product);
+        setParameterInfo(pcbParts, product);
+
+        return CCObjectResult.setSimpleData(pcbParts);
+    }
+
     /**
      * 주어진 매개변수를 처리하여 해당하는 PcbPartsSearch 객체의 속성을 설정합니다.
      *
@@ -115,6 +133,7 @@ public class DigikeyPartsParserSubService {
         pcbParts.setManufacturerName(getNestedString(product, "Manufacturer", "Name"));
         pcbParts.setPartName((String) product.get("ManufacturerProductNumber"));
         pcbParts.setPrice((int) ((Number) product.get("UnitPrice")).doubleValue());
+        pcbParts.setPhotoUrl((String) product.get("PhotoUrl"));
     }
 
     /**

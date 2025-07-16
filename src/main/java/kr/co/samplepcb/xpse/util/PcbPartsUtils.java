@@ -24,7 +24,7 @@ public class PcbPartsUtils {
         Map<String, Pattern> units = new HashMap<>();
         units.put(PcbPartsSearchField.WATT, Pattern.compile("([0-9.]+/[0-9.]+|[0-9.]+)\\s*([Ww]|watt(s)?|WATT(S)?)\\b", Pattern.CASE_INSENSITIVE));
         units.put(PcbPartsSearchField.TOLERANCE, Pattern.compile("[±]?[0-9.]+(\\s*%)"));
-        units.put(PcbPartsSearchField.OHM, Pattern.compile("([0-9.]+/[0-9.]+)?[0-9.]*\\s*(k|m)?(ohm(s)?|Ω)\\b", Pattern.CASE_INSENSITIVE));
+        units.put(PcbPartsSearchField.OHM, Pattern.compile("([0-9.]+/[0-9.]+|[0-9.]+)\\s*(k|m|G)(?:(ohm(s)?|Ω)\\b|\\b)", Pattern.CASE_INSENSITIVE));
         units.put(PcbPartsSearchField.CONDENSER, Pattern.compile("[0-9.]+(?:μF|µF|uF|nF|pF|mF|F)(?![a-zA-Z])", Pattern.CASE_INSENSITIVE));
         units.put(PcbPartsSearchField.VOLTAGE, Pattern.compile("([0-9.]+/[0-9.]+)?[0-9.]*\\s*(V|v|kV|KV|kv|mV|MV|mv|µV|UV|uv|Volt|volt|vdc|VDC|kvdc|KVDC)\\b", Pattern.CASE_INSENSITIVE));
         units.put(PcbPartsSearchField.TEMPERATURE, Pattern.compile("(-?\\d+\\.?\\d*)\\s?(℃|°C)"));

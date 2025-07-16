@@ -21,6 +21,7 @@ import kr.co.samplepcb.xpse.pojo.adapter.PagingAdapter;
 import kr.co.samplepcb.xpse.repository.PcbColumnSearchRepository;
 import kr.co.samplepcb.xpse.service.common.sub.GoogleTensorService;
 import kr.co.samplepcb.xpse.util.CoolElasticUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
@@ -84,12 +85,35 @@ public class PcbColumnService {
 
         List<PcbColumnSearchVM> pcbColumnSearchVMList = this.searchSentenceListScore(vectorsResult.getData(), columnNameList);
         pcbSentenceVM.setPcbColumnSearchList(pcbColumnSearchVMList);
-        // getQueryScore 평균점수를 구한다
-        double averageScore = 0;
+
+        // 전체 아이템 수와 빈 QueryColName 수를 계산
+        int totalItems = pcbColumnSearchVMList.size();
+        int emptyQueryColNameCount = 0;
+        double totalScore = 0;
+        int validScoreCount = 0;
+
         for (PcbColumnSearchVM pcbColumnSearchVM : pcbColumnSearchVMList) {
-            averageScore += pcbColumnSearchVM.getQueryScore();
+            if (StringUtils.isEmpty(pcbColumnSearchVM.getQueryColName())) {
+                emptyQueryColNameCount++;
+                continue;
+            }
+            totalScore += pcbColumnSearchVM.getQueryScore();
+            validScoreCount++;
         }
-        averageScore = averageScore / pcbColumnSearchVMList.size();
+
+        // 빈 값 비율 계산 (0.0 ~ 1.0)
+        double emptyRatio = (double) emptyQueryColNameCount / totalItems;
+
+        // 평균 점수 계산
+        double averageScore = 0;
+        if (validScoreCount > 0) {
+            averageScore = totalScore / validScoreCount;
+
+            // 빈 값 비율에 따라 평균 점수 감소
+            // 예: 빈 값이 50%면 점수를 50% 감소
+            averageScore = averageScore * (1.0 - emptyRatio);
+        }
+
         pcbSentenceVM.setAverageScore(averageScore);
         return CCObjectResult.setSimpleData(pcbSentenceVM);
     }

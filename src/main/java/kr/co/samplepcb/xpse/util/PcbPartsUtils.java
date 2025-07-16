@@ -18,14 +18,41 @@ public class PcbPartsUtils {
      * @return a Map containing various classifications of the input string
      */
     public static Map<String, List<String>> parseString(String text) {
+        return parseString(text, null);
+    }
+
+    /**
+     * 미리 정의된 패턴에 기반하여 문자열을 파싱하고 각 구성요소를 분류합니다
+     *
+     * @param text the input string to be parsed
+     * @param referencePrefix 참조 접두사 ("C"일 때 축약된 커패시터 단위 인식)
+     * @return a Map containing various classifications of the input string
+     */
+    public static Map<String, List<String>> parseString(String text, String referencePrefix) {
         Map<String, List<String>> classifications = new HashMap<>();
         classifications.put(PcbPartsSearchField.PRODUCT_NAME, new ArrayList<>());
 
         Map<String, Pattern> units = new HashMap<>();
         units.put(PcbPartsSearchField.WATT, Pattern.compile("([0-9.]+/[0-9.]+|[0-9.]+)\\s*([Ww]|watt(s)?|WATT(S)?)\\b", Pattern.CASE_INSENSITIVE));
         units.put(PcbPartsSearchField.TOLERANCE, Pattern.compile("[±]?[0-9.]+(\\s*%)"));
-        units.put(PcbPartsSearchField.OHM, Pattern.compile("([0-9.]+/[0-9.]+|[0-9.]+)\\s*(k|m|G)(?:(ohm(s)?|Ω)\\b|\\b)", Pattern.CASE_INSENSITIVE));
-        units.put(PcbPartsSearchField.CONDENSER, Pattern.compile("[0-9.]+(?:μF|µF|uF|nF|pF|mF|F)(?![a-zA-Z])", Pattern.CASE_INSENSITIVE));
+        
+        // referencePrefix가 "R"일 때 확장된 저항 단위 인식
+        if ("R".equals(referencePrefix)) {
+            // 단순화된 저항 패턴 - 범위 표기를 더 정확하게 처리
+            units.put(PcbPartsSearchField.OHM, Pattern.compile(
+                "([0-9.]+(?:[KMGkmgΩ]|ohm|R)?[-~][0-9.]+(?:[KMGkmgΩ]|ohm|R)?|[0-9.]+(?:[RKMGrkmg][0-9.]*|mΩ|mR|mohm|milliohm|µΩ|uΩ|uR|microhm|Ω|R|ohm|ohms?|K|M|G|k|m|g))", 
+                Pattern.CASE_INSENSITIVE));
+        } else {
+            units.put(PcbPartsSearchField.OHM, Pattern.compile("([0-9.]+/[0-9.]+|[0-9.]+)\\s*(?:(k|m|G)?)(?:(ohm(s)?|Ω)\\b)", Pattern.CASE_INSENSITIVE));
+        }
+        
+        // referencePrefix가 "C"일 때 축약된 커패시터 단위도 인식
+        if ("C".equals(referencePrefix)) {
+            units.put(PcbPartsSearchField.CONDENSER, Pattern.compile("[0-9.]+(?:μF|µF|uF|nF|pF|mF|F|p|n|u)(?![a-zA-Z])", Pattern.CASE_INSENSITIVE));
+        } else {
+            units.put(PcbPartsSearchField.CONDENSER, Pattern.compile("[0-9.]+(?:μF|µF|uF|nF|pF|mF|F)(?![a-zA-Z])", Pattern.CASE_INSENSITIVE));
+        }
+        
         units.put(PcbPartsSearchField.VOLTAGE, Pattern.compile("([0-9.]+/[0-9.]+)?[0-9.]*\\s*(V|v|kV|KV|kv|mV|MV|mv|µV|UV|uv|Volt|volt|vdc|VDC|kvdc|KVDC)\\b", Pattern.CASE_INSENSITIVE));
         units.put(PcbPartsSearchField.TEMPERATURE, Pattern.compile("(-?\\d+\\.?\\d*)\\s?(℃|°C)"));
         units.put(PcbPartsSearchField.SIZE, Pattern.compile("((\\d+\\.\\d+|\\d+)([xX*])(\\d+\\.\\d+|\\d+)(([xX*])(\\d+\\.\\d+|\\d+))?)|((\\d+)(?=사이즈))|(\\d+\\.?\\d*mm)", Pattern.CASE_INSENSITIVE));
@@ -42,6 +69,16 @@ public class PcbPartsUtils {
                     List<String> classification = classifications.getOrDefault(unit.getKey(), new ArrayList<>());
                     if (unit.getKey().equals(PcbPartsSearchField.TEMPERATURE)) {
                         classification.add(matcher.group(1));
+                    } else if (unit.getKey().equals(PcbPartsSearchField.CONDENSER) && "C".equals(referencePrefix)) {
+                        // 축약된 형태를 전체 형태로 변환
+                        String matchedValue = matcher.group();
+                        String convertedValue = convertShortCapacitorUnit(matchedValue);
+                        classification.add(convertedValue);
+                    } else if (unit.getKey().equals(PcbPartsSearchField.OHM) && "R".equals(referencePrefix)) {
+                        // R 표기법을 표준 형태로 변환
+                        String matchedValue = matcher.group();
+                        String convertedValue = convertResistorNotation(matchedValue);
+                        classification.add(convertedValue);
                     } else {
                         classification.add(matcher.group());
                     }
@@ -55,6 +92,132 @@ public class PcbPartsUtils {
         }
 
         return classifications;
+    }
+
+    /**
+     * 축약된 커패시터 단위를 전체 형태로 변환합니다
+     *
+     * @param shortUnit 축약된 단위 (예: "22p", "33n", "10u")
+     * @return 전체 형태의 단위 (예: "22pF", "33nF", "10uF")
+     */
+    private static String convertShortCapacitorUnit(String shortUnit) {
+        if (shortUnit.matches("[0-9.]+p$")) {
+            return shortUnit + "F";  // p -> pF
+        } else if (shortUnit.matches("[0-9.]+n$")) {
+            return shortUnit + "F";  // n -> nF
+        } else if (shortUnit.matches("[0-9.]+u$")) {
+            return shortUnit + "F";  // u -> uF
+        }
+        return shortUnit; // 이미 전체 형태이거나 다른 단위인 경우
+    }
+
+    /**
+     * 저항 표기법을 표준 형태로 변환합니다
+     *
+     * @param resistorValue 저항값 (예: "2R2", "1K2", "4.7K", "100R", "2.2M")
+     * @return 표준 형태의 저항값 (예: "2.2ohm", "1.2kohm", "4.7kohm", "100ohm", "2.2mohm")
+     */
+    private static String convertResistorNotation(String resistorValue) {
+        String value = resistorValue.trim();
+        
+        // 범위 표기 처리 먼저 (예: 1k-10k -> 1kohm-10kohm)
+        if (value.contains("-") || value.contains("~")) {
+            String separator = value.contains("-") ? "-" : "~";
+            String[] parts = value.split(separator);
+            if (parts.length == 2) {
+                String converted1 = convertResistorNotation(parts[0].trim());
+                String converted2 = convertResistorNotation(parts[1].trim());
+                return converted1 + separator + converted2;
+            }
+        }
+        
+        // 밀리옴, 마이크로옴 단위 정규화 먼저 처리
+        if (value.matches(".*[m]\\u03A9.*") || value.matches(".*[m]R.*") || value.matches(".*mohm.*") || value.matches(".*milliohm.*")) {
+            return value.replace("mΩ", "mohm")
+                        .replace("m\u03A9", "mohm")
+                        .replace("mR", "mohm")
+                        .replace("milliohm", "mohm");
+        }
+        
+        if (value.matches(".*[\\u00B5u]\\u03A9.*") || value.matches(".*[\\u00B5u]R.*") || value.matches(".*microhm.*")) {
+            return value.replace("µΩ", "uohm")
+                        .replace("\u00B5\u03A9", "uohm")
+                        .replace("uΩ", "uohm")
+                        .replace("u\u03A9", "uohm")
+                        .replace("uR", "uohm")
+                        .replace("µR", "uohm")
+                        .replace("\u00B5R", "uohm")
+                        .replace("microhm", "uohm");
+        }
+        
+        // Ω를 ohm으로 변환 (단독으로 있는 경우)
+        if (value.endsWith("Ω") || value.endsWith("\u03A9")) {
+            return value.replace("Ω", "ohm").replace("\u03A9", "ohm");
+        }
+        
+        // R 표기법 처리 (예: 2R2 -> 2.2ohm, 1K2 -> 1.2kohm, 2M2 -> 2.2mohm)
+        if (value.matches("[0-9.]+[RKMGrkmg][0-9.]*")) {
+            // 숫자와 단위 문자 분리
+            int unitIndex = -1;
+            char unitChar = 0;
+            for (int i = 0; i < value.length(); i++) {
+                char c = value.charAt(i);
+                if (c == 'R' || c == 'K' || c == 'M' || c == 'G' || 
+                    c == 'r' || c == 'k' || c == 'm' || c == 'g') {
+                    unitIndex = i;
+                    unitChar = Character.toLowerCase(c);
+                    break;
+                }
+            }
+            
+            if (unitIndex != -1) {
+                String beforeUnit = value.substring(0, unitIndex);
+                String afterUnit = value.substring(unitIndex + 1);
+                
+                // 소수점 형태로 변환
+                String decimalValue;
+                if (!afterUnit.isEmpty()) {
+                    decimalValue = beforeUnit + "." + afterUnit;
+                } else {
+                    decimalValue = beforeUnit;
+                }
+                
+                // 단위 추가
+                switch (unitChar) {
+                    case 'r':
+                        return decimalValue + "ohm";
+                    case 'k':
+                        return decimalValue + "kohm";
+                    case 'm':
+                        return decimalValue + "mohm";
+                    case 'g':
+                        return decimalValue + "gohm";
+                    default:
+                        return value;
+                }
+            }
+        }
+        
+        // 대문자 단위 처리 (예: 4.7K -> 4.7kohm, 2.2M -> 2.2mohm)
+        if (value.matches("[0-9.]+[KMGR]$")) {
+            char lastChar = Character.toLowerCase(value.charAt(value.length() - 1));
+            String numericPart = value.substring(0, value.length() - 1);
+            
+            switch (lastChar) {
+                case 'r':
+                    return numericPart + "ohm";
+                case 'k':
+                    return numericPart + "kohm";
+                case 'm':
+                    return numericPart + "mohm";
+                case 'g':
+                    return numericPart + "gohm";
+                default:
+                    return value;
+            }
+        }
+        
+        return value; // 이미 표준 형태이거나 변환할 수 없는 경우
     }
 
     private static String stringifyDoubleWithConditionalDecimal(double number) {

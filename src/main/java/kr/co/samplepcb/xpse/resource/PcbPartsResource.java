@@ -40,11 +40,11 @@ public class PcbPartsResource {
             @SortDefault(sort = "_score", direction = Sort.Direction.DESC), // 높은 점수
             @SortDefault(sort = PcbPartsSearchField.INVENTORY_LEVEL, direction = Sort.Direction.DESC), // 재고 있음(많음)
             @SortDefault(sort = PcbPartsSearchField.PRICE1, direction = Sort.Direction.ASC) // 낮은 가격
-    }) Pageable pageable, QueryParam queryParam, PcbPartsSearchVM pcbPartsSearchVM) {
+    }) Pageable pageable, QueryParam queryParam, PcbPartsSearchVM pcbPartsSearchVM, String referencePrefix) {
         if (StringUtils.isNotEmpty(pcbPartsSearchVM.getToken())) {
             pageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(Sort.Direction.DESC, PcbPartsSearchField.WRITE_DATE));
         }
-        return this.pcbPartsService.search(pageable, queryParam, pcbPartsSearchVM);
+        return this.pcbPartsService.search(pageable, queryParam, pcbPartsSearchVM, referencePrefix);
     }
 
     @GetMapping("/_indexingByDigikey")

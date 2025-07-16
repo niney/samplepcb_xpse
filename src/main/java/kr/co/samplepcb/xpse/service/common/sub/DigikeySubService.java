@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import coolib.common.CCObjectResult;
 import jakarta.annotation.PostConstruct;
 import kr.co.samplepcb.xpse.config.ApplicationProperties;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -128,13 +129,9 @@ public class DigikeySubService {
                     if (!request.url().getPath().contains("/oauth2/token")) {
                         return getValidToken()
                                 .flatMap(token -> {
-                                    HttpHeaders headers = new HttpHeaders();
-                                    headers.addAll(request.headers());
-                                    headers.setBearerAuth(token);
-
-                                    // Create a mutable request with updated headers
+                                    // 직접 헤더 설정 - 간소화된 방법
                                     ClientRequest modifiedRequest = ClientRequest.from(request)
-                                            .headers(httpHeaders -> httpHeaders.addAll(headers))
+                                            .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                                             .build();
 
                                     return next.exchange(modifiedRequest);
@@ -190,17 +187,37 @@ public class DigikeySubService {
         return getNewToken();
     }
 
-    @Cacheable(value = SEARCH_RESULTS, key = "#keyword + '_' + #limit + '_' + #offset")
-    public Mono<CCObjectResult<Map<String, Object>>> searchByKeyword(String keyword, int limit, int offset) {
-        Map<String, Object> request = Map.of(
-                "Keywords", keyword,
-                "Limit", limit,
-                "Offset", offset
-        );
+    private String getCategoryId(String parsedKeywordsStr) {
+        return switch (parsedKeywordsStr) {
+            case "R" -> "2";
+            case "C" -> "3";
+            case "I" -> "4";
+            default -> null;
+        };
+    }
+
+    @Cacheable(value = SEARCH_RESULTS, key = "#keyword + '_' + #limit + '_' + #offset + '_' + #parsedKeywordsStr")
+    public Mono<CCObjectResult<Map<String, Object>>> searchByKeyword(String parsedKeywordsStr, String keyword, int limit, int offset) {
+        Map<String, Object> request = new java.util.HashMap<>();
+        request.put("Keywords", keyword);
+        request.put("Limit", limit);
+        request.put("Offset", offset);
+
+        // parsedKeywordsStr에 따른 CategoryFilter 추가
+        if (StringUtils.isNotEmpty(parsedKeywordsStr)) {
+            String categoryId = getCategoryId(parsedKeywordsStr);
+            if (categoryId != null) {
+                Map<String, Object> categoryFilter = Map.of("Id", categoryId);
+                Map<String, Object> filterOptionsRequest = Map.of("CategoryFilter", java.util.List.of(categoryFilter));
+                request.put("FilterOptionsRequest", filterOptionsRequest);
+            }
+        }
 
         return webClientBuilder.build()
                 .post()
                 .uri("/products/v4/search/keyword")
+                .header("X-DIGIKEY-Locale-Currency", "KRW")
+                .header("X-DIGIKEY-Locale-Site", "KR")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
                 .retrieve()
@@ -208,7 +225,8 @@ public class DigikeySubService {
                         response.bodyToMono(String.class)
                                 .flatMap(error -> Mono.error(
                                         new RuntimeException("Search failed: " + error))))
-                .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {})
+                .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {
+                })
                 .map(this::createSuccessResult)
                 .onErrorResume(Exception.class, this::createFailureResult);
     }

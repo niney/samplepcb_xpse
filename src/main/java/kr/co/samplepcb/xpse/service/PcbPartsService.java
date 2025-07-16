@@ -18,6 +18,7 @@ import kr.co.samplepcb.xpse.repository.PcbKindSearchRepository;
 import kr.co.samplepcb.xpse.repository.PcbPartsSearchRepository;
 import kr.co.samplepcb.xpse.service.common.sub.DataExtractorSubService;
 import kr.co.samplepcb.xpse.service.common.sub.DigikeyPartsParserSubService;
+import kr.co.samplepcb.xpse.service.common.sub.DigikeySubService;
 import kr.co.samplepcb.xpse.service.common.sub.ExcelSubService;
 import kr.co.samplepcb.xpse.util.CoolElasticUtils;
 import kr.co.samplepcb.xpse.util.CoolStringUtils;
@@ -48,6 +49,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service
 public class PcbPartsService {
@@ -66,8 +68,9 @@ public class PcbPartsService {
     private final ExcelSubService excelSubService;
     private final DataExtractorSubService dataExtractorSubService;
     private final DigikeyPartsParserSubService digikeyPartsParserSubService;
+    private final DigikeySubService digikeySubService;
 
-    public PcbPartsService(ApplicationProperties applicationProperties, ElasticsearchOperations elasticsearchOperations, PcbPartsSearchRepository pcbPartsSearchRepository, PcbKindSearchRepository pcbKindSearchRepository, NonDigikeyPartsSearchRepository nonDigikeyPartsSearchRepository, ExcelSubService excelSubService, DataExtractorSubService dataExtractorSubService, DigikeyPartsParserSubService digikeyPartsParserSubService) {
+    public PcbPartsService(ApplicationProperties applicationProperties, ElasticsearchOperations elasticsearchOperations, PcbPartsSearchRepository pcbPartsSearchRepository, PcbKindSearchRepository pcbKindSearchRepository, NonDigikeyPartsSearchRepository nonDigikeyPartsSearchRepository, ExcelSubService excelSubService, DataExtractorSubService dataExtractorSubService, DigikeyPartsParserSubService digikeyPartsParserSubService, DigikeySubService digikeySubService) {
         this.applicationProperties = applicationProperties;
         this.elasticsearchOperations = elasticsearchOperations;
         this.pcbPartsSearchRepository = pcbPartsSearchRepository;
@@ -76,6 +79,7 @@ public class PcbPartsService {
         this.excelSubService = excelSubService;
         this.dataExtractorSubService = dataExtractorSubService;
         this.digikeyPartsParserSubService = digikeyPartsParserSubService;
+        this.digikeySubService = digikeySubService;
     }
 
     /**
@@ -358,14 +362,19 @@ public class PcbPartsService {
     /**
      * 검색 기능을 수행하는 메서드입니다.
      *
-     * @param pageable 페이징 정보를 담고 있는 Pageable 객체
-     * @param queryParam 검색 요청에 대한 QueryParam 객체
+     * @param pageable         페이징 정보를 담고 있는 Pageable 객체
+     * @param queryParam       검색 요청에 대한 QueryParam 객체
      * @param pcbPartsSearchVM 검색 조건을 포함하는 PcbPartsSearchVM 객체
+     * @param referencePrefix  참조 지정자값
      * @return 검색 결과를 포함하는 CCResult 객체
      */
-    public CCResult search(Pageable pageable, QueryParam queryParam, PcbPartsSearchVM pcbPartsSearchVM) {
+    public CCResult search(Pageable pageable, QueryParam queryParam, PcbPartsSearchVM pcbPartsSearchVM, String referencePrefix) {
+        CCResult parseSearch = CCResult.dataNotFound();
         if (StringUtils.isNotEmpty(queryParam.getQf()) && queryParam.getQf().equals("parsing")) {
-            return this.parseSearch(pageable, queryParam);
+            parseSearch = this.parseSearch(pageable, queryParam, referencePrefix);
+            if (parseSearch instanceof CCPagingResult && !((CCPagingResult<?>) parseSearch).getData().isEmpty()) {
+                return parseSearch;
+            }
         }
         Criteria criteria = new Criteria(PcbPartsSearchField.PART_NAME).is(queryParam.getQ());
         HighlightQuery highlightQuery = CoolElasticUtils.createHighlightQuery(Set.of(PcbPartsSearchField.PART_NAME));
@@ -374,33 +383,84 @@ public class PcbPartsService {
         query.setHighlightQuery(highlightQuery);
 
         SearchHits<PcbPartsSearch> searchHits = this.elasticsearchOperations.search(query, PcbPartsSearch.class);
-        return CCObjectResult.setSimpleData(CoolElasticUtils.getSourceWithHighlight(searchHits));
+        CCResult result = CCObjectResult.setSimpleData(CoolElasticUtils.getSourceWithHighlight(searchHits));
+        if (result.isResult()) {
+            return result;
+        }
+        return parseSearch;
     }
 
     /**
      * 검색 쿼리를 파싱하고 실행한 후 CCResult를 반환합니다.
      *
-     * @param pageable 페이징 정보를 담고 있는 Pageable 객체
-     * @param queryParam 검색 요청에 대한 QueryParam 객체
+     * @param pageable        페이징 정보를 담고 있는 Pageable 객체
+     * @param queryParam      검색 요청에 대한 QueryParam 객체
+     * @param referencePrefix
      * @return 쿼리 결과를 포함하는 CCResult 객체
      */
-    public CCResult parseSearch(Pageable pageable, QueryParam queryParam) {
-        Map<String, List<String>> parsedKeywords = PcbPartsUtils.parseString(queryParam.getQ());
+    public CCResult parseSearch(Pageable pageable, QueryParam queryParam, String referencePrefix) {
+        String q = queryParam.getQ();
+        if (StringUtils.isEmpty(q)) {
+            return CCResult.dataNotFound();
+        }
+
+        // 검색어 파싱
+        Map<String, List<String>> parsedKeywords = PcbPartsUtils.parseString(q);
+
+        // 검색 조건 및 하이라이트 필드 설정
         Criteria criteria = new Criteria();
         Set<String> highlightFields = new HashSet<>();
+        highlightFields.add(PcbPartsSearchField.PART_NAME);
 
-        // spec criteria
-        addSpecCriteria(parsedKeywords, criteria, highlightFields);
+        // 사양(spec) 관련 검색 조건 추가
+        boolean hasSpecConditions = addSpecCriteria(parsedKeywords, criteria, highlightFields);
 
-        // size criteria
-        CCPagingResult<Object> ccPagingResult = addSizeCriteria(pageable, queryParam, parsedKeywords, criteria, highlightFields);
-        if (ccPagingResult != null) return ccPagingResult;
+        // 사이즈 관련 검색 조건 추가
+        boolean hasSizeConditions = addSizeCriteria(pageable, queryParam, parsedKeywords, criteria, highlightFields);
 
-        Query query = new CriteriaQuery(criteria)
-                .setPageable(pageable);
-        query.setHighlightQuery(CoolElasticUtils.createHighlightQuery(highlightFields));
-        SearchHits<PcbPartsSearch> searchHits = this.elasticsearchOperations.search(query, PcbPartsSearch.class);
-        return CCObjectResult.setSimpleData(CoolElasticUtils.getSourceWithHighlight(searchHits));
+        // 조건이 하나라도 존재하면 검색 실행
+        if (hasSpecConditions || hasSizeConditions) {
+            // 검색 쿼리 생성
+            Query query = new CriteriaQuery(criteria)
+                    .setPageable(pageable);
+            query.setHighlightQuery(CoolElasticUtils.createHighlightQuery(highlightFields));
+
+            // 검색 실행
+            SearchHits<PcbPartsSearch> searchHits = this.elasticsearchOperations.search(query, PcbPartsSearch.class);
+
+            // 검색 결과가 없으면 디지키 검색 수행
+            if (!searchHits.hasSearchHits()) {
+                return searchDigikeyByKeyword(referencePrefix, parsedKeywords);
+            }
+
+            // 결과가 있으면 페이징 결과 반환
+            return PagingAdapter.toCCPagingResult(
+                    pageable,
+                    CoolElasticUtils.getSourceWithHighlight(searchHits),
+                    searchHits.getTotalHits()
+            );
+        }
+
+        // 조건이 없으면 디지키 키워드 검색 수행
+        return searchDigikeyByKeyword(referencePrefix, parsedKeywords);
+    }
+
+    @SuppressWarnings("unchecked")
+    private CCResult searchDigikeyByKeyword(String referencePrefix, Map<String, List<String>> parsedKeywords) {
+        String parsedKeywordsStr = parsedKeywords.values().stream()
+                .flatMap(List::stream)
+                .collect(Collectors.joining(" "));
+        Mono<CCObjectResult<Map<String, Object>>> resultMono = this.digikeySubService.searchByKeyword(referencePrefix, parsedKeywordsStr, 2, 0);
+        CCObjectResult<Map<String, Object>> response = resultMono.block();
+        if (response != null) {
+            CCResult result = this.digikeyPartsParserSubService.parseProductsFirst(response.getData());
+            if (!(result instanceof CCObjectResult<?>)) {
+                return CCResult.dataNotFound();
+            }
+            CCObjectResult<PcbPartsSearch> resultObj = (CCObjectResult<PcbPartsSearch>) result;
+            return PagingAdapter.toCCPagingResult(parsedKeywordsStr, Pageable.ofSize(1), Collections.singletonList(resultObj.getData()), 1);
+        }
+        return CCResult.dataNotFound();
     }
 
     /**
@@ -415,43 +475,45 @@ public class PcbPartsService {
      * @return 특정 조건이 충족되지 않을 경우 메시지와 함께 CCPagingResult 객체를 반환하며,
      *         조건이 충족되는 경우 null을 반환
      */
-    private CCPagingResult<Object> addSizeCriteria(Pageable pageable, QueryParam queryParam, Map<String, List<String>> parsedKeywords, Criteria criteria, Set<String> highlightFields) {
+    private boolean addSizeCriteria(Pageable pageable, QueryParam queryParam, Map<String, List<String>> parsedKeywords, Criteria criteria, Set<String> highlightFields) {
+        boolean hasConditionSpec = false;
         String extractedSize = this.dataExtractorSubService.extractSizeFromTitle(queryParam.getQ());
         if (parsedKeywords.get(PcbPartsSearchField.SIZE) == null && StringUtils.isNotEmpty(extractedSize)) {
             criteria.subCriteria(new Criteria().or(PcbPartsSearchField.SIZE_KEYWORD).is(extractedSize));
             highlightFields.add(PcbPartsSearchField.SIZE_KEYWORD);
+            hasConditionSpec = true;
         }
 
-        if (parsedKeywords.get(PcbPartsSearchField.OHM) != null) {
+        if (parsedKeywords.get(PcbPartsSearchField.OHM) != null && parsedKeywords.size() <= 1) {
             // ohm 이 있다면 Resistor(저항)으로 판단 오차범위는 필수 이다
             if (CollectionUtils.isEmpty(parsedKeywords.get(PcbPartsSearchField.TOLERANCE))) {
                 // 오차범위가 없다면
-                CCPagingResult<Object> ccPagingResult = PagingAdapter.toCCPagingResult(pageable, new ArrayList<>(), 0);
-                ccPagingResult.setMessage("오차범위 정보가 없습니다.");
-                return ccPagingResult;
+                addOrSubCriteria(PcbPartsSearchField.TOLERANCE_KEYWORD_LIST, "10%", criteria, highlightFields);
+                parsedKeywords.put(PcbPartsSearchField.TOLERANCE, Collections.singletonList("10%"));
+                hasConditionSpec = true;
             }
         }
 
-        if (parsedKeywords.get(PcbPartsSearchField.CONDENSER) != null) {
+        if (parsedKeywords.get(PcbPartsSearchField.CONDENSER) != null && parsedKeywords.size() <= 1) {
             // condenser(콘덴서) 있다면 Capacitor(커패시터)로 판단 하고 전압은 필수 이다
             if (CollectionUtils.isEmpty(parsedKeywords.get(PcbPartsSearchField.VOLTAGE))) {
                 // 전압이 없다면
-                CCPagingResult<Object> ccPagingResult = PagingAdapter.toCCPagingResult(pageable, new ArrayList<>(), 0);
-                ccPagingResult.setMessage("전압 정보가 없습니다.");
-                return ccPagingResult;
+                addOrSubCriteria(PcbPartsSearchField.VOLTAGE_KEYWORD_LIST, "25V", criteria, highlightFields);
+                parsedKeywords.put(PcbPartsSearchField.VOLTAGE, Collections.singletonList("25V"));
+                hasConditionSpec = true;
             }
         }
 
-        int parsedWithoutProductNameAndSize = checkSizeWithoutProductNameAndSize(parsedKeywords);
-        if (StringUtils.isNotEmpty(extractedSize)) {
-            parsedWithoutProductNameAndSize += 1;
-        }
-        if (parsedWithoutProductNameAndSize < 2) {
-            CCPagingResult<Object> ccPagingResult = PagingAdapter.toCCPagingResult(pageable, new ArrayList<>(), 0);
-            ccPagingResult.setMessage("2개 이상의 값이 필요합니다.");
-            return ccPagingResult;
-        }
-        return null;
+//        int parsedWithoutProductNameAndSize = checkSizeWithoutProductNameAndSize(parsedKeywords);
+//        if (StringUtils.isNotEmpty(extractedSize)) {
+//            parsedWithoutProductNameAndSize += 1;
+//        }
+//        if (parsedWithoutProductNameAndSize < 2) {
+//            CCPagingResult<Object> ccPagingResult = PagingAdapter.toCCPagingResult(pageable, new ArrayList<>(), 0);
+//            ccPagingResult.setMessage("2개 이상의 값이 필요합니다.");
+//            return ccPagingResult;
+//        }
+        return hasConditionSpec;
     }
 
 
@@ -462,28 +524,43 @@ public class PcbPartsService {
      * @param criteria 기존의 Criteria 객체
      * @param highlightFields 강조 표시할 필드 이름들의 집합
      */
-    private static void addSpecCriteria(Map<String, List<String>> parseString, Criteria criteria, Set<String> highlightFields) {
+    private static boolean addSpecCriteria(Map<String, List<String>> parseString, Criteria criteria, Set<String> highlightFields) {
+        boolean criteriaAdded = false;
         for (String fieldName : parseString.keySet()) {
             List<String> fieldValue = parseString.get(fieldName);
             String keywords = String.join(" ", fieldValue);
-            criteria = switch (fieldName) {
-                case PcbPartsSearchField.WATT ->
-                        addOrSubCriteria(PcbPartsSearchField.WATT_KEYWORD_LIST, keywords, criteria, highlightFields);
-                case PcbPartsSearchField.TOLERANCE ->
-                        addOrSubCriteria(PcbPartsSearchField.TOLERANCE_KEYWORD_LIST, keywords, criteria, highlightFields);
-                case PcbPartsSearchField.OHM ->
-                        addOrSubCriteria(PcbPartsSearchField.OHM_KEYWORD_LIST, keywords, criteria, highlightFields);
-                case PcbPartsSearchField.CONDENSER ->
-                        addOrSubCriteria(PcbPartsSearchField.CONDENSER_KEYWORD_LIST, keywords, criteria, highlightFields);
-                case PcbPartsSearchField.VOLTAGE ->
-                        addOrSubCriteria(PcbPartsSearchField.VOLTAGE_KEYWORD_LIST, keywords, criteria, highlightFields);
-                case PcbPartsSearchField.CURRENT ->
-                        addOrSubCriteria(PcbPartsSearchField.CURRENT_KEYWORD_LIST, keywords, criteria, highlightFields);
-                case PcbPartsSearchField.INDUCTOR ->
-                        addOrSubCriteria(PcbPartsSearchField.INDUCTOR_KEYWORD_LIST, keywords, criteria, highlightFields);
-                default -> criteria;
-            };
+            switch (fieldName) {
+                case PcbPartsSearchField.WATT -> {
+                    criteria = addOrSubCriteria(PcbPartsSearchField.WATT_KEYWORD_LIST, keywords, criteria, highlightFields);
+                    criteriaAdded = true;
+                }
+                case PcbPartsSearchField.TOLERANCE -> {
+                    criteria = addOrSubCriteria(PcbPartsSearchField.TOLERANCE_KEYWORD_LIST, keywords, criteria, highlightFields);
+                    criteriaAdded = true;
+                }
+                case PcbPartsSearchField.OHM -> {
+                    criteria = addOrSubCriteria(PcbPartsSearchField.OHM_KEYWORD_LIST, keywords, criteria, highlightFields);
+                    criteriaAdded = true;
+                }
+                case PcbPartsSearchField.CONDENSER -> {
+                    criteria = addOrSubCriteria(PcbPartsSearchField.CONDENSER_KEYWORD_LIST, keywords, criteria, highlightFields);
+                    criteriaAdded = true;
+                }
+                case PcbPartsSearchField.VOLTAGE -> {
+                    criteria = addOrSubCriteria(PcbPartsSearchField.VOLTAGE_KEYWORD_LIST, keywords, criteria, highlightFields);
+                    criteriaAdded = true;
+                }
+                case PcbPartsSearchField.CURRENT -> {
+                    criteria = addOrSubCriteria(PcbPartsSearchField.CURRENT_KEYWORD_LIST, keywords, criteria, highlightFields);
+                    criteriaAdded = true;
+                }
+                case PcbPartsSearchField.INDUCTOR -> {
+                    criteria = addOrSubCriteria(PcbPartsSearchField.INDUCTOR_KEYWORD_LIST, keywords, criteria, highlightFields);
+                    criteriaAdded = true;
+                }
+            }
         }
+        return criteriaAdded;
     }
 
 
@@ -548,7 +625,9 @@ public class PcbPartsService {
         PcbPartsSearch pcbPartsSearch = result.getData();
         PcbPartsSearch findPcbParts = this.pcbPartsSearchRepository.findByPartNameKeyword(pcbPartsSearch.getPartName());
         if (findPcbParts != null) {
-            CCResult findResult = CCObjectResult.setSimpleData(findPcbParts);
+            pcbPartsSearch.setId(findPcbParts.getId());
+            PcbPartsSearch savedPartSearch = this.pcbPartsSearchRepository.save(pcbPartsSearch);
+            CCResult findResult = CCObjectResult.setSimpleData(savedPartSearch);
             findResult.setMessage("Already exists");
             return findResult;
         }

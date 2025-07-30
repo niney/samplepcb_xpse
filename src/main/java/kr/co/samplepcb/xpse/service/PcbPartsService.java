@@ -687,6 +687,29 @@ public class PcbPartsService {
         return CCObjectResult.setSimpleData(this.pcbPartsSearchRepository.save(pcbPartsSearch));
     }
 
+    @SuppressWarnings("unchecked")
+    public CCResult searchCandidateByDigikey(String partName, String referencePrefix, CCObjectResult<Map<String, Object>> response) {
+        if (response == null || !response.isResult()) {
+            return CCResult.dataNotFound();
+        }
+        List<Map<String, Object>> products = (List<Map<String, Object>>) response.getData().get("Products");
+        if (CollectionUtils.isEmpty(products)) {
+            return CCResult.dataNotFound();
+        }
+        /*Number categoryId = this.digikeyPartsParserSubService.getNestedNumber(products.getFirst(), "Category", "CategoryId");
+        if (StringUtils.isNotEmpty(referencePrefix)) {
+            if (referencePrefix.equals("R") && categoryId.intValue() != 2) {
+                // 저항인데 검색은 저항이 아닌 경우
+                return CCResult.dataNotFound();
+            }
+            if (referencePrefix.equals("C") && categoryId.intValue() != 3) {
+                // 커패시터인데 검색은 커패시터가 아닌 경우
+                return CCResult.dataNotFound();
+            }
+        }*/
+        return this.digikeyPartsParserSubService.parseProductsFirst(response.getData());
+    }
+
     /**
      * 주어진 부품 번호에 해당하는 Digi-Key 제품 세부 정보를 검색합니다.
      *

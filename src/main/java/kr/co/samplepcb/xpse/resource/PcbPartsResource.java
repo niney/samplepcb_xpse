@@ -4,8 +4,8 @@ import coolib.common.CCResult;
 import coolib.common.QueryParam;
 import kr.co.samplepcb.xpse.pojo.PcbPartsSearchField;
 import kr.co.samplepcb.xpse.pojo.PcbPartsSearchVM;
-import kr.co.samplepcb.xpse.service.common.sub.DigikeySubService;
 import kr.co.samplepcb.xpse.service.PcbPartsService;
+import kr.co.samplepcb.xpse.service.common.sub.DigikeySubService;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -55,6 +55,12 @@ public class PcbPartsResource {
         }
         return this.digikeySubService.getProductDetails(partNumber)
                 .flatMap(resultMap -> Mono.just(pcbPartsService.indexingByDigikey(partNumber, resultMap)));
+    }
+
+    @GetMapping("/_searchCandidateByDigikey")
+    public Mono<CCResult> searchCandidateByDigikey(String partNumber, @RequestParam(required = false) String referencePrefix) {
+        return this.digikeySubService.searchByKeyword(referencePrefix, partNumber, 2, 0)
+                .flatMap(resultMap -> Mono.just(pcbPartsService.searchCandidateByDigikey(partNumber, referencePrefix, resultMap)));
     }
 
 }

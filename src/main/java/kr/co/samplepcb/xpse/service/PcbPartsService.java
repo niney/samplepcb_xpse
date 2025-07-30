@@ -375,6 +375,9 @@ public class PcbPartsService {
             if (parseSearch instanceof CCPagingResult && !((CCPagingResult<?>) parseSearch).getData().isEmpty()) {
                 return parseSearch;
             }
+            if (!parseSearch.isResult()) {
+                return parseSearch;
+            }
         }
         Criteria criteria = new Criteria(PcbPartsSearchField.PART_NAME).is(queryParam.getQ());
         HighlightQuery highlightQuery = CoolElasticUtils.createHighlightQuery(Set.of(PcbPartsSearchField.PART_NAME));
@@ -405,7 +408,7 @@ public class PcbPartsService {
         }
 
         // 검색어 파싱
-        Map<String, List<String>> parsedKeywords = PcbPartsUtils.parseString(q);
+        Map<String, List<String>> parsedKeywords = PcbPartsUtils.parseString(q, referencePrefix);
 
         // 검색 조건 및 하이라이트 필드 설정
         Criteria criteria = new Criteria();
@@ -413,10 +416,34 @@ public class PcbPartsService {
         highlightFields.add(PcbPartsSearchField.PART_NAME);
 
         // 사양(spec) 관련 검색 조건 추가
-        boolean hasSpecConditions = addSpecCriteria(parsedKeywords, criteria, highlightFields);
+        Set<String> addedSpecFields = addSpecCriteria(parsedKeywords, criteria, highlightFields);
+        boolean hasSpecConditions = !addedSpecFields.isEmpty();
 
         // 사이즈 관련 검색 조건 추가
         boolean hasSizeConditions = addSizeCriteria(pageable, queryParam, parsedKeywords, criteria, highlightFields);
+
+        // 인덕터 (인덕터값+사이즈) 필수
+        if (referencePrefix.equals("L") && (!addedSpecFields.contains(PcbPartsSearchField.INDUCTOR) || !hasSizeConditions)) {
+            return CCResult.exceptionSimpleMsg(new Exception("인덕터 검색은 인덕터값과 사이즈가 모두 필요합니다."));
+        }
+        // 저항 (저항값+ 사이즈) 필수
+        if (referencePrefix.equals("R") && (!addedSpecFields.contains(PcbPartsSearchField.OHM) || !hasSizeConditions)) {
+            return CCResult.exceptionSimpleMsg(new Exception("저항 검색은 저항값과 사이즈가 모두 필요합니다."));
+        }
+        // 캐패시터 (저항값+ 사이즈) 필수
+        if (referencePrefix.equals("C") && !addedSpecFields.contains(PcbPartsSearchField.CONDENSER)) {
+            return CCResult.exceptionSimpleMsg(new Exception("캐패시터 검색은 캐패시터값이 필요합니다."));
+        }
+        // 저항 오차범위 없으면 기본값
+        if (referencePrefix.equals("R") && !addedSpecFields.contains(PcbPartsSearchField.TOLERANCE)) {
+            // 오차범위가 없다면 기본 값을 넣어줘야 한다
+            addSpecCriteria(PcbPartsUtils.parseString("10%"), criteria, highlightFields);
+        }
+        // 캐패시터 전압 없으면 기본값
+        if (referencePrefix.equals("C") && !addedSpecFields.contains(PcbPartsSearchField.VOLTAGE)) {
+            // 전압이 없다면 기본 값을 넣어줘야 한다
+            addSpecCriteria(PcbPartsUtils.parseString("25V"), criteria, highlightFields);
+        }
 
         // 조건이 하나라도 존재하면 검색 실행
         if (hasSpecConditions || hasSizeConditions) {
@@ -430,7 +457,32 @@ public class PcbPartsService {
 
             // 검색 결과가 없으면 디지키 검색 수행
             if (!searchHits.hasSearchHits()) {
-                return searchDigikeyByKeyword(referencePrefix, parsedKeywords);
+                Map<String, List<String>> parsedKeywordsCopy = new HashMap<>(parsedKeywords);
+                // C, R 단위 처리
+                if (referencePrefix.equals("C")) {
+                    // parsedKeywords의 condenser키가 있으면 값에서 "F"을 제거
+                    List<String> condenserValues = parsedKeywords.get(PcbPartsSearchField.CONDENSER);
+                    if (condenserValues != null) {
+                        parsedKeywords.put(PcbPartsSearchField.CONDENSER, condenserValues.stream()
+                                .map(value -> value.replace("F", "").trim())
+                                .collect(Collectors.toList()));
+                    }
+                }
+                if (referencePrefix.equals("R")) {
+                    // parsedKeywords의 ohm키가 있으면 값에서 "ohm"을 제거
+                    List<String> ohmValues = parsedKeywords.get(PcbPartsSearchField.OHM);
+                    if (ohmValues != null) {
+                        parsedKeywords.put(PcbPartsSearchField.OHM, ohmValues.stream()
+                                .map(value -> value.replace("ohm", "").trim())
+                                .collect(Collectors.toList()));
+                    }
+                }
+                // 디지키 키워드 검색 수행
+                CCResult digikeyResult = searchDigikeyByKeyword(referencePrefix, parsedKeywords);
+                if (!digikeyResult.isResult()) {
+                    return searchDigikeyByKeyword(referencePrefix, parsedKeywordsCopy);
+                }
+                return digikeyResult;
             }
 
             // 결과가 있으면 페이징 결과 반환
@@ -520,47 +572,48 @@ public class PcbPartsService {
     /**
      * 주어진 필드 이름 목록과 값을 사용하여 Criteria 객체에 조건을 추가합니다.
      *
-     * @param parseString 조건을 추가할 필드 이름과 값의 맵
-     * @param criteria 기존의 Criteria 객체
+     * @param parseString     조건을 추가할 필드 이름과 값의 맵
+     * @param criteria        기존의 Criteria 객체
      * @param highlightFields 강조 표시할 필드 이름들의 집합
+     * @return 추가된 필드명들의 집합
      */
-    private static boolean addSpecCriteria(Map<String, List<String>> parseString, Criteria criteria, Set<String> highlightFields) {
-        boolean criteriaAdded = false;
+    private static Set<String> addSpecCriteria(Map<String, List<String>> parseString, Criteria criteria, Set<String> highlightFields) {
+        Set<String> addedFields = new HashSet<>();
         for (String fieldName : parseString.keySet()) {
             List<String> fieldValue = parseString.get(fieldName);
             String keywords = String.join(" ", fieldValue);
             switch (fieldName) {
                 case PcbPartsSearchField.WATT -> {
                     criteria = addOrSubCriteria(PcbPartsSearchField.WATT_KEYWORD_LIST, keywords, criteria, highlightFields);
-                    criteriaAdded = true;
+                    addedFields.add(fieldName);
                 }
                 case PcbPartsSearchField.TOLERANCE -> {
                     criteria = addOrSubCriteria(PcbPartsSearchField.TOLERANCE_KEYWORD_LIST, keywords, criteria, highlightFields);
-                    criteriaAdded = true;
+                    addedFields.add(fieldName);
                 }
                 case PcbPartsSearchField.OHM -> {
                     criteria = addOrSubCriteria(PcbPartsSearchField.OHM_KEYWORD_LIST, keywords, criteria, highlightFields);
-                    criteriaAdded = true;
+                    addedFields.add(fieldName);
                 }
                 case PcbPartsSearchField.CONDENSER -> {
                     criteria = addOrSubCriteria(PcbPartsSearchField.CONDENSER_KEYWORD_LIST, keywords, criteria, highlightFields);
-                    criteriaAdded = true;
+                    addedFields.add(fieldName);
                 }
                 case PcbPartsSearchField.VOLTAGE -> {
                     criteria = addOrSubCriteria(PcbPartsSearchField.VOLTAGE_KEYWORD_LIST, keywords, criteria, highlightFields);
-                    criteriaAdded = true;
+                    addedFields.add(fieldName);
                 }
                 case PcbPartsSearchField.CURRENT -> {
                     criteria = addOrSubCriteria(PcbPartsSearchField.CURRENT_KEYWORD_LIST, keywords, criteria, highlightFields);
-                    criteriaAdded = true;
+                    addedFields.add(fieldName);
                 }
                 case PcbPartsSearchField.INDUCTOR -> {
                     criteria = addOrSubCriteria(PcbPartsSearchField.INDUCTOR_KEYWORD_LIST, keywords, criteria, highlightFields);
-                    criteriaAdded = true;
+                    addedFields.add(fieldName);
                 }
             }
         }
-        return criteriaAdded;
+        return addedFields;
     }
 
 

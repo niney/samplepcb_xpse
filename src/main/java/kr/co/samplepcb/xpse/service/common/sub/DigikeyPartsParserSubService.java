@@ -249,7 +249,7 @@ public class DigikeyPartsParserSubService {
      * @param keys 값을 찾기 위해 순서대로 탐색할 키 배열
      * @return 키 배열을 따라가며 찾은 문자열 값, 값을 찾을 수 없거나 문자열이 아닌 경우 null
      */
-    private String getNestedString(Map<String, Object> map, String... keys) {
+    public String getNestedString(Map<String, Object> map, String... keys) {
         Object current = map;
         for (String key : keys) {
             if (current instanceof Map) {
@@ -259,5 +259,48 @@ public class DigikeyPartsParserSubService {
             }
         }
         return (String) current;
+    }
+
+    /**
+     * 주어진 키 배열을 사용하여 중첩된 맵에서 Number 값을 검색합니다.
+     *
+     * @param map  값이 중첩되어 있는 맵
+     * @param keys 값을 찾기 위해 순서대로 탐색할 키 배열
+     * @return 키 배열을 따라가며 찾은 Number 값, 값을 찾을 수 없거나 Number가 아닌 경우 null
+     */
+    public Number getNestedNumber(Map<String, Object> map, String... keys) {
+        Object current = map;
+        for (String key : keys) {
+            if (current instanceof Map) {
+                current = ((Map<?, ?>) current).get(key);
+            } else {
+                return null;
+            }
+        }
+        return (current instanceof Number) ? (Number) current : null;
+    }
+
+    /**
+     * 주어진 키 배열을 사용하여 중첩된 맵에서 Integer 값을 검색합니다.
+     *
+     * @param map  값이 중첩되어 있는 맵
+     * @param keys 값을 찾기 위해 순서대로 탐색할 키 배열
+     * @return 키 배열을 따라가며 찾은 Integer 값, 값을 찾을 수 없거나 Number가 아닌 경우 null
+     */
+    public Integer getNestedInteger(Map<String, Object> map, String... keys) {
+        Number number = getNestedNumber(map, keys);
+        return number != null ? number.intValue() : null;
+    }
+
+    /**
+     * 주어진 키 배열을 사용하여 중첩된 맵에서 Double 값을 검색합니다.
+     *
+     * @param map  값이 중첩되어 있는 맵
+     * @param keys 값을 찾기 위해 순서대로 탐색할 키 배열
+     * @return 키 배열을 따라가며 찾은 Double 값, 값을 찾을 수 없거나 Number가 아닌 경우 null
+     */
+    public Double getNestedDouble(Map<String, Object> map, String... keys) {
+        Number number = getNestedNumber(map, keys);
+        return number != null ? number.doubleValue() : null;
     }
 }

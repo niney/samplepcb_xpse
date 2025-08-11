@@ -32,68 +32,204 @@ public class PcbPartsUtils {
         Map<String, List<String>> classifications = new HashMap<>();
         classifications.put(PcbPartsSearchField.PRODUCT_NAME, new ArrayList<>());
 
-        Map<String, Pattern> units = new HashMap<>();
-        units.put(PcbPartsSearchField.WATT, Pattern.compile("([0-9.]+/[0-9.]+|[0-9.]+)\\s*([Ww]|watt(s)?|WATT(S)?)\\b", Pattern.CASE_INSENSITIVE));
-        units.put(PcbPartsSearchField.TOLERANCE, Pattern.compile("[±]?[0-9.]+(\\s*%)"));
+        // 패턴 생성
+        Map<String, Pattern> boundaryPatterns = createBoundaryPatterns(referencePrefix);
         
-        // referencePrefix가 "R"일 때 확장된 저항 단위 인식
-        if ("R".equals(referencePrefix)) {
-            // 단순화된 저항 패턴 - 범위 표기를 더 정확하게 처리
-            units.put(PcbPartsSearchField.OHM, Pattern.compile(
-                "([0-9.]+(?:[KMGkmgΩ]|ohm|R)?[-~][0-9.]+(?:[KMGkmgΩ]|ohm|R)?|[0-9.]+(?:[RKMGrkmg][0-9.]*|mΩ|mR|mohm|milliohm|µΩ|uΩ|uR|microhm|Ω|R|ohm|ohms?|K|M|G|k|m|g))", 
-                Pattern.CASE_INSENSITIVE));
-        } else {
-            units.put(PcbPartsSearchField.OHM, Pattern.compile("([0-9.]+/[0-9.]+|[0-9.]+)\\s*(?:(k|m|G)?)(?:(ohm(s)?|Ω)\\b)", Pattern.CASE_INSENSITIVE));
+        
+        // 값 추출
+        Map<String, Set<String>> foundValues = extractValuesFromText(text, boundaryPatterns, referencePrefix);
+        
+        // 찾은 값들을 classifications에 추가
+        for (Map.Entry<String, Set<String>> entry : foundValues.entrySet()) {
+            classifications.put(entry.getKey(), new ArrayList<>(entry.getValue()));
         }
         
-        // referencePrefix가 "C"일 때 축약된 커패시터 단위도 인식
-        if ("C".equals(referencePrefix)) {
-            units.put(PcbPartsSearchField.CONDENSER, Pattern.compile("[0-9.]+(?:μF|µF|uF|nF|pF|mF|F|p|n|u)(?![a-zA-Z])", Pattern.CASE_INSENSITIVE));
-        } else {
-            units.put(PcbPartsSearchField.CONDENSER, Pattern.compile("[0-9.]+(?:μF|µF|uF|nF|pF|mF|F)(?![a-zA-Z])", Pattern.CASE_INSENSITIVE));
-        }
-        
-        units.put(PcbPartsSearchField.VOLTAGE, Pattern.compile("([0-9.]+/[0-9.]+)?[0-9.]*\\s*(V|v|kV|KV|kv|mV|MV|mv|µV|UV|uv|Volt|volt|vdc|VDC|kvdc|KVDC)\\b", Pattern.CASE_INSENSITIVE));
-        units.put(PcbPartsSearchField.TEMPERATURE, Pattern.compile("(-?\\d+\\.?\\d*)\\s?(℃|°C)"));
-        units.put(PcbPartsSearchField.SIZE, Pattern.compile("((\\d+\\.\\d+|\\d+)([xX*])(\\d+\\.\\d+|\\d+)(([xX*])(\\d+\\.\\d+|\\d+))?)|((\\d+)(?=사이즈))|(\\d+\\.?\\d*mm)", Pattern.CASE_INSENSITIVE));
-        units.put(PcbPartsSearchField.INDUCTOR, Pattern.compile("[0-9.]+(?:pH|nH|uH|mH|H)(?![a-zA-Z])", Pattern.CASE_INSENSITIVE));
-        units.put(PcbPartsSearchField.CURRENT, Pattern.compile("[0-9.]+(?:uA|µA|mA|A)(?![a-zA-Z])", Pattern.CASE_INSENSITIVE));
-
-        String[] tokens = text.split("\\s+");
-        for (String token : tokens) {
-            boolean matched = false;
-            for (Map.Entry<String, Pattern> unit : units.entrySet()) {
-                Matcher matcher = unit.getValue().matcher(token);
-                if (matcher.find()) {
-                    matched = true;
-                    List<String> classification = classifications.getOrDefault(unit.getKey(), new ArrayList<>());
-                    if (unit.getKey().equals(PcbPartsSearchField.TEMPERATURE)) {
-                        classification.add(matcher.group(1));
-                    } else if (unit.getKey().equals(PcbPartsSearchField.CONDENSER) && "C".equals(referencePrefix)) {
-                        // 축약된 형태를 전체 형태로 변환
-                        String matchedValue = matcher.group();
-                        String convertedValue = convertShortCapacitorUnit(matchedValue);
-                        classification.add(convertedValue);
-                    } else if (unit.getKey().equals(PcbPartsSearchField.OHM) && "R".equals(referencePrefix)) {
-                        // R 표기법을 표준 형태로 변환
-                        String matchedValue = matcher.group();
-                        String convertedValue = convertResistorNotation(matchedValue);
-                        classification.add(convertedValue);
-                    } else {
-                        classification.add(matcher.group());
-                    }
-                    classifications.put(unit.getKey(), classification);
-                }
-            }
-
-            if (!matched) {
-                classifications.get(PcbPartsSearchField.PRODUCT_NAME).add(token);
-            }
-        }
+        // 매칭되지 않은 토큰들을 PRODUCT_NAME으로 분류
+        List<String> unmatchedTokens = processUnmatchedTokens(text, foundValues);
+        classifications.get(PcbPartsSearchField.PRODUCT_NAME).addAll(unmatchedTokens);
 
         return classifications;
     }
 
+    /**
+     * 경계 패턴들을 생성합니다
+     *
+     * @param referencePrefix 참조 접두사
+     * @return 경계 검사가 적용된 패턴 Map
+     */
+    private static Map<String, Pattern> createBoundaryPatterns(String referencePrefix) {
+        Map<String, Pattern> boundaryPatterns = new HashMap<>();
+        
+        // WATT 패턴 - 경계 검사 포함
+        boundaryPatterns.put(PcbPartsSearchField.WATT, Pattern.compile(
+            "(?<![A-Za-z0-9])([0-9.]+(?:/[0-9.]+)?\\s*(?:[Ww]|watt(?:s)?|WATT(?:S)?))(?![A-Za-z0-9])", 
+            Pattern.CASE_INSENSITIVE));
+        
+        // TOLERANCE 패턴 - % 기호는 특수문자이므로 뒤쪽 경계만 체크
+        boundaryPatterns.put(PcbPartsSearchField.TOLERANCE, Pattern.compile(
+            "(?<![A-Za-z0-9])([±]?[0-9.]+\\s*%)(?![A-Za-z0-9])"));
+        
+        // OHM 패턴 - referencePrefix에 따라 다르게 처리
+        if ("R".equals(referencePrefix)) {
+            // 확장된 저항 표기법
+            boundaryPatterns.put(PcbPartsSearchField.OHM, Pattern.compile(
+                "(?<![A-Za-z0-9])([0-9.]+(?:[KMGkmgΩ]|ohm|R)?[-~][0-9.]+(?:[KMGkmgΩ]|ohm|R)?|[0-9.]+(?:[RKMGrkmg][0-9.]*|mΩ|mR|mohm|milliohm|µΩ|uΩ|uR|microhm|Ω|R|ohm|ohms?|K|M|G|k|m|g))(?![A-Za-z0-9])",
+                Pattern.CASE_INSENSITIVE));
+        } else {
+            // 기본 저항 표기법
+            boundaryPatterns.put(PcbPartsSearchField.OHM, Pattern.compile(
+                "(?<![A-Za-z0-9])([0-9.]+(?:/[0-9.]+)?\\s*(?:k|m|G)?(?:ohm(?:s)?|Ω))(?![A-Za-z0-9])", 
+                Pattern.CASE_INSENSITIVE));
+        }
+        
+        // CONDENSER 패턴 - referencePrefix에 따라 다르게 처리
+        if ("C".equals(referencePrefix)) {
+            // 축약된 커패시터 단위 포함
+            boundaryPatterns.put(PcbPartsSearchField.CONDENSER, Pattern.compile(
+                "(?<![A-Za-z0-9])([0-9.]+\\s*(?:μF|µF|uF|nF|pF|mF|F|p|n|u))(?![A-Za-z0-9])", 
+                Pattern.CASE_INSENSITIVE));
+        } else {
+            // 전체 커패시터 단위만
+            boundaryPatterns.put(PcbPartsSearchField.CONDENSER, Pattern.compile(
+                "(?<![A-Za-z0-9])([0-9.]+\\s*(?:μF|µF|uF|nF|pF|mF|F))(?![A-Za-z0-9])", 
+                Pattern.CASE_INSENSITIVE));
+        }
+        
+        // VOLTAGE 패턴 - 경계 검사 포함
+        boundaryPatterns.put(PcbPartsSearchField.VOLTAGE, Pattern.compile(
+            "(?<![A-Za-z0-9])([0-9.]+(?:/[0-9.]+)?\\s*(?:V|v|kV|KV|kv|mV|MV|mv|µV|UV|uv|Volt|volt|vdc|VDC|kvdc|KVDC))(?![A-Za-z0-9])", 
+            Pattern.CASE_INSENSITIVE));
+        
+        // TEMPERATURE 패턴 - 온도 기호는 특수문자이므로 앞쪽 경계만 체크
+        boundaryPatterns.put(PcbPartsSearchField.TEMPERATURE, Pattern.compile(
+            "(?<![A-Za-z0-9])((?:-?\\d+\\.?\\d*)\\s*(?:℃|°C))"));
+        
+        // SIZE 패턴 - 크기 표기는 특별한 형태이므로 기존 패턴 유지
+        boundaryPatterns.put(PcbPartsSearchField.SIZE, Pattern.compile(
+            "(?<![A-Za-z0-9])((\\d+\\.\\d+|\\d+)([xX*])(\\d+\\.\\d+|\\d+)(([xX*])(\\d+\\.\\d+|\\d+))?|(\\d+)(?=사이즈)|(\\d+\\.?\\d*mm))(?![A-Za-z0-9])", 
+            Pattern.CASE_INSENSITIVE));
+        
+        // INDUCTOR 패턴 - 경계 검사 포함
+        boundaryPatterns.put(PcbPartsSearchField.INDUCTOR, Pattern.compile(
+            "(?<![A-Za-z0-9])([0-9.]+\\s*(?:pH|nH|uH|µH|mH)|[0-9.]+\\s*H)(?![A-Za-z0-9])", 
+            Pattern.CASE_INSENSITIVE));
+        
+        // CURRENT 패턴 - 경계 검사 포함
+        boundaryPatterns.put(PcbPartsSearchField.CURRENT, Pattern.compile(
+            "(?<![A-Za-z0-9])([0-9.]+\\s*(?:uA|µA|mA|A))(?![A-Za-z0-9])", 
+            Pattern.CASE_INSENSITIVE));
+            
+        return boundaryPatterns;
+    }
+    
+    /**
+     * 텍스트에서 패턴에 매칭되는 값들을 추출합니다
+     *
+     * @param text 분석할 텍스트
+     * @param boundaryPatterns 패턴 Map
+     * @param referencePrefix 참조 접두사
+     * @return 추출된 값들의 Map
+     */
+    private static Map<String, Set<String>> extractValuesFromText(String text, 
+            Map<String, Pattern> boundaryPatterns, String referencePrefix) {
+        Map<String, Set<String>> foundValues = new HashMap<>();
+        Set<Integer> matchedPositions = new HashSet<>();  // 이미 매칭된 위치 추적
+        
+        for (Map.Entry<String, Pattern> entry : boundaryPatterns.entrySet()) {
+            String fieldName = entry.getKey();
+            Pattern pattern = entry.getValue();
+            Matcher matcher = pattern.matcher(text);
+            
+            while (matcher.find()) {
+                // 이미 다른 패턴에서 매칭된 위치와 겹치는지 확인
+                boolean overlap = false;
+                for (int i = matcher.start(); i < matcher.end(); i++) {
+                    if (matchedPositions.contains(i)) {
+                        overlap = true;
+                        break;
+                    }
+                }
+                
+                if (!overlap) {
+                    String matchedValue = matcher.group(1);
+                    
+                    // 값 변환
+                    matchedValue = transformMatchedValue(fieldName, matchedValue, referencePrefix);
+                    
+                    foundValues.computeIfAbsent(fieldName, k -> new HashSet<>()).add(matchedValue);
+                    
+                    // 매칭된 위치 기록
+                    for (int i = matcher.start(); i < matcher.end(); i++) {
+                        matchedPositions.add(i);
+                    }
+                }
+            }
+        }
+        
+        return foundValues;
+    }
+    
+    /**
+     * 매칭된 값을 필드 타입에 따라 변환합니다
+     *
+     * @param fieldName 필드 이름
+     * @param matchedValue 매칭된 값
+     * @param referencePrefix 참조 접두사
+     * @return 변환된 값
+     */
+    private static String transformMatchedValue(String fieldName, String matchedValue, String referencePrefix) {
+        if (fieldName.equals(PcbPartsSearchField.TEMPERATURE)) {
+            // 온도는 숫자 부분만 저장
+            return matchedValue.replaceAll("\\s*(℃|°C)", "").trim();
+        } else if (fieldName.equals(PcbPartsSearchField.CONDENSER) && "C".equals(referencePrefix)) {
+            // 축약된 커패시터 단위 변환
+            return convertShortCapacitorUnit(matchedValue.trim());
+        } else if (fieldName.equals(PcbPartsSearchField.OHM) && "R".equals(referencePrefix)) {
+            // R 표기법 변환
+            return convertResistorNotation(matchedValue.trim());
+        } else {
+            return matchedValue.trim();
+        }
+    }
+    
+    /**
+     * 매칭되지 않은 토큰들을 처리합니다
+     *
+     * @param text 원본 텍스트
+     * @param foundValues 찾은 값들
+     * @return 매칭되지 않은 토큰 리스트
+     */
+    private static List<String> processUnmatchedTokens(String text, Map<String, Set<String>> foundValues) {
+        List<String> unmatchedTokens = new ArrayList<>();
+        String[] tokens = text.split("\\s+");
+        
+        for (String token : tokens) {
+            boolean isMatched = false;
+            
+            // 각 필드의 값들과 비교
+            for (Set<String> values : foundValues.values()) {
+                for (String value : values) {
+                    // 토큰이 매칭된 값의 일부이거나 포함하는 경우
+                    if (token.contains(value) || value.contains(token)) {
+                        isMatched = true;
+                        break;
+                    }
+                }
+                if (isMatched) break;
+            }
+            
+            // 매칭되지 않은 토큰만 추가
+            if (!isMatched && !token.trim().isEmpty()) {
+                // 특수문자만 있는 토큰은 제외
+                if (!token.matches("^[^A-Za-z0-9]+$")) {
+                    unmatchedTokens.add(token);
+                }
+            }
+        }
+        
+        return unmatchedTokens;
+    }
+    
     /**
      * 축약된 커패시터 단위를 전체 형태로 변환합니다
      *
@@ -119,7 +255,7 @@ public class PcbPartsUtils {
      */
     private static String convertResistorNotation(String resistorValue) {
         String value = resistorValue.trim();
-        
+
         // 범위 표기 처리 먼저 (예: 1k-10k -> 1kohm-10kohm)
         if (value.contains("-") || value.contains("~")) {
             String separator = value.contains("-") ? "-" : "~";
@@ -130,7 +266,7 @@ public class PcbPartsUtils {
                 return converted1 + separator + converted2;
             }
         }
-        
+
         // 밀리옴, 마이크로옴 단위 정규화 먼저 처리
         if (value.matches(".*[m]\\u03A9.*") || value.matches(".*[m]R.*") || value.matches(".*mohm.*") || value.matches(".*milliohm.*")) {
             return value.replace("mΩ", "mohm")
@@ -138,7 +274,7 @@ public class PcbPartsUtils {
                         .replace("mR", "mohm")
                         .replace("milliohm", "mohm");
         }
-        
+
         if (value.matches(".*[\\u00B5u]\\u03A9.*") || value.matches(".*[\\u00B5u]R.*") || value.matches(".*microhm.*")) {
             return value.replace("µΩ", "uohm")
                         .replace("\u00B5\u03A9", "uohm")
@@ -149,12 +285,17 @@ public class PcbPartsUtils {
                         .replace("\u00B5R", "uohm")
                         .replace("microhm", "uohm");
         }
-        
+
         // Ω를 ohm으로 변환 (단독으로 있는 경우)
         if (value.endsWith("Ω") || value.endsWith("\u03A9")) {
             return value.replace("Ω", "ohm").replace("\u03A9", "ohm");
         }
         
+        // ohms를 ohm으로 정규화
+        if (value.endsWith("ohms")) {
+            return value.replace("ohms", "ohm");
+        }
+
         // R 표기법 처리 (예: 2R2 -> 2.2ohm, 1K2 -> 1.2kohm, 2M2 -> 2.2mohm)
         if (value.matches("[0-9.]+[RKMGrkmg][0-9.]*")) {
             // 숫자와 단위 문자 분리
@@ -162,18 +303,18 @@ public class PcbPartsUtils {
             char unitChar = 0;
             for (int i = 0; i < value.length(); i++) {
                 char c = value.charAt(i);
-                if (c == 'R' || c == 'K' || c == 'M' || c == 'G' || 
+                if (c == 'R' || c == 'K' || c == 'M' || c == 'G' ||
                     c == 'r' || c == 'k' || c == 'm' || c == 'g') {
                     unitIndex = i;
                     unitChar = Character.toLowerCase(c);
                     break;
                 }
             }
-            
+
             if (unitIndex != -1) {
                 String beforeUnit = value.substring(0, unitIndex);
                 String afterUnit = value.substring(unitIndex + 1);
-                
+
                 // 소수점 형태로 변환
                 String decimalValue;
                 if (!afterUnit.isEmpty()) {
@@ -181,7 +322,7 @@ public class PcbPartsUtils {
                 } else {
                     decimalValue = beforeUnit;
                 }
-                
+
                 // 단위 추가
                 switch (unitChar) {
                     case 'r':
@@ -197,14 +338,14 @@ public class PcbPartsUtils {
                 }
             }
         }
-        
+
         // 대문자 단위 처리 (예: 4.7K -> 4.7kohm, 2.2M -> 2.2mohm)
         if (value.matches("[0-9.]+[KMGR]$")) {
             char lastChar = Character.toLowerCase(value.charAt(value.length() - 1));
             String numericPart = value.substring(0, value.length() - 1);
-            
+
             switch (lastChar) {
-                case 'r':
+            case 'r':
                     return numericPart + "ohm";
                 case 'k':
                     return numericPart + "kohm";
@@ -216,7 +357,7 @@ public class PcbPartsUtils {
                     return value;
             }
         }
-        
+
         return value; // 이미 표준 형태이거나 변환할 수 없는 경우
     }
 
@@ -741,6 +882,7 @@ public class PcbPartsUtils {
                 case "mH":
                     return Unit.MILLIHENRYS;
                 case "µH":
+                case "uH":
                     return Unit.MICROHENRYS;
                 default:
                     return Unit.NONE;

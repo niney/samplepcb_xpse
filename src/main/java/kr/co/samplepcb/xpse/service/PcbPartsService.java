@@ -407,8 +407,11 @@ public class PcbPartsService {
             return CCResult.dataNotFound();
         }
 
+        // referencePrefix null-safe 처리
+        String safeReferencePrefix = StringUtils.defaultString(referencePrefix);
+
         // 검색어 파싱
-        Map<String, List<String>> parsedKeywords = PcbPartsUtils.parseString(q, referencePrefix);
+        Map<String, List<String>> parsedKeywords = PcbPartsUtils.parseString(q, safeReferencePrefix);
 
         // 검색 조건 및 하이라이트 필드 설정
         Criteria criteria = new Criteria();
@@ -423,24 +426,24 @@ public class PcbPartsService {
         boolean hasSizeConditions = addSizeCriteria(pageable, queryParam, parsedKeywords, criteria, highlightFields);
 
         // 인덕터 (인덕터값+사이즈) 필수
-        if (referencePrefix.equals("L") && (!addedSpecFields.contains(PcbPartsSearchField.INDUCTOR) || !hasSizeConditions)) {
+        if ("L".equals(safeReferencePrefix) && (!addedSpecFields.contains(PcbPartsSearchField.INDUCTOR) || !hasSizeConditions)) {
             return CCResult.exceptionSimpleMsg(new Exception("인덕터 검색은 인덕터값과 사이즈가 모두 필요합니다."));
         }
         // 저항 (저항값+ 사이즈) 필수
-        if (referencePrefix.equals("R") && (!addedSpecFields.contains(PcbPartsSearchField.OHM) || !hasSizeConditions)) {
+        if ("R".equals(safeReferencePrefix) && (!addedSpecFields.contains(PcbPartsSearchField.OHM) || !hasSizeConditions)) {
             return CCResult.exceptionSimpleMsg(new Exception("저항 검색은 저항값과 사이즈가 모두 필요합니다."));
         }
         // 캐패시터 (저항값+ 사이즈) 필수
-        if (referencePrefix.equals("C") && !addedSpecFields.contains(PcbPartsSearchField.CONDENSER)) {
+        if ("C".equals(safeReferencePrefix) && !addedSpecFields.contains(PcbPartsSearchField.CONDENSER)) {
             return CCResult.exceptionSimpleMsg(new Exception("캐패시터 검색은 캐패시터값이 필요합니다."));
         }
         // 저항 오차범위 없으면 기본값
-        if (referencePrefix.equals("R") && !addedSpecFields.contains(PcbPartsSearchField.TOLERANCE)) {
+        if ("R".equals(safeReferencePrefix) && !addedSpecFields.contains(PcbPartsSearchField.TOLERANCE)) {
             // 오차범위가 없다면 기본 값을 넣어줘야 한다
             addSpecCriteria(PcbPartsUtils.parseString("10%"), criteria, highlightFields);
         }
         // 캐패시터 전압 없으면 기본값
-        if (referencePrefix.equals("C") && !addedSpecFields.contains(PcbPartsSearchField.VOLTAGE)) {
+        if ("C".equals(safeReferencePrefix) && !addedSpecFields.contains(PcbPartsSearchField.VOLTAGE)) {
             // 전압이 없다면 기본 값을 넣어줘야 한다
             addSpecCriteria(PcbPartsUtils.parseString("25V"), criteria, highlightFields);
         }
@@ -459,7 +462,7 @@ public class PcbPartsService {
             if (!searchHits.hasSearchHits()) {
                 Map<String, List<String>> parsedKeywordsCopy = new HashMap<>(parsedKeywords);
                 // C, R 단위 처리
-                if (referencePrefix.equals("C")) {
+                if ("C".equals(safeReferencePrefix)) {
                     // parsedKeywords의 condenser키가 있으면 값에서 "F"을 제거
                     List<String> condenserValues = parsedKeywords.get(PcbPartsSearchField.CONDENSER);
                     if (condenserValues != null) {
@@ -468,7 +471,7 @@ public class PcbPartsService {
                                 .collect(Collectors.toList()));
                     }
                 }
-                if (referencePrefix.equals("R")) {
+                if ("R".equals(safeReferencePrefix)) {
                     // parsedKeywords의 ohm키가 있으면 값에서 "ohm"을 제거
                     List<String> ohmValues = parsedKeywords.get(PcbPartsSearchField.OHM);
                     if (ohmValues != null) {
@@ -478,9 +481,9 @@ public class PcbPartsService {
                     }
                 }
                 // 디지키 키워드 검색 수행
-                CCResult digikeyResult = searchDigikeyByKeyword(referencePrefix, parsedKeywords);
+                CCResult digikeyResult = searchDigikeyByKeyword(safeReferencePrefix, parsedKeywords);
                 if (!digikeyResult.isResult()) {
-                    return searchDigikeyByKeyword(referencePrefix, parsedKeywordsCopy);
+                    return searchDigikeyByKeyword(safeReferencePrefix, parsedKeywordsCopy);
                 }
                 return digikeyResult;
             }
@@ -494,15 +497,16 @@ public class PcbPartsService {
         }
 
         // 조건이 없으면 디지키 키워드 검색 수행
-        return searchDigikeyByKeyword(referencePrefix, parsedKeywords);
+        return searchDigikeyByKeyword(safeReferencePrefix, parsedKeywords);
     }
 
     @SuppressWarnings("unchecked")
     private CCResult searchDigikeyByKeyword(String referencePrefix, Map<String, List<String>> parsedKeywords) {
+        String safeReferencePrefix = StringUtils.defaultString(referencePrefix);
         String parsedKeywordsStr = parsedKeywords.values().stream()
                 .flatMap(List::stream)
                 .collect(Collectors.joining(" "));
-        Mono<CCObjectResult<Map<String, Object>>> resultMono = this.digikeySubService.searchByKeyword(referencePrefix, parsedKeywordsStr, 2, 0);
+        Mono<CCObjectResult<Map<String, Object>>> resultMono = this.digikeySubService.searchByKeyword(safeReferencePrefix, parsedKeywordsStr, 2, 0);
         CCObjectResult<Map<String, Object>> response = resultMono.block();
         if (response != null) {
             CCResult result = this.digikeyPartsParserSubService.parseProductsFirst(response.getData());

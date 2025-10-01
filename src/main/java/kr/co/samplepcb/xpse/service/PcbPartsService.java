@@ -55,6 +55,8 @@ import java.util.stream.Collectors;
 public class PcbPartsService {
 
     private static final Logger log = LoggerFactory.getLogger(PcbPartsService.class);
+    private static final int EXCEL_CHUNK_SIZE = 3000;
+    private static final int MAX_FILE_SIZE_BYTES = 1024 * 1024 * 1024; // 1GB
 
     private final ApplicationProperties applicationProperties;
 
@@ -316,9 +318,8 @@ public class PcbPartsService {
             return;
         }
 
-        int chunkSize = 3000;
-        for (int i = 0; i < rows; i += chunkSize) {
-            excelIndexingByEleparts(sheet, i, Math.min(i + chunkSize, rows), category);
+        for (int i = 0; i < rows; i += EXCEL_CHUNK_SIZE) {
+            excelIndexingByEleparts(sheet, i, Math.min(i + EXCEL_CHUNK_SIZE, rows), category);
         }
     }
 
@@ -326,37 +327,65 @@ public class PcbPartsService {
      * 주어진 엑셀 파일을 열어 각 시트를 특정 카테고리로 인덱싱합니다.
      *
      * @param file 인덱싱할 엑셀 파일
+     * @return 인덱싱 결과
      */
-    public void indexAllByEleparts(MultipartFile file) {
+    public CCResult indexAllByEleparts(MultipartFile file) {
+        return processExcelFile(file, this::excelIndexingByEleparts);
+    }
+
+    /**
+     * 엑셀 파일 처리를 위한 공통 메서드입니다.
+     *
+     * @param file 처리할 엑셀 파일
+     * @param indexingFunction 시트별 인덱싱 로직을 수행하는 함수
+     * @return 처리 결과
+     */
+    private CCResult processExcelFile(MultipartFile file, ExcelIndexingFunction indexingFunction) {
         String fileName = file.getOriginalFilename();
-        String category = "";
+        String category = extractCategoryFromFileName(fileName);
+
+        try {
+            IOUtils.setByteArrayMaxOverride(MAX_FILE_SIZE_BYTES);
+            try (XSSFWorkbook workbook = new XSSFWorkbook(file.getInputStream())) {
+                int totalSheets = workbook.getNumberOfSheets();
+                for (int i = 0; i < totalSheets; i++) {
+                    indexingFunction.index(workbook, i, category);
+                }
+                log.info("Successfully processed {} sheets from file: {}", totalSheets, fileName);
+                return CCResult.ok();
+            }
+        } catch (IOException e) {
+            log.error("Failed to read excel file: {}", fileName, e);
+            return CCResult.exceptionSimpleMsg(e);
+        } catch (Exception e) {
+            log.error("Unexpected error during excel indexing: {}", CommonUtils.getFullStackTrace(e));
+            return CCResult.exceptionSimpleMsg(e);
+        }
+    }
+
+    /**
+     * 파일명에서 카테고리를 추출합니다.
+     *
+     * @param fileName 파일명
+     * @return 추출된 카테고리 (없으면 빈 문자열)
+     */
+    private String extractCategoryFromFileName(String fileName) {
         if (fileName != null) {
             Pattern pattern = Pattern.compile("(\\d+)");
             Matcher matcher = pattern.matcher(fileName);
             if (matcher.find()) {
-                category = matcher.group(1);
+                return matcher.group(1);
             }
         }
+        return "";
+    }
 
-        XSSFWorkbook workbook = null;
-        try {
-            // 1GB = 1 * 1024 * 1024 * 1024 바이트
-            IOUtils.setByteArrayMaxOverride(1 * 1024 * 1024 * 1024);
-            workbook = new XSSFWorkbook(file.getInputStream());
-            for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
-                excelIndexingByEleparts(workbook, i, category);
-            }
-        } catch (Exception e) {
-            log.error(CommonUtils.getFullStackTrace(e));
-        } finally {
-            try {
-                if (workbook != null) {
-                    workbook.close();
-                }
-            } catch (IOException e) {
-                log.error(e.getMessage());
-            }
-        }
+    /**
+     * 엑셀 시트 인덱싱을 위한 함수형 인터페이스입니다.
+     */
+    @FunctionalInterface
+    private interface ExcelIndexingFunction {
+        void index(XSSFWorkbook workbook, int sheetAt, String category);
     }
 
     /**

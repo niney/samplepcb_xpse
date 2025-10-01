@@ -4,6 +4,7 @@ import coolib.common.CCResult;
 import coolib.common.QueryParam;
 import kr.co.samplepcb.xpse.pojo.PcbPartsSearchField;
 import kr.co.samplepcb.xpse.pojo.PcbPartsSearchVM;
+import kr.co.samplepcb.xpse.service.PcbPartsIC114Service;
 import kr.co.samplepcb.xpse.service.PcbPartsService;
 import kr.co.samplepcb.xpse.service.common.sub.DigikeySubService;
 import org.apache.commons.lang3.StringUtils;
@@ -22,17 +23,23 @@ public class PcbPartsResource {
 
     // service
     private final PcbPartsService pcbPartsService;
+    private final PcbPartsIC114Service pcbPartsIC114Service;
     private final DigikeySubService digikeySubService;
 
-    public PcbPartsResource(PcbPartsService pcbPartsService, DigikeySubService digikeySubService) {
+    public PcbPartsResource(PcbPartsService pcbPartsService, PcbPartsIC114Service pcbPartsIC114Service, DigikeySubService digikeySubService) {
         this.pcbPartsService = pcbPartsService;
+        this.pcbPartsIC114Service = pcbPartsIC114Service;
         this.digikeySubService = digikeySubService;
     }
 
     @PostMapping(value = "/_uploadItemFileByEleparts")
     public CCResult uploadItemFileByEleparts(@RequestParam("file") MultipartFile file/*, HttpServletRequest request*/) {
-        this.pcbPartsService.indexAllByEleparts(file);
-        return CCResult.ok();
+        return this.pcbPartsService.indexAllByEleparts(file);
+    }
+
+    @PostMapping(value = "/_uploadItemFileByIC114")
+    public CCResult uploadItemFileByIC114(@RequestParam("file") MultipartFile file/*, HttpServletRequest request*/) {
+        return this.pcbPartsIC114Service.indexAllByIC114(file);
     }
 
     @GetMapping("/_search")

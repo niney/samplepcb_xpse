@@ -64,7 +64,7 @@ public class PcbColumnService {
     public CCResult search(Pageable pageable, QueryParam queryParam, PcbColumnSearchVM pcbColumnSearchVM) {
         Query query = this.pcbColumnSearchRepository.createSearchQuery(pcbColumnSearchVM);
         query.setPageable(pageable);
-        query.addSourceFilter(new FetchSourceFilter(new String[]{
+        query.addSourceFilter(new FetchSourceFilter(true, new String[]{
                 PcbColumnSearchField.TARGET,
                 PcbColumnSearchField.COL_NAME
         }, null));

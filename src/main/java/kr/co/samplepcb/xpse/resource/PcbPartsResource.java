@@ -42,6 +42,11 @@ public class PcbPartsResource {
         return this.pcbPartsIC114Service.indexAllByIC114(file);
     }
 
+    @PostMapping(value = "/_uploadItemFilesByIC114")
+    public CCResult uploadItemFilesByIC114(@RequestParam("files") MultipartFile[] files/*, HttpServletRequest request*/) {
+        return this.pcbPartsIC114Service.indexAllByIC114Multiple(files);
+    }
+
     @GetMapping("/_search")
     public CCResult search(@PageableDefault @SortDefault.SortDefaults({
             @SortDefault(sort = "_score", direction = Sort.Direction.DESC), // 높은 점수

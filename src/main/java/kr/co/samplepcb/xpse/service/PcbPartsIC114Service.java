@@ -1,8 +1,11 @@
 package kr.co.samplepcb.xpse.service;
 
+import coolib.common.CCObjectResult;
 import coolib.common.CCResult;
 import coolib.util.CommonUtils;
 import kr.co.samplepcb.xpse.domain.PcbPartsSearch;
+import kr.co.samplepcb.xpse.pojo.BatchProcessingResult;
+import kr.co.samplepcb.xpse.pojo.FileProcessingResult;
 import kr.co.samplepcb.xpse.pojo.PcbPartsSearchField;
 import kr.co.samplepcb.xpse.repository.PcbPartsSearchRepository;
 import kr.co.samplepcb.xpse.service.common.sub.ExcelSubService;
@@ -241,6 +244,48 @@ public class PcbPartsIC114Service {
     }
 
     /**
+     * 여러 엑셀 파일을 열어 IC114 데이터로 일괄 인덱싱합니다.
+     *
+     * @param files 인덱싱할 엑셀 파일 배열
+     * @return 배치 처리 결과
+     */
+    public CCResult indexAllByIC114Multiple(MultipartFile[] files) {
+        if (files == null || files.length == 0) {
+            return CCResult.requireParam();
+        }
+
+        BatchProcessingResult batchResult = new BatchProcessingResult();
+
+        for (MultipartFile file : files) {
+            if (file.isEmpty()) {
+                FileProcessingResult fileResult = new FileProcessingResult(file.getOriginalFilename());
+                fileResult.setErrorMessage("File is empty");
+                batchResult.addResult(fileResult);
+                continue;
+            }
+
+            FileProcessingResult fileResult = processExcelFileWithDetails(file, this::excelIndexingByIC114);
+            batchResult.addResult(fileResult);
+        }
+
+        log.info("Batch processing completed. Total: {}, Success: {}, Failed: {}",
+                batchResult.getTotalFiles(), batchResult.getSuccessCount(), batchResult.getFailureCount());
+
+        if (batchResult.isAllSuccess()) {
+            return CCObjectResult.setSimpleData(batchResult);
+        } else if (batchResult.getSuccessCount() > 0) {
+            return new CCResult.Builder()
+                    .setSuccessMessage("Partial success: " + batchResult.getSuccessCount() + " succeeded, " + batchResult.getFailureCount() + " failed")
+                    .build();
+
+        } else {
+            return new CCResult.Builder()
+                    .setFailMessage("All files failed to process")
+                    .build();
+        }
+    }
+
+    /**
      * 엑셀 파일 처리를 위한 공통 메서드입니다.
      *
      * @param file 처리할 엑셀 파일
@@ -268,6 +313,47 @@ public class PcbPartsIC114Service {
             log.error("Unexpected error during excel indexing: {}", CommonUtils.getFullStackTrace(e));
             return CCResult.exceptionSimpleMsg(e);
         }
+    }
+
+    /**
+     * 엑셀 파일 처리를 위한 상세 정보 포함 메서드입니다.
+     *
+     * @param file 처리할 엑셀 파일
+     * @param indexingFunction 시트별 인덱싱 로직을 수행하는 함수
+     * @return 파일 처리 결과
+     */
+    private FileProcessingResult processExcelFileWithDetails(MultipartFile file, ExcelIndexingFunction indexingFunction) {
+        String fileName = file.getOriginalFilename();
+        FileProcessingResult result = new FileProcessingResult(fileName);
+        String category = extractCategoryFromFileName(fileName);
+
+        try {
+            IOUtils.setByteArrayMaxOverride(MAX_FILE_SIZE_BYTES);
+            try (XSSFWorkbook workbook = new XSSFWorkbook(file.getInputStream())) {
+                int totalSheets = workbook.getNumberOfSheets();
+                int totalRows = 0;
+
+                for (int i = 0; i < totalSheets; i++) {
+                    XSSFSheet sheet = workbook.getSheetAt(i);
+                    int rows = sheet.getPhysicalNumberOfRows();
+                    totalRows += rows;
+                    indexingFunction.index(workbook, i, category);
+                }
+
+                result.setSuccess(true);
+                result.setProcessedSheets(totalSheets);
+                result.setTotalRows(totalRows);
+                log.info("Successfully processed {} sheets ({} rows) from file: {}", totalSheets, totalRows, fileName);
+            }
+        } catch (IOException e) {
+            result.setErrorMessage("Failed to read file: " + e.getMessage());
+            log.error("Failed to read excel file: {}", fileName, e);
+        } catch (Exception e) {
+            result.setErrorMessage("Processing error: " + e.getMessage());
+            log.error("Unexpected error during excel indexing: {}", CommonUtils.getFullStackTrace(e));
+        }
+
+        return result;
     }
 
     /**

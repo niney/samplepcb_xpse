@@ -3,7 +3,6 @@ package kr.co.samplepcb.xpse.util;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import kr.co.samplepcb.xpse.domain.PcbPartsSearch;
-import kr.co.samplepcb.xpse.pojo.PcbPartsSearchField;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.configurationprocessor.json.JSONException;
@@ -64,7 +63,7 @@ public class CoolElasticUtils {
             if (exists) {
                 updateExistingIndex(indexName, indexOps, entityClass);
             } else {
-                createNewIndex(resource, indexName, indexOps, entityClass);
+                createNewIndex(resource, indexName, indexOps);
             }
         } catch (Exception e) {
             logger.error("Error processing index: {}", indexName, e);
@@ -127,11 +126,10 @@ public class CoolElasticUtils {
      * @param resource 인덱스 설정 정보를 포함한 Resource 객체
      * @param indexName 생성할 인덱스의 이름
      * @param indexOps 인덱스 작업을 수행하는 IndexOperations 객체
-     * @param entityClass 인덱스와 연결된 엔티티 클래스
      * @throws IOException 파일을 읽는 도중 발생할 수 있는 예외
      * @throws JSONException JSON 파싱 도중 발생할 수 있는 예외
      */
-    public static void createNewIndex(Resource resource, String indexName, IndexOperations indexOps, Class<?> entityClass) throws IOException, JSONException {
+    public static void createNewIndex(Resource resource, String indexName, IndexOperations indexOps) throws IOException, JSONException {
         String configJson = readFileContentFirstIgnore(resource);
         JSONObject config = new JSONObject(configJson);
 
@@ -151,17 +149,17 @@ public class CoolElasticUtils {
         }
     }
 
-    /**
+    /*
      * 주어진 Resource 객체에서 파일 콘텐츠를 읽어와서 문자열로 반환합니다.
      *
      * @param resource 읽을 파일이 포함된 Resource 객체
      * @return 파일의 콘텐츠를 문자열로 반환
      * @throws IOException 파일을 읽는 도중 발생할 수 있는 예외
      */
-    public static String readFileContent(Resource resource) throws IOException {
+    /*public static String readFileContent(Resource resource) throws IOException {
         byte[] contentBytes = resource.getInputStream().readAllBytes();
         return new String(contentBytes, StandardCharsets.UTF_8);
-    }
+    }*/
 
     /**
      * 주어진 Resource 객체에서 첫 번째 줄을 건너뛰고 파일 콘텐츠를 읽어와 문자열로 반환합니다.
@@ -194,7 +192,6 @@ public class CoolElasticUtils {
 
     /**
      * 주어진 SearchHits 객체에서 검색 결과를 추출하고, 하이라이트된 정보와 추가적인 메타데이터를 포함한 리스트를 반환합니다.
-     *
      * 최적화 포인트:
      * 1. 빈 결과 조기 반환
      * 2. 초기 용량 설정으로 ArrayList/HashMap 재할당 방지
@@ -206,7 +203,6 @@ public class CoolElasticUtils {
      * @param searchHits 검색 결과를 포함한 SearchHits 객체
      * @return 검색 결과, 하이라이트된 정보 및 추가 메타데이터를 포함한 리스트
      */
-    @SuppressWarnings("unchecked")
     public static <T> List<Map<String, Object>> getSourceWithHighlight(SearchHits<T> searchHits) {
         // 빈 결과 조기 반환 - 불필요한 처리 방지
         if (!searchHits.hasSearchHits()) {
@@ -269,7 +265,7 @@ public class CoolElasticUtils {
 
         // 하이라이트 조건부 추가
         Map<String, List<String>> highlightFields = searchHit.getHighlightFields();
-        if (highlightFields != null && !highlightFields.isEmpty()) {
+        if (!highlightFields.isEmpty()) {
             resultMap.put("highlight", highlightFields);
         }
 

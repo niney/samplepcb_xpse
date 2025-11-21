@@ -400,6 +400,14 @@ public class PcbPartsService {
     public CCResult search(Pageable pageable, QueryParam queryParam, PcbPartsSearchVM pcbPartsSearchVM, String referencePrefix) {
         CCResult parseSearch = CCResult.dataNotFound();
         if (StringUtils.isNotEmpty(queryParam.getQf()) && queryParam.getQf().equals("parsing")) {
+            // 1. part name 키워드 검색 (정확 일치)
+            Criteria keywordCriteria = new Criteria(PcbPartsSearchField.PART_NAME + ".keyword").is(queryParam.getQ());
+            CCResult keywordResult = searchPartNameWithHighlight(keywordCriteria);
+            if (!keywordResult.isResult() || (keywordResult instanceof CCObjectResult && ((CCObjectResult<?>) keywordResult).getData() == null)) {
+                return keywordResult;
+            }
+
+            // 2. 파싱 검색
             parseSearch = this.parseSearch(pageable, queryParam, referencePrefix);
             if (parseSearch instanceof CCPagingResult && !((CCPagingResult<?>) parseSearch).getData().isEmpty()) {
                 return parseSearch;
@@ -408,18 +416,29 @@ public class PcbPartsService {
                 return parseSearch;
             }
         }
+        // 3. part name 일반 검색
         Criteria criteria = new Criteria(PcbPartsSearchField.PART_NAME).is(queryParam.getQ());
+        CCResult result = searchPartNameWithHighlight(criteria);
+        if (result.isResult()) {
+            return result;
+        }
+        return parseSearch;
+    }
+
+    /**
+     * Part Name으로 하이라이트 검색을 수행합니다.
+     *
+     * @param criteria 검색 조건
+     * @return 검색 결과를 포함하는 CCResult 객체
+     */
+    private CCResult searchPartNameWithHighlight(Criteria criteria) {
         HighlightQuery highlightQuery = CoolElasticUtils.createHighlightQuery(Set.of(PcbPartsSearchField.PART_NAME));
 
         Query query = new CriteriaQuery(criteria);
         query.setHighlightQuery(highlightQuery);
 
         SearchHits<PcbPartsSearch> searchHits = this.elasticsearchOperations.search(query, PcbPartsSearch.class);
-        CCResult result = CCObjectResult.setSimpleData(CoolElasticUtils.getSourceWithHighlight(searchHits));
-        if (result.isResult()) {
-            return result;
-        }
-        return parseSearch;
+        return CCObjectResult.setSimpleData(CoolElasticUtils.getSourceWithHighlight(searchHits));
     }
 
     /**

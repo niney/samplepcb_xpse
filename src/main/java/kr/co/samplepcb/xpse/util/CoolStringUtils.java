@@ -25,4 +25,21 @@ public class CoolStringUtils {
             return 0; // 또는 다른 적절한 기본값이나 예외 처리
         }
     }
+
+    /**
+     * 문자열에서 숫자만 추출하여 Integer로 반환합니다.
+     *
+     * @param value 숫자를 포함할 수 있는 문자열
+     * @return 추출된 숫자 (숫자가 없거나 null/empty인 경우 null)
+     */
+    public static Integer extractNumericValue(String value) {
+        if (value == null || value.isEmpty()) {
+            return null;
+        }
+        String numericValue = value.replaceAll("[^0-9]", "");
+        if (numericValue.isEmpty()) {
+            return null;
+        }
+        return Integer.parseInt(numericValue);
+    }
 }

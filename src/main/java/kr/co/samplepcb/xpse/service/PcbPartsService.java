@@ -118,7 +118,7 @@ public class PcbPartsService {
                 value = pcbKindSearch.getItemName();
             }
         }
-        if (!value.equals("")) {
+        if (!value.isEmpty()) {
             // 부모값 체크
             String pTargetName = "";
             if (targetName.equals(PcbPartsSearchField.MEDIUM_CATEGORY)) {
@@ -127,13 +127,13 @@ public class PcbPartsService {
             if (targetName.equals(PcbPartsSearchField.SMALL_CATEGORY)) {
                 pTargetName = PcbPartsSearchField.MEDIUM_CATEGORY;
             }
-            if (!pTargetName.equals("")) { // 현재 검색된 kind 의 부모값과 엑셀의 부모값 일치 하는지 검사
+            if (!pTargetName.isEmpty()) { // 현재 검색된 kind 의 부모값과 엑셀의 부모값 일치 하는지 검사
                 String parentValue = this.excelSubService.getCellStrValue(row, rowIdx - 1);
                 if (StringUtils.isBlank(parentValue)) {
                     return "";
                 }
                 Optional<PcbKindSearch> parentPcbKindOpt = pcbKindSearchRepository.findById(pcbKindSearch.getpId());
-                if (!parentPcbKindOpt.isPresent()) {
+                if (parentPcbKindOpt.isEmpty()) {
                     return "";
                 }
                 PcbKindSearch parentPcbKindSearch = parentPcbKindOpt.get();
@@ -222,8 +222,8 @@ public class PcbPartsService {
                 continue;
             }
             PcbPartsSearch pcbPartsSearch = new PcbPartsSearch();
-            String largeCategory = "";
-            String mediumCategory = "";
+            String largeCategory;
+            String mediumCategory;
             // category 00020002 or 00020004라면 largeCategory 값은 Passive Components
             if (category.equals("00020002") || category.equals("00020004")) {
                 largeCategory = PcbPartsSearchField.PASSIVE_COMPONENTS;
@@ -288,11 +288,9 @@ public class PcbPartsService {
             pcbPartsSearchMap.put(valueStr, pcbPartsSearch);
         }
 
-        targetPcbKindSearchMap.forEach((integer, stringPcbKindSearchMap) -> {
-            stringPcbKindSearchMap.forEach((s, pcbKindSearch) -> {
-                pcbKindSearchList.add(pcbKindSearch);
-            });
-        });
+        targetPcbKindSearchMap
+                .forEach((integer, stringPcbKindSearchMap) -> stringPcbKindSearchMap
+                        .forEach((s, pcbKindSearch) -> pcbKindSearchList.add(pcbKindSearch)));
 
         if (!pcbKindSearchList.isEmpty()) {
             this.pcbKindSearchRepository.saveAll(pcbKindSearchList);
@@ -397,13 +395,15 @@ public class PcbPartsService {
      * @param referencePrefix  참조 지정자값
      * @return 검색 결과를 포함하는 CCResult 객체
      */
+    @SuppressWarnings("unchecked")
     public CCResult search(Pageable pageable, QueryParam queryParam, PcbPartsSearchVM pcbPartsSearchVM, String referencePrefix) {
         CCResult parseSearch = CCResult.dataNotFound();
         if (StringUtils.isNotEmpty(queryParam.getQf()) && queryParam.getQf().equals("parsing")) {
             // 1. part name 키워드 검색 (정확 일치)
             Criteria keywordCriteria = new Criteria(PcbPartsSearchField.PART_NAME + ".keyword").is(queryParam.getQ());
             CCResult keywordResult = searchPartNameWithHighlight(keywordCriteria);
-            if (!keywordResult.isResult() || (keywordResult instanceof CCObjectResult && ((CCObjectResult<?>) keywordResult).getData() == null)) {
+            if (!keywordResult.isResult() || (keywordResult instanceof CCObjectResult &&
+                    CollectionUtils.isNotEmpty(((CCObjectResult<List<?>>) keywordResult).getData()))) {
                 return keywordResult;
             }
 
@@ -446,7 +446,7 @@ public class PcbPartsService {
      *
      * @param pageable        페이징 정보를 담고 있는 Pageable 객체
      * @param queryParam      검색 요청에 대한 QueryParam 객체
-     * @param referencePrefix
+     * @param referencePrefix 레퍼런스 prefix
      * @return 쿼리 결과를 포함하는 CCResult 객체
      */
     public CCResult parseSearch(Pageable pageable, QueryParam queryParam, String referencePrefix) {
@@ -688,11 +688,12 @@ public class PcbPartsService {
         return refCriteria;
     }
 
+
     /**
-     * 'PRODUCT_NAME'과 'SIZE' 키를 제외한 키워드 맵의 크기를 확인합니다.
+     * 주어진 키워드 맵에서 PRODUCT_NAME과 SIZE를 제거한 후, 남은 키워드의 개수를 반환합니다.
      *
-     * @param tag parsedKeywords 키워드 맵
-     * @return 'PRODUCT_NAME'과 'SIZE' 키를 제외한 나머지 키의 개수
+     * @param parsedKeywords 키워드가 포함된 맵으로, 키는 문자열이고 값은 문자열 리스트입니다.
+     * @return PRODUCT_NAME과 SIZE 키를 제거한 후 남은 키워드 맵의 크기
      */
     private static int checkSizeWithoutProductNameAndSize(Map<String, List<String>> parsedKeywords) {
         HashMap<String, List<String>> copyParsedKeywords = new HashMap<>(parsedKeywords);
@@ -701,6 +702,13 @@ public class PcbPartsService {
         return copyParsedKeywords.size();
     }
 
+    /**
+     * 지정된 부품 이름(keyword)을 기준으로 Digi-Key가 아닌 부품을 검색합니다.
+     *
+     * @param partName 검색할 부품의 이름 또는 키워드
+     * @return 검색 결과가 존재하지 않으면 데이터 없음(CCResult.dataNotFound())을 반환하며,
+     *         결과가 있을 경우 검색된 부품 정보 리스트(CCObjectResult.setSimpleData)를 반환
+     */
     public CCResult searchNonDigikeyParts(String partName) {
         List<NonDigikeyPartsSearch> partsSearches = this.nonDigikeyPartsSearchRepository.findByPartNameKeyword(partName);
         if (partsSearches.isEmpty()) {
@@ -739,6 +747,15 @@ public class PcbPartsService {
         return CCObjectResult.setSimpleData(this.pcbPartsSearchRepository.save(pcbPartsSearch));
     }
 
+    /**
+     * Digikey 데이터를 기반으로 후보 제품을 검색합니다.
+     *
+     * @param partName 검색할 제품의 이름
+     * @param referencePrefix 참조 접두사 (예: "R" 또는 "C")
+     * @param response Digikey API 호출 결과를 포함한 응답 객체
+     * @return 검색된 제품 정보가 포함된 CCResult 객체.
+     *         데이터가 없거나 조건에 맞지 않으면 dataNotFound를 반환합니다.
+     */
     @SuppressWarnings("unchecked")
     public CCResult searchCandidateByDigikey(String partName, String referencePrefix, CCObjectResult<Map<String, Object>> response) {
         if (response == null || !response.isResult()) {

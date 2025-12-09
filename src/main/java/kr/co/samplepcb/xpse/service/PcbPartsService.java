@@ -426,6 +426,21 @@ public class PcbPartsService {
     }
 
     /**
+     * Part Name 완전일치 검색을 수행합니다.
+     *
+     * @param partName 검색할 part name
+     * @return 검색 결과를 포함하는 CCResult 객체
+     */
+    public CCResult searchExactMatch(String partName) {
+        if (StringUtils.isEmpty(partName)) {
+            return CCResult.dataNotFound();
+        }
+        // part name 키워드 검색 (정확 일치)
+        Criteria keywordCriteria = new Criteria(PcbPartsSearchField.PART_NAME + ".keyword").is(partName);
+        return searchPartNameWithHighlight(keywordCriteria);
+    }
+
+    /**
      * Part Name으로 하이라이트 검색을 수행합니다.
      *
      * @param criteria 검색 조건

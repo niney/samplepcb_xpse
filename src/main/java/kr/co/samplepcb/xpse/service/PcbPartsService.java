@@ -441,6 +441,23 @@ public class PcbPartsService {
     }
 
     /**
+     * ID로 정확 일치 검색을 수행합니다.
+     *
+     * @param id 검색할 ID
+     * @return 검색 결과를 포함하는 CCResult 객체
+     */
+    public CCResult searchById(String id) {
+        if (StringUtils.isEmpty(id)) {
+            return CCResult.dataNotFound();
+        }
+        Optional<PcbPartsSearch> result = this.pcbPartsSearchRepository.findById(id);
+        if (result.isPresent()) {
+            return CCObjectResult.setSimpleData(result.get());
+        }
+        return CCResult.dataNotFound();
+    }
+
+    /**
      * Part Name으로 하이라이트 검색을 수행합니다.
      *
      * @param criteria 검색 조건

@@ -64,6 +64,11 @@ public class PcbPartsResource {
         return this.pcbPartsService.searchExactMatch(partName);
     }
 
+    @GetMapping("/_searchById")
+    public CCResult searchById(@RequestParam String id) {
+        return this.pcbPartsService.searchById(id);
+    }
+
     @GetMapping("/_indexingByDigikey")
     public Mono<CCResult> indexingByDigikey(String partNumber) {
         CCResult ccResult = this.pcbPartsService.searchNonDigikeyParts(partNumber);

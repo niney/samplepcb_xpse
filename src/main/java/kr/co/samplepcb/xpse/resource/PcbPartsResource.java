@@ -60,8 +60,8 @@ public class PcbPartsResource {
     }
 
     @GetMapping("/_searchExactMatch")
-    public CCResult searchExactMatch(@RequestParam String partName) {
-        return this.pcbPartsService.searchExactMatch(partName);
+    public CCResult searchExactMatch(@RequestParam String partName, @RequestParam(required = false) String manufacturerName) {
+        return this.pcbPartsService.searchExactMatch(partName, manufacturerName);
     }
 
     @GetMapping("/_searchById")

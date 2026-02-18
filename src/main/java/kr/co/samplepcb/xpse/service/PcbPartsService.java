@@ -428,15 +428,19 @@ public class PcbPartsService {
     /**
      * Part Name 완전일치 검색을 수행합니다.
      *
-     * @param partName 검색할 part name
+     * @param partName         검색할 part name
+     * @param manufacturerName 제조사명 필터 (선택)
      * @return 검색 결과를 포함하는 CCResult 객체
      */
-    public CCResult searchExactMatch(String partName) {
+    public CCResult searchExactMatch(String partName, String manufacturerName) {
         if (StringUtils.isEmpty(partName)) {
             return CCResult.dataNotFound();
         }
         // part name 키워드 검색 (정확 일치)
         Criteria keywordCriteria = new Criteria(PcbPartsSearchField.PART_NAME + ".keyword").is(partName);
+        if (StringUtils.isNotEmpty(manufacturerName)) {
+            keywordCriteria = keywordCriteria.and(new Criteria(PcbPartsSearchField.MANUFACTURER_NAME + ".keyword").is(manufacturerName));
+        }
         return searchPartNameWithHighlight(keywordCriteria);
     }
 

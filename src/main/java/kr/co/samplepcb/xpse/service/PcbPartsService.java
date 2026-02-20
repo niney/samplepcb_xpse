@@ -1,5 +1,6 @@
 package kr.co.samplepcb.xpse.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import coolib.common.CCObjectResult;
 import coolib.common.CCPagingResult;
 import coolib.common.CCResult;
@@ -39,6 +40,7 @@ import org.springframework.data.elasticsearch.core.query.Criteria;
 import org.springframework.data.elasticsearch.core.query.CriteriaQuery;
 import org.springframework.data.elasticsearch.core.query.HighlightQuery;
 import org.springframework.data.elasticsearch.core.query.Query;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -57,6 +59,32 @@ public class PcbPartsService {
     private static final Logger log = LoggerFactory.getLogger(PcbPartsService.class);
     private static final int EXCEL_CHUNK_SIZE = 3000;
     private static final int MAX_FILE_SIZE_BYTES = 1024 * 1024 * 1024; // 1GB
+
+    // manufacturers.json Name -> Id 매핑
+    private static final Map<String, Integer> MANUFACTURER_ID_MAP = new HashMap<>();
+    static {
+        try {
+            ClassPathResource resource = new ClassPathResource("manufacturers.json");
+            String json = new String(resource.getInputStream().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+            ObjectMapper objectMapper = new ObjectMapper();
+            @SuppressWarnings("unchecked")
+            Map<String, Object> data = objectMapper.readValue(json, Map.class);
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> manufacturers = (List<Map<String, Object>>) data.get("Manufacturers");
+            if (manufacturers != null) {
+                for (Map<String, Object> m : manufacturers) {
+                    String name = (String) m.get("Name");
+                    Number id = (Number) m.get("Id");
+                    if (name != null && id != null) {
+                        MANUFACTURER_ID_MAP.put(name, id.intValue());
+                    }
+                }
+            }
+            log.info("manufacturers.json 로드 완료: {}건", MANUFACTURER_ID_MAP.size());
+        } catch (IOException e) {
+            log.error("manufacturers.json 로드 실패", e);
+        }
+    }
 
     private final ApplicationProperties applicationProperties;
 
@@ -432,16 +460,29 @@ public class PcbPartsService {
      * @param manufacturerName 제조사명 필터 (선택)
      * @return 검색 결과를 포함하는 CCResult 객체
      */
-    public CCResult searchExactMatch(String partName, String manufacturerName) {
+    @SuppressWarnings("unchecked")
+    public Mono<CCResult> searchExactMatch(String partName, String manufacturerName) {
         if (StringUtils.isEmpty(partName)) {
-            return CCResult.dataNotFound();
+            return Mono.just(CCResult.dataNotFound());
         }
         // part name 키워드 검색 (정확 일치)
         Criteria keywordCriteria = new Criteria(PcbPartsSearchField.PART_NAME + ".keyword").is(partName);
         if (StringUtils.isNotEmpty(manufacturerName)) {
             keywordCriteria = keywordCriteria.and(new Criteria(PcbPartsSearchField.MANUFACTURER_NAME + ".keyword").is(manufacturerName));
         }
-        return searchPartNameWithHighlight(keywordCriteria);
+        // ES에서 먼저 검색
+        CCResult result = searchPartNameWithHighlight(keywordCriteria);
+        if (result.isResult() && CollectionUtils.isNotEmpty(((CCObjectResult<List<?>>) result).getData())) {
+            return Mono.just(result);
+        }
+        // 없는 경우 Digikey에서 조회 후 인덱싱하고 재검색
+        Integer manufacturerId = StringUtils.isNotEmpty(manufacturerName) ? MANUFACTURER_ID_MAP.get(manufacturerName) : null;
+        Criteria finalKeywordCriteria = keywordCriteria;
+        return this.digikeySubService.getProductDetails(partName, manufacturerId)
+                .flatMap(resultMap -> {
+                    this.indexingByDigikey(partName, resultMap);
+                    return Mono.just(searchPartNameWithHighlight(finalKeywordCriteria));
+                });
     }
 
     /**

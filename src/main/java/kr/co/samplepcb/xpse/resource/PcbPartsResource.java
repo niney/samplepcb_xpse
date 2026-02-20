@@ -60,7 +60,7 @@ public class PcbPartsResource {
     }
 
     @GetMapping("/_searchExactMatch")
-    public CCResult searchExactMatch(@RequestParam String partName, @RequestParam(required = false) String manufacturerName) {
+    public Mono<CCResult> searchExactMatch(@RequestParam String partName, @RequestParam(required = false) String manufacturerName) {
         return this.pcbPartsService.searchExactMatch(partName, manufacturerName);
     }
 
@@ -75,7 +75,7 @@ public class PcbPartsResource {
         if (ccResult.isResult()) {
             return Mono.just(CCResult.dataNotFound());
         }
-        return this.digikeySubService.getProductDetails(partNumber)
+        return this.digikeySubService.getProductDetails(partNumber, null)
                 .flatMap(resultMap -> Mono.just(pcbPartsService.indexingByDigikey(partNumber, resultMap)));
     }
 

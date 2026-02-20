@@ -231,13 +231,17 @@ public class DigikeySubService {
                 .onErrorResume(Exception.class, this::createFailureResult);
     }
 
-    @Cacheable(value = PRODUCT_DETAILS, key = "#partNumber")
-    public Mono<CCObjectResult<Map<String, Object>>> getProductDetails(String partNumber) {
-        return webClientBuilder.build()
+    @Cacheable(value = PRODUCT_DETAILS, key = "#partNumber + '_' + #manufacturerId")
+    public Mono<CCObjectResult<Map<String, Object>>> getProductDetails(String partNumber, Integer manufacturerId) {
+        WebClient.RequestHeadersSpec<?> requestSpec = webClientBuilder.build()
                 .get()
                 .uri("/products/v4/search/{partNumber}/productdetails", partNumber)
                 .header("X-DIGIKEY-Locale-Currency", "KRW")
-                .header("X-DIGIKEY-Locale-Site", "KR")
+                .header("X-DIGIKEY-Locale-Site", "KR");
+        if (manufacturerId != null) {
+            requestSpec = requestSpec.header("X-DIGIKEY-Manufacturer-Id", String.valueOf(manufacturerId));
+        }
+        return requestSpec
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {})
                 .map(this::createSuccessResult)

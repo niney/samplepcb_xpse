@@ -156,7 +156,7 @@ public class PcbPartsIC114Service {
             String temperature = this.excelSubService.getCellStrValue(row, 15);
 
             PcbPartsSearch pcbPartsSearch = new PcbPartsSearch();
-            pcbPartsSearch.setServiceType("samplepcb");
+            pcbPartsSearch.setServiceType(PcbPartsSearch.SERVICE_TYPE_SAMPLEPCB);
             pcbPartsSearch.setLargeCategory("수동부품");
             String smallCategory = RESISTANCE_CATEGORIES.get(categoryCode);
             pcbPartsSearch.setMediumCategory("저항");

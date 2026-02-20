@@ -129,6 +129,7 @@ public class DigikeyPartsParserSubService {
      * @param product 제품 정보를 포함한 맵 객체
      */
     private void setBasicInfo(PcbPartsSearch pcbParts, Map<String, Object> product) {
+        pcbParts.setServiceType(PcbPartsSearch.SERVICE_TYPE_SAMPLEPCB);
         pcbParts.setDescription(getNestedString(product, "Description", "ProductDescription"));
         pcbParts.setManufacturerName(getNestedString(product, "Manufacturer", "Name"));
         pcbParts.setPartName((String) product.get("ManufacturerProductNumber"));

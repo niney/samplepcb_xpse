@@ -444,13 +444,15 @@ public class PcbPartsService {
                 return parseSearch;
             }
         }
-        // 3. part name 일반 검색
-        Criteria criteria = new Criteria(PcbPartsSearchField.PART_NAME).is(queryParam.getQ());
-        CCResult result = searchPartNameWithHighlight(criteria);
-        if (result.isResult()) {
-            return result;
-        }
-        return parseSearch;
+        // 3. part name 일반 검색 (q가 없으면 전체 조회)
+        Criteria criteria = StringUtils.isNotEmpty(queryParam.getQ())
+                ? new Criteria(PcbPartsSearchField.PART_NAME).is(queryParam.getQ())
+                : new Criteria();
+        Query query = new CriteriaQuery(criteria);
+        query.setPageable(pageable);
+        SearchHits<PcbPartsSearch> searchHits = this.elasticsearchOperations.search(query, PcbPartsSearch.class);
+        List<PcbPartsSearch> list = CoolElasticUtils.unwrapSearchHits(searchHits);
+        return PagingAdapter.toCCPagingResult(pageable, list, searchHits.getTotalHits());
     }
 
     /**

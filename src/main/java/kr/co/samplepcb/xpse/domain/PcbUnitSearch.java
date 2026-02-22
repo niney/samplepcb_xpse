@@ -1,10 +1,12 @@
 package kr.co.samplepcb.xpse.domain;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
 import org.springframework.data.elasticsearch.annotations.InnerField;
 import org.springframework.data.elasticsearch.annotations.MultiField;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class PcbUnitSearch {
 
     @MultiField(

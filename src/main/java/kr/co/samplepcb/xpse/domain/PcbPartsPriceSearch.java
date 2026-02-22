@@ -1,11 +1,13 @@
 package kr.co.samplepcb.xpse.domain;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
 
 import java.util.Date;
 import java.util.List;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class PcbPartsPriceSearch {
 
     private String distributor;

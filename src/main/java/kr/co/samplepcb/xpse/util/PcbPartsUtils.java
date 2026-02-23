@@ -4,6 +4,7 @@ import kr.co.samplepcb.xpse.domain.PcbPartsPriceSearch;
 import kr.co.samplepcb.xpse.domain.PcbPartsPriceStepSearch;
 import kr.co.samplepcb.xpse.domain.PcbUnitSearch;
 import kr.co.samplepcb.xpse.pojo.PcbPartsSearchField;
+import kr.co.samplepcb.xpse.pojo.PcbPkgType;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
@@ -1029,12 +1030,16 @@ public class PcbPartsUtils {
     }
 
     public static List<PcbPartsPriceSearch> createDefaultPrices(int unitPrice) {
+        return createDefaultPrices(unitPrice, PcbPkgType.UNKNOWN);
+    }
+
+    public static List<PcbPartsPriceSearch> createDefaultPrices(int unitPrice, PcbPkgType pkg) {
         PcbPartsPriceStepSearch step = new PcbPartsPriceStepSearch();
         step.setBreakQuantity(1);
         step.setUnitPrice(unitPrice);
 
         PcbPartsPriceSearch priceSearch = new PcbPartsPriceSearch();
-        priceSearch.setPkg("unknown");
+        priceSearch.setPkg(pkg.getValue());
         priceSearch.setMoq(1);
         priceSearch.setStock(-1);
         priceSearch.setPriceSteps(Collections.singletonList(step));

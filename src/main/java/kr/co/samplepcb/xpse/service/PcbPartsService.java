@@ -12,6 +12,7 @@ import kr.co.samplepcb.xpse.domain.PcbKindSearch;
 import kr.co.samplepcb.xpse.domain.PcbPartsSearch;
 import kr.co.samplepcb.xpse.domain.PcbUnitSearch;
 import kr.co.samplepcb.xpse.pojo.PcbPartsSearchField;
+import kr.co.samplepcb.xpse.pojo.PcbPkgType;
 import kr.co.samplepcb.xpse.pojo.PcbPartsSearchVM;
 import kr.co.samplepcb.xpse.pojo.adapter.PagingAdapter;
 import kr.co.samplepcb.xpse.repository.NonDigikeyPartsSearchRepository;
@@ -283,7 +284,7 @@ public class PcbPartsService {
 //            pcbPartsSearch.setMoq(this.excelSubService.getCellNumberValue(row, 9).intValue());
             int priceValue = CoolStringUtils.extractAndRoundNumber(this.excelSubService.getCellStrValue(row, 13));
             if (priceValue > 0) {
-                pcbPartsSearch.setPrices(PcbPartsUtils.createDefaultPrices(priceValue));
+                pcbPartsSearch.setPrices(PcbPartsUtils.createDefaultPrices(priceValue, PcbPkgType.ELEPARTS));
             }
 //            pcbPartsSearch.setInventoryLevel(this.excelSubService.getCellNumberValue(row, 15).intValue());
 //            pcbPartsSearch.setMemo(this.excelSubService.getCellStrValue(row, 16));

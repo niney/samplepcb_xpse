@@ -18,8 +18,6 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class PcbPartsSearch implements Persistable<String> {
 
-    public static final String SERVICE_TYPE_SAMPLEPCB = "samplepcb";
-
     @Id
     private String id;
     @CreatedDate

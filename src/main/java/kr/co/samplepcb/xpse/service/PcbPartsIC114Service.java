@@ -7,6 +7,7 @@ import kr.co.samplepcb.xpse.domain.PcbPartsSearch;
 import kr.co.samplepcb.xpse.pojo.BatchProcessingResult;
 import kr.co.samplepcb.xpse.pojo.FileProcessingResult;
 import kr.co.samplepcb.xpse.pojo.PcbPartsSearchField;
+import kr.co.samplepcb.xpse.pojo.PcbPkgType;
 import kr.co.samplepcb.xpse.repository.PcbPartsSearchRepository;
 import kr.co.samplepcb.xpse.service.common.sub.ExcelSubService;
 import kr.co.samplepcb.xpse.util.CoolStringUtils;
@@ -156,7 +157,7 @@ public class PcbPartsIC114Service {
             String temperature = this.excelSubService.getCellStrValue(row, 15);
 
             PcbPartsSearch pcbPartsSearch = new PcbPartsSearch();
-            pcbPartsSearch.setServiceType(PcbPartsSearch.SERVICE_TYPE_SAMPLEPCB);
+            pcbPartsSearch.setServiceType(PcbPkgType.SAMPLEPCB.getValue());
             pcbPartsSearch.setLargeCategory("수동부품");
             String smallCategory = RESISTANCE_CATEGORIES.get(categoryCode);
             pcbPartsSearch.setMediumCategory("저항");
@@ -183,7 +184,7 @@ public class PcbPartsIC114Service {
             }
             Integer priceValue = CoolStringUtils.extractNumericValue(price);
             if (priceValue != null && priceValue > 0) {
-                pcbPartsSearch.setPrices(PcbPartsUtils.createDefaultPrices(priceValue));
+                pcbPartsSearch.setPrices(PcbPartsUtils.createDefaultPrices(priceValue, PcbPkgType.SAMPLEPCB));
             }
             pcbPartsSearch.setMoq(CoolStringUtils.extractNumericValue(minQuantity));
             if (watt != null && !watt.isEmpty()) {

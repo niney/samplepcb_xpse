@@ -7,6 +7,7 @@ import kr.co.samplepcb.xpse.domain.PcbPartsPriceStepSearch;
 import kr.co.samplepcb.xpse.domain.PcbPartsSearch;
 import kr.co.samplepcb.xpse.domain.PcbUnitSearch;
 import kr.co.samplepcb.xpse.pojo.PcbPartsSearchField;
+import kr.co.samplepcb.xpse.pojo.PcbPkgType;
 import kr.co.samplepcb.xpse.util.PcbPartsUtils;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Service;
@@ -129,7 +130,7 @@ public class DigikeyPartsParserSubService {
      * @param product 제품 정보를 포함한 맵 객체
      */
     private void setBasicInfo(PcbPartsSearch pcbParts, Map<String, Object> product) {
-        pcbParts.setServiceType(PcbPartsSearch.SERVICE_TYPE_SAMPLEPCB);
+        pcbParts.setServiceType(PcbPkgType.DIGIKEY.getValue());
         pcbParts.setDescription(getNestedString(product, "Description", "ProductDescription"));
         pcbParts.setManufacturerName(getNestedString(product, "Manufacturer", "Name"));
         pcbParts.setPartName((String) product.get("ManufacturerProductNumber"));

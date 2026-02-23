@@ -181,10 +181,11 @@ public class PcbPartsIC114Service {
             if (unit != null && !unit.isEmpty()) {
                 pcbPartsSearch.setPartsPackaging(unit);
             }
-            pcbPartsSearch.setPrice(CoolStringUtils.extractNumericValue(price));
+            Integer priceValue = CoolStringUtils.extractNumericValue(price);
+            if (priceValue != null && priceValue > 0) {
+                pcbPartsSearch.setPrices(PcbPartsUtils.createDefaultPrices(priceValue));
+            }
             pcbPartsSearch.setMoq(CoolStringUtils.extractNumericValue(minQuantity));
-            pcbPartsSearch.setInventoryLevel(CoolStringUtils.extractNumericValue(inventory));
-
             if (watt != null && !watt.isEmpty()) {
                 pcbPartsSearch.setWatt(PcbPartsUtils.parsingToPcbUnitSearch(PcbPartsSearchField.WATT, watt));
             }

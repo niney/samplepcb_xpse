@@ -1,5 +1,7 @@
 package kr.co.samplepcb.xpse.util;
 
+import kr.co.samplepcb.xpse.domain.PcbPartsPriceSearch;
+import kr.co.samplepcb.xpse.domain.PcbPartsPriceStepSearch;
 import kr.co.samplepcb.xpse.domain.PcbUnitSearch;
 import kr.co.samplepcb.xpse.pojo.PcbPartsSearchField;
 import org.apache.commons.collections4.CollectionUtils;
@@ -1024,6 +1026,20 @@ public class PcbPartsUtils {
         int maxLength = Math.max(a.length(), b.length());
         if (maxLength == 0) return 100.0; // 두 문자열 모두 비어있는 경우
         return (1.0 - (double) levenshteinDistance(a, b) / maxLength) * 100;
+    }
+
+    public static List<PcbPartsPriceSearch> createDefaultPrices(int unitPrice) {
+        PcbPartsPriceStepSearch step = new PcbPartsPriceStepSearch();
+        step.setBreakQuantity(1);
+        step.setUnitPrice(unitPrice);
+
+        PcbPartsPriceSearch priceSearch = new PcbPartsPriceSearch();
+        priceSearch.setPkg("unknown");
+        priceSearch.setMoq(1);
+        priceSearch.setStock(-1);
+        priceSearch.setPriceSteps(Collections.singletonList(step));
+
+        return Collections.singletonList(priceSearch);
     }
 
     public static PcbUnitSearch parsingToPcbUnitSearch(String propertyName, String value) {

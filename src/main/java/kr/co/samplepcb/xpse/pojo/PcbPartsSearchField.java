@@ -53,8 +53,7 @@ public class PcbPartsSearchField {
     public static final String CURRENT_MANAGER_PHONE_NUMBER = "currentManagerPhoneNumber";
     public static final String CURRENT_MANAGER_EMAIL = "currentManagerEmail";
     public static final String MEMBER_ID = "memberId";
-    public static final String INVENTORY_LEVEL = "inventoryLevel";
-    public static final String PRICE1 = "price1";
+    public static final String PRICE = "price";
     public static final String WATT = "watt";
     public static final String WATT_FIELD1 = "watt.field1";
     public static final String WATT_FIELD2 = "watt.field2";

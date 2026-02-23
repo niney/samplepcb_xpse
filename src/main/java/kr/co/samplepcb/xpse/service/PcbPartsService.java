@@ -281,11 +281,10 @@ public class PcbPartsService {
 //            pcbPartsSearch.setPartsPackaging(this.excelSubService.getCellStrValue(row, 7));
             pcbPartsSearch.setPackaging(this.parsingToPcbUnitSearch(PcbPartsSearchField.PACKAGING, this.excelSubService.getCellStrValue(row, 8)));
 //            pcbPartsSearch.setMoq(this.excelSubService.getCellNumberValue(row, 9).intValue());
-            pcbPartsSearch.setPrice1(CoolStringUtils.extractAndRoundNumber(this.excelSubService.getCellStrValue(row, 13)));
-            pcbPartsSearch.setPrice2(CoolStringUtils.extractAndRoundNumber(this.excelSubService.getCellStrValue(row, 13)));
-            pcbPartsSearch.setPrice3(CoolStringUtils.extractAndRoundNumber(this.excelSubService.getCellStrValue(row, 13)));
-            pcbPartsSearch.setPrice4(CoolStringUtils.extractAndRoundNumber(this.excelSubService.getCellStrValue(row, 13)));
-            pcbPartsSearch.setPrice5(CoolStringUtils.extractAndRoundNumber(this.excelSubService.getCellStrValue(row, 13)));
+            int priceValue = CoolStringUtils.extractAndRoundNumber(this.excelSubService.getCellStrValue(row, 13));
+            if (priceValue > 0) {
+                pcbPartsSearch.setPrices(PcbPartsUtils.createDefaultPrices(priceValue));
+            }
 //            pcbPartsSearch.setInventoryLevel(this.excelSubService.getCellNumberValue(row, 15).intValue());
 //            pcbPartsSearch.setMemo(this.excelSubService.getCellStrValue(row, 16));
 //            pcbPartsSearch.setOfferName(offerName);

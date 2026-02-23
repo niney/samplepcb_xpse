@@ -1,6 +1,7 @@
 package kr.co.samplepcb.xpse.domain;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import kr.co.samplepcb.xpse.pojo.ElasticIndexName;
 import kr.co.samplepcb.xpse.pojo.PcbImageVM;
 import kr.co.samplepcb.xpse.pojo.PcbPartSpec;
@@ -85,13 +86,12 @@ public class PcbPartsSearch implements Persistable<String> {
     @Field(type = FieldType.Integer)
     private Integer moq;
 
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     @Field(type = FieldType.Integer)
     private Integer price;
     @Field(type = FieldType.Nested)
     private List<PcbPartsPriceSearch> prices;
 
-    @Field(type = FieldType.Integer)
-    private Integer inventoryLevel;
     @Field(type = FieldType.Text, analyzer = "nori")
     private String memo;
     @MultiField(
@@ -301,7 +301,7 @@ public class PcbPartsSearch implements Persistable<String> {
         return price;
     }
 
-    public void setPrice(Integer price) {
+    private void setPrice(Integer price) {
         this.price = price;
     }
 
@@ -311,14 +311,15 @@ public class PcbPartsSearch implements Persistable<String> {
 
     public void setPrices(List<PcbPartsPriceSearch> prices) {
         this.prices = prices;
-    }
-
-    public Integer getInventoryLevel() {
-        return inventoryLevel;
-    }
-
-    public void setInventoryLevel(Integer inventoryLevel) {
-        this.inventoryLevel = inventoryLevel;
+        if (prices != null && !prices.isEmpty()) {
+            this.price = prices.stream()
+                    .filter(p -> p.getPriceSteps() != null)
+                    .flatMap(p -> p.getPriceSteps().stream())
+                    .filter(s -> s.getBreakQuantity() == 1)
+                    .mapToInt(PcbPartsPriceStepSearch::getUnitPrice)
+                    .min()
+                    .orElse(0);
+        }
     }
 
     public String getMemo() {

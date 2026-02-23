@@ -1,5 +1,6 @@
 package kr.co.samplepcb.xpse.pojo;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Field;
@@ -34,8 +35,8 @@ public class PcbPartsSearchVM {
     private String partsPackaging;
     private String packaging;
     private Integer moq;
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private Integer price;
-    private Integer inventoryLevel;
     private String memo;
     private String offerName;
     private List<PcbImageVM> images;
@@ -168,20 +169,8 @@ public class PcbPartsSearchVM {
         return price;
     }
 
-    public void setPrice(Integer price) {
-        this.price = price;
-    }
-
     public static List<Field> getPcbPartsSearchFields() {
         return pcbPartsSearchFields;
-    }
-
-    public Integer getInventoryLevel() {
-        return inventoryLevel;
-    }
-
-    public void setInventoryLevel(Integer inventoryLevel) {
-        this.inventoryLevel = inventoryLevel;
     }
 
     public String getMemo() {

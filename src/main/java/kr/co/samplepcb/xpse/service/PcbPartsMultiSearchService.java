@@ -43,6 +43,20 @@ public class PcbPartsMultiSearchService {
     /**
      * 자체(samplepcb) + 디지키(digikey) 양쪽 검색을 병렬로 수행합니다.
      *
+     * <pre>
+     * 검색 흐름 (Mono.zip 병렬 실행):
+     *
+     * [자체(samplepcb)]                        [디지키(digikey)]
+     *   1. PART_NAME.keyword 완전일치            1. getProductDetails 완전일치
+     *      → 결과 있으면 searchType="exact"         → 결과 있으면 searchType="exact"
+     *   2. 없으면 → 파싱 ES 검색                  2. 없으면 → searchByKeyword
+     *      → searchType="keyword"                  → searchType="keyword"
+     *   3. 없으면 → part name 일반 텍스트 검색
+     *      → searchType="keyword"
+     *
+     * → 병렬 완료 후 합쳐서 응답
+     * </pre>
+     *
      * @param searchWord      검색어 (필수)
      * @param referencePrefix 참조 접두사 (선택, 예: "R", "C", "L")
      * @return 소스별 검색 결과를 담은 CCResult
@@ -54,13 +68,16 @@ public class PcbPartsMultiSearchService {
 
         String safeReferencePrefix = StringUtils.defaultString(referencePrefix);
 
+        // 자체(samplepcb) ES 검색 — 블로킹 호출이므로 Mono.fromCallable로 감싸서 실행
         Mono<PcbPartsMultiSearchResult.SourceResult> samplepcbMono = Mono.fromCallable(() ->
                 searchSamplepcb(searchWord, safeReferencePrefix)
         );
 
+        // 디지키(digikey) API 검색 — 논블로킹 WebClient 기반
         Mono<PcbPartsMultiSearchResult.SourceResult> digikeyMono =
                 searchDigikey(searchWord, safeReferencePrefix);
 
+        // 두 소스를 병렬로 실행하고 결과를 합쳐서 반환
         return Mono.zip(samplepcbMono, digikeyMono)
                 .map(tuple -> {
                     PcbPartsMultiSearchResult result = new PcbPartsMultiSearchResult();

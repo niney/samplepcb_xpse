@@ -6,6 +6,7 @@ import coolib.common.QueryParam;
 import kr.co.samplepcb.xpse.pojo.PcbPartsSearchField;
 import kr.co.samplepcb.xpse.pojo.PcbPartsSearchVM;
 import kr.co.samplepcb.xpse.service.PcbPartsIC114Service;
+import kr.co.samplepcb.xpse.service.PcbPartsMultiSearchService;
 import kr.co.samplepcb.xpse.service.PcbPartsService;
 import kr.co.samplepcb.xpse.service.common.sub.DigikeySubService;
 import java.util.List;
@@ -28,11 +29,13 @@ public class PcbPartsResource {
     private final PcbPartsService pcbPartsService;
     private final PcbPartsIC114Service pcbPartsIC114Service;
     private final DigikeySubService digikeySubService;
+    private final PcbPartsMultiSearchService pcbPartsMultiSearchService;
 
-    public PcbPartsResource(PcbPartsService pcbPartsService, PcbPartsIC114Service pcbPartsIC114Service, DigikeySubService digikeySubService) {
+    public PcbPartsResource(PcbPartsService pcbPartsService, PcbPartsIC114Service pcbPartsIC114Service, DigikeySubService digikeySubService, PcbPartsMultiSearchService pcbPartsMultiSearchService) {
         this.pcbPartsService = pcbPartsService;
         this.pcbPartsIC114Service = pcbPartsIC114Service;
         this.digikeySubService = digikeySubService;
+        this.pcbPartsMultiSearchService = pcbPartsMultiSearchService;
     }
 
     @PostMapping(value = "/_uploadItemFileByEleparts")
@@ -100,6 +103,11 @@ public class PcbPartsResource {
     public Mono<CCResult> searchCandidateByDigikey(String partNumber, @RequestParam(required = false) String referencePrefix) {
         return this.digikeySubService.searchByKeyword(referencePrefix, partNumber, 2, 0)
                 .flatMap(resultMap -> Mono.just(pcbPartsService.searchCandidateByDigikey(partNumber, referencePrefix, resultMap)));
+    }
+
+    @GetMapping("/_searchMultiSource")
+    public Mono<CCResult> searchMultiSource(@RequestParam String searchWord, @RequestParam(required = false) String referencePrefix) {
+        return this.pcbPartsMultiSearchService.searchMultiSource(searchWord, referencePrefix);
     }
 
 }

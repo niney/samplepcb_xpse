@@ -12,6 +12,8 @@ import kr.co.samplepcb.xpse.util.PcbPartsUtils;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -85,6 +87,30 @@ public class DigikeyPartsParserSubService {
         return CCObjectResult.setSimpleData(pcbParts);
     }
 
+    /**
+     * 주어진 맵에서 모든 제품 정보를 파싱하여 PcbPartsSearch 리스트로 반환합니다.
+     *
+     * @param root "Products" 키에 제품 목록이 포함된 맵
+     * @return 파싱된 PcbPartsSearch 객체 리스트 (제품이 없으면 빈 리스트)
+     */
+    public List<PcbPartsSearch> parseAllProducts(Map<String, Object> root) {
+        List list = (List) root.get("Products");
+        if (CollectionUtils.isEmpty(list)) {
+            return Collections.emptyList();
+        }
+        List<PcbPartsSearch> results = new ArrayList<>();
+        for (Object item : list) {
+            Map<String, Object> product = (Map) item;
+            PcbPartsSearch pcbParts = new PcbPartsSearch();
+            setBasicInfo(pcbParts, product);
+            setCategoryInfo(pcbParts, product);
+            setPriceInfo(pcbParts, product);
+            setParameterInfo(pcbParts, product);
+            results.add(pcbParts);
+        }
+        return results;
+    }
+
     public CCResult parseProductsFirst(Map<String, Object> root) {
         List list = (List) root.get("Products");
         if (CollectionUtils.isEmpty(list)) {
@@ -138,7 +164,7 @@ public class DigikeyPartsParserSubService {
     }
 
     /**
-     * 주어진 제품 정보를 사용하여 PcbPartsSearch 객체의 카테고리 정보를 설정합니다.
+     * 주어진 제품 정보를 사용하여 PcbPartsSearch 객체의 카테고리 정보를 설정합니다.ㅋ
      *
      * @param pcbParts 카테고리 정보를 설정할 PcbPartsSearch 객체
      * @param product 카테고리 정보를 포함하는 제품 정보 맵

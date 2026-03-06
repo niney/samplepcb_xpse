@@ -1,0 +1,203 @@
+package kr.co.samplepcb.xpse.service;
+
+import coolib.common.CCObjectResult;
+import coolib.common.CCResult;
+import kr.co.samplepcb.xpse.domain.PcbPartsSearch;
+import kr.co.samplepcb.xpse.pojo.PcbPartsMultiSearchResult;
+import kr.co.samplepcb.xpse.pojo.PcbPartsSearchField;
+import kr.co.samplepcb.xpse.service.common.sub.DigikeyPartsParserSubService;
+import kr.co.samplepcb.xpse.service.common.sub.DigikeySubService;
+import kr.co.samplepcb.xpse.util.CoolElasticUtils;
+import kr.co.samplepcb.xpse.util.PcbPartsUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.SearchHits;
+import org.springframework.data.elasticsearch.core.query.Criteria;
+import org.springframework.data.elasticsearch.core.query.CriteriaQuery;
+import org.springframework.data.elasticsearch.core.query.HighlightQuery;
+import org.springframework.data.elasticsearch.core.query.Query;
+import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
+
+import java.util.*;
+
+@Service
+public class PcbPartsMultiSearchService {
+
+    private static final Logger log = LoggerFactory.getLogger(PcbPartsMultiSearchService.class);
+
+    private final ElasticsearchOperations elasticsearchOperations;
+    private final DigikeySubService digikeySubService;
+    private final DigikeyPartsParserSubService digikeyPartsParserSubService;
+
+    public PcbPartsMultiSearchService(ElasticsearchOperations elasticsearchOperations,
+                                      DigikeySubService digikeySubService,
+                                      DigikeyPartsParserSubService digikeyPartsParserSubService) {
+        this.elasticsearchOperations = elasticsearchOperations;
+        this.digikeySubService = digikeySubService;
+        this.digikeyPartsParserSubService = digikeyPartsParserSubService;
+    }
+
+    /**
+     * 자체(samplepcb) + 디지키(digikey) 양쪽 검색을 병렬로 수행합니다.
+     *
+     * @param searchWord      검색어 (필수)
+     * @param referencePrefix 참조 접두사 (선택, 예: "R", "C", "L")
+     * @return 소스별 검색 결과를 담은 CCResult
+     */
+    public Mono<CCResult> searchMultiSource(String searchWord, String referencePrefix) {
+        if (StringUtils.isEmpty(searchWord)) {
+            return Mono.just(CCResult.dataNotFound());
+        }
+
+        String safeReferencePrefix = StringUtils.defaultString(referencePrefix);
+
+        Mono<PcbPartsMultiSearchResult.SourceResult> samplepcbMono = Mono.fromCallable(() ->
+                searchSamplepcb(searchWord, safeReferencePrefix)
+        );
+
+        Mono<PcbPartsMultiSearchResult.SourceResult> digikeyMono =
+                searchDigikey(searchWord, safeReferencePrefix);
+
+        return Mono.zip(samplepcbMono, digikeyMono)
+                .map(tuple -> {
+                    PcbPartsMultiSearchResult result = new PcbPartsMultiSearchResult();
+                    result.setSamplepcb(tuple.getT1());
+                    result.setDigikey(tuple.getT2());
+                    return (CCResult) CCObjectResult.setSimpleData(result);
+                })
+                .onErrorResume(e -> {
+                    log.error("멀티 소스 검색 실패", e);
+                    return Mono.just(CCResult.exceptionSimpleMsg((Exception) e));
+                });
+    }
+
+    /**
+     * 자체(samplepcb) ES 검색: 완전일치 → 없으면 파싱 키워드 검색
+     */
+    private PcbPartsMultiSearchResult.SourceResult searchSamplepcb(String searchWord, String referencePrefix) {
+        // 1. PART_NAME.keyword 완전일치
+        Criteria exactCriteria = new Criteria(PcbPartsSearchField.PART_NAME + ".keyword").is(searchWord);
+        HighlightQuery highlightQuery = CoolElasticUtils.createHighlightQuery(Set.of(PcbPartsSearchField.PART_NAME));
+        Query exactQuery = new CriteriaQuery(exactCriteria);
+        exactQuery.setHighlightQuery(highlightQuery);
+
+        SearchHits<PcbPartsSearch> exactHits = elasticsearchOperations.search(exactQuery, PcbPartsSearch.class);
+        if (exactHits.hasSearchHits()) {
+            List<?> items = CoolElasticUtils.getSourceWithHighlight(exactHits);
+            return new PcbPartsMultiSearchResult.SourceResult("exact", items);
+        }
+
+        // 2. 파싱 ES 검색
+        Map<String, List<String>> parsedKeywords = PcbPartsUtils.parseString(searchWord, referencePrefix);
+        Criteria parsedCriteria = new Criteria();
+        Set<String> highlightFields = new HashSet<>();
+        highlightFields.add(PcbPartsSearchField.PART_NAME);
+
+        boolean hasConditions = buildParsedCriteria(parsedKeywords, parsedCriteria, highlightFields);
+        if (hasConditions) {
+            Query parsedQuery = new CriteriaQuery(parsedCriteria);
+            parsedQuery.setHighlightQuery(CoolElasticUtils.createHighlightQuery(highlightFields));
+
+            SearchHits<PcbPartsSearch> parsedHits = elasticsearchOperations.search(parsedQuery, PcbPartsSearch.class);
+            if (parsedHits.hasSearchHits()) {
+                List<?> items = CoolElasticUtils.getSourceWithHighlight(parsedHits);
+                return new PcbPartsMultiSearchResult.SourceResult("keyword", items);
+            }
+        }
+
+        // 3. part name 일반 텍스트 검색
+        Criteria textCriteria = new Criteria(PcbPartsSearchField.PART_NAME).is(searchWord);
+        Query textQuery = new CriteriaQuery(textCriteria);
+        textQuery.setHighlightQuery(highlightQuery);
+
+        SearchHits<PcbPartsSearch> textHits = elasticsearchOperations.search(textQuery, PcbPartsSearch.class);
+        List<?> items = CoolElasticUtils.getSourceWithHighlight(textHits);
+        return new PcbPartsMultiSearchResult.SourceResult("keyword", items);
+    }
+
+    /**
+     * 디지키 검색: getProductDetails 완전일치 → 없으면 searchByKeyword
+     */
+    private Mono<PcbPartsMultiSearchResult.SourceResult> searchDigikey(String searchWord, String referencePrefix) {
+        // 1. getProductDetails 완전일치
+        return digikeySubService.getProductDetails(searchWord, null)
+                .flatMap(response -> {
+                    if (response.isResult() && response.getData() != null) {
+                        CCObjectResult<PcbPartsSearch> parsed = digikeyPartsParserSubService.parseProduct(response.getData());
+                        if (parsed.isResult() && parsed.getData() != null) {
+                            return Mono.just(new PcbPartsMultiSearchResult.SourceResult(
+                                    "exact", Collections.singletonList(parsed.getData())));
+                        }
+                    }
+                    // 2. 실패 시 searchByKeyword 폴백
+                    return searchDigikeyByKeyword(searchWord, referencePrefix);
+                })
+                .onErrorResume(e -> {
+                    log.warn("디지키 ProductDetails 검색 실패, keyword 검색으로 폴백: {}", e.getMessage());
+                    return searchDigikeyByKeyword(searchWord, referencePrefix);
+                });
+    }
+
+    /**
+     * 디지키 키워드 검색
+     */
+    private Mono<PcbPartsMultiSearchResult.SourceResult> searchDigikeyByKeyword(String searchWord, String referencePrefix) {
+        return digikeySubService.searchByKeyword(referencePrefix, searchWord, 10, 0)
+                .map(response -> {
+                    if (response.isResult() && response.getData() != null) {
+                        List<PcbPartsSearch> products = digikeyPartsParserSubService.parseAllProducts(response.getData());
+                        return new PcbPartsMultiSearchResult.SourceResult("keyword", products);
+                    }
+                    return new PcbPartsMultiSearchResult.SourceResult("keyword", Collections.emptyList());
+                })
+                .onErrorReturn(new PcbPartsMultiSearchResult.SourceResult("keyword", Collections.emptyList()));
+    }
+
+    /**
+     * 파싱된 키워드로 ES 검색 조건 구축
+     */
+    private boolean buildParsedCriteria(Map<String, List<String>> parsedKeywords, Criteria criteria, Set<String> highlightFields) {
+        boolean hasConditions = false;
+        for (Map.Entry<String, List<String>> entry : parsedKeywords.entrySet()) {
+            String fieldName = entry.getKey();
+            List<String> fieldValues = entry.getValue();
+            if (fieldValues.isEmpty()) continue;
+
+            String keywords = String.join(" ", fieldValues);
+            List<String> keywordFieldList = getKeywordFieldList(fieldName);
+            if (keywordFieldList != null) {
+                addOrSubCriteria(keywordFieldList, keywords, criteria, highlightFields);
+                hasConditions = true;
+            }
+        }
+        return hasConditions;
+    }
+
+    /**
+     * 필드명에 대응하는 keyword 필드 목록 반환
+     */
+    private List<String> getKeywordFieldList(String fieldName) {
+        return switch (fieldName) {
+            case PcbPartsSearchField.WATT -> PcbPartsSearchField.WATT_KEYWORD_LIST;
+            case PcbPartsSearchField.TOLERANCE -> PcbPartsSearchField.TOLERANCE_KEYWORD_LIST;
+            case PcbPartsSearchField.OHM -> PcbPartsSearchField.OHM_KEYWORD_LIST;
+            case PcbPartsSearchField.CONDENSER -> PcbPartsSearchField.CONDENSER_KEYWORD_LIST;
+            case PcbPartsSearchField.VOLTAGE -> PcbPartsSearchField.VOLTAGE_KEYWORD_LIST;
+            case PcbPartsSearchField.CURRENT -> PcbPartsSearchField.CURRENT_KEYWORD_LIST;
+            case PcbPartsSearchField.INDUCTOR -> PcbPartsSearchField.INDUCTOR_KEYWORD_LIST;
+            default -> null;
+        };
+    }
+
+    private static void addOrSubCriteria(List<String> keywordFieldNameList, String keywords, Criteria refCriteria, Set<String> highlightFields) {
+        Criteria subCriteria = new Criteria();
+        for (String keyword : keywordFieldNameList) {
+            subCriteria = subCriteria.or(keyword).is(keywords);
+            highlightFields.add(keyword);
+        }
+        refCriteria.subCriteria(subCriteria);
+    }
+}

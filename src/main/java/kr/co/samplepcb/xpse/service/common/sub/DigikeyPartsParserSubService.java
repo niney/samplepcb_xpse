@@ -161,6 +161,7 @@ public class DigikeyPartsParserSubService {
         pcbParts.setManufacturerName(getNestedString(product, "Manufacturer", "Name"));
         pcbParts.setPartName((String) product.get("ManufacturerProductNumber"));
         pcbParts.setPhotoUrl((String) product.get("PhotoUrl"));
+        pcbParts.setDatasheetUrl((String) product.get("DatasheetUrl"));
     }
 
     /**

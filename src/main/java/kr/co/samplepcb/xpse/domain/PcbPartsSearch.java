@@ -174,6 +174,7 @@ public class PcbPartsSearch implements Persistable<String> {
     )
     private String productName;
     private String photoUrl;
+    private String datasheetUrl;
 
     @Field(type = FieldType.Nested)
     private List<PcbPartSpec> specs;
@@ -486,6 +487,14 @@ public class PcbPartsSearch implements Persistable<String> {
 
     public void setPhotoUrl(String photoUrl) {
         this.photoUrl = photoUrl;
+    }
+
+    public String getDatasheetUrl() {
+        return datasheetUrl;
+    }
+
+    public void setDatasheetUrl(String datasheetUrl) {
+        this.datasheetUrl = datasheetUrl;
     }
 
     public List<PcbPartSpec> getSpecs() {

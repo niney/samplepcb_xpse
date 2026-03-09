@@ -21,11 +21,21 @@ spring:
             spec: maximumSize=100,expireAfterWrite=50m
 
 logging:
-#    level:
-#        org:
-#            apache:
-#                http:
-#                    wire: DEBUG
+    level:
+#        tracer: TRACE
+        org:
+            springframework:
+                data:
+                    elasticsearch:
+                        client:
+                            elc: TRACE
+                        core: DEBUG
+            elasticsearch: DEBUG
+        co.elastic.clients: DEBUG
+        reactor:
+            netty:
+                http:
+                    client: DEBUG
     pattern:
         console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 

@@ -21,8 +21,10 @@ public class PcbPartsSearch implements Persistable<String> {
     @Id
     private String id;
     @CreatedDate
+    @Field(type = FieldType.Date, format = DateFormat.epoch_millis)
     private Date writeDate;
     @LastModifiedDate
+    @Field(type = FieldType.Date, format = DateFormat.epoch_millis)
     private Date lastModifiedDate;
     @Field(type = FieldType.Keyword, normalizer = "keyword_normalizer")
     private String serviceType;

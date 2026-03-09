@@ -27,8 +27,10 @@ public class PcbKindSearch implements Persistable<String> {
     @Field(type = FieldType.Keyword)
     private Integer target;
     @CreatedDate
+    @Field(type = FieldType.Date, format = DateFormat.epoch_millis)
     private Date writeDate;
     @LastModifiedDate
+    @Field(type = FieldType.Date, format = DateFormat.epoch_millis)
     private Date lastModifiedDate;
     @MultiField(
             mainField = @Field(type = FieldType.Text, analyzer = "ngram_analyzer_case_insensitive", fielddata = true),

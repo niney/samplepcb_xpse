@@ -1,7 +1,7 @@
 package kr.co.samplepcb.xpse.repository;
 
 import coolib.common.QueryParam;
-import kr.co.samplepcb.xpse.domain.PcbKindSearch;
+import kr.co.samplepcb.xpse.domain.document.PcbKindSearch;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.elasticsearch.annotations.Query;
 import org.springframework.data.elasticsearch.repository.ElasticsearchRepository;

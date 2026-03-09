@@ -1,4 +1,4 @@
-package kr.co.samplepcb.xpse.domain;
+package kr.co.samplepcb.xpse.domain.document;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 

@@ -13,7 +13,7 @@ import co.elastic.clients.json.JsonData;
 import coolib.common.CCObjectResult;
 import coolib.common.CCResult;
 import coolib.common.QueryParam;
-import kr.co.samplepcb.xpse.domain.PcbColumnSearch;
+import kr.co.samplepcb.xpse.domain.document.PcbColumnSearch;
 import kr.co.samplepcb.xpse.pojo.ElasticIndexName;
 import kr.co.samplepcb.xpse.pojo.PcbColumnSearchField;
 import kr.co.samplepcb.xpse.pojo.PcbColumnSearchVM;

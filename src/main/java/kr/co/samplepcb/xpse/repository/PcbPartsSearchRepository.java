@@ -1,7 +1,7 @@
 package kr.co.samplepcb.xpse.repository;
 
 import coolib.common.QueryParam;
-import kr.co.samplepcb.xpse.domain.PcbPartsSearch;
+import kr.co.samplepcb.xpse.domain.document.PcbPartsSearch;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;

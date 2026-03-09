@@ -2,7 +2,7 @@ package kr.co.samplepcb.xpse.service;
 
 import coolib.common.CCResult;
 import coolib.util.CommonUtils;
-import kr.co.samplepcb.xpse.domain.PcbKindSearch;
+import kr.co.samplepcb.xpse.domain.document.PcbKindSearch;
 import kr.co.samplepcb.xpse.repository.PcbKindSearchRepository;
 import kr.co.samplepcb.xpse.service.common.sub.ExcelSubService;
 import kr.co.samplepcb.xpse.service.common.sub.PcbPartsSubService;

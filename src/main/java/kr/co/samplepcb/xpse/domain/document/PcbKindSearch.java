@@ -1,4 +1,4 @@
-package kr.co.samplepcb.xpse.domain;
+package kr.co.samplepcb.xpse.domain.document;
 
 import kr.co.samplepcb.xpse.pojo.ElasticIndexName;
 import org.springframework.data.annotation.CreatedDate;

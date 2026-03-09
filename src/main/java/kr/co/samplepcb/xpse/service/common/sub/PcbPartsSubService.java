@@ -1,7 +1,7 @@
 package kr.co.samplepcb.xpse.service.common.sub;
 
 import coolib.common.CCResult;
-import kr.co.samplepcb.xpse.domain.PcbPartsSearch;
+import kr.co.samplepcb.xpse.domain.document.PcbPartsSearch;
 import kr.co.samplepcb.xpse.pojo.ElasticIndexName;
 import kr.co.samplepcb.xpse.pojo.PcbPartsSearchField;
 import kr.co.samplepcb.xpse.repository.PcbPartsSearchRepository;

@@ -1,6 +1,6 @@
 package kr.co.samplepcb.xpse.repository;
 
-import kr.co.samplepcb.xpse.domain.PcbColumnSearch;
+import kr.co.samplepcb.xpse.domain.document.PcbColumnSearch;
 import kr.co.samplepcb.xpse.pojo.PcbColumnSearchField;
 import kr.co.samplepcb.xpse.pojo.PcbColumnSearchVM;
 import kr.co.samplepcb.xpse.util.CoolElasticUtils;

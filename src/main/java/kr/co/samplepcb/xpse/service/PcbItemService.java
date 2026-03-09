@@ -2,7 +2,7 @@ package kr.co.samplepcb.xpse.service;
 
 import coolib.common.CCObjectResult;
 import coolib.common.CCResult;
-import kr.co.samplepcb.xpse.domain.PcbItemSearch;
+import kr.co.samplepcb.xpse.domain.document.PcbItemSearch;
 import kr.co.samplepcb.xpse.repository.PcbItemSearchRepository;
 import kr.co.samplepcb.xpse.service.common.sub.DigikeySubService;
 import kr.co.samplepcb.xpse.util.DigikeyUtils;

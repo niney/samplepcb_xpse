@@ -1,6 +1,6 @@
 package kr.co.samplepcb.xpse.repository;
 
-import kr.co.samplepcb.xpse.domain.PcbItemSearch;
+import kr.co.samplepcb.xpse.domain.document.PcbItemSearch;
 import org.springframework.data.elasticsearch.annotations.Query;
 import org.springframework.data.elasticsearch.repository.ElasticsearchRepository;
 

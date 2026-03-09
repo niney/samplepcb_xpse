@@ -1,8 +1,8 @@
 package kr.co.samplepcb.xpse.util;
 
-import kr.co.samplepcb.xpse.domain.PcbPartsPriceSearch;
-import kr.co.samplepcb.xpse.domain.PcbPartsPriceStepSearch;
-import kr.co.samplepcb.xpse.domain.PcbUnitSearch;
+import kr.co.samplepcb.xpse.domain.document.PcbPartsPriceSearch;
+import kr.co.samplepcb.xpse.domain.document.PcbPartsPriceStepSearch;
+import kr.co.samplepcb.xpse.domain.document.PcbUnitSearch;
 import kr.co.samplepcb.xpse.pojo.PcbPartsSearchField;
 import kr.co.samplepcb.xpse.pojo.PcbPkgType;
 import org.apache.commons.collections4.CollectionUtils;

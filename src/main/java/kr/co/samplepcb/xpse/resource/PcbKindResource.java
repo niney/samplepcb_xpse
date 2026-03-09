@@ -2,7 +2,7 @@ package kr.co.samplepcb.xpse.resource;
 
 import tools.jackson.databind.ObjectMapper;
 import coolib.common.CCResult;
-import kr.co.samplepcb.xpse.domain.PcbKindSearch;
+import kr.co.samplepcb.xpse.domain.document.PcbKindSearch;
 import kr.co.samplepcb.xpse.service.PcbKindService;
 import kr.co.samplepcb.xpse.util.CoolElasticUtils;
 import org.springframework.core.io.ResourceLoader;

@@ -3,7 +3,7 @@ package kr.co.samplepcb.xpse.util;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.SerializationFeature;
 import tools.jackson.databind.json.JsonMapper;
-import kr.co.samplepcb.xpse.domain.PcbPartsSearch;
+import kr.co.samplepcb.xpse.domain.document.PcbPartsSearch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.configurationprocessor.json.JSONException;

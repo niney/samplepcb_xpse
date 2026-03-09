@@ -1,7 +1,7 @@
 package kr.co.samplepcb.xpse.resource;
 
 import coolib.common.CCResult;
-import kr.co.samplepcb.xpse.domain.PcbItemSearch;
+import kr.co.samplepcb.xpse.domain.document.PcbItemSearch;
 import kr.co.samplepcb.xpse.service.PcbItemService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;

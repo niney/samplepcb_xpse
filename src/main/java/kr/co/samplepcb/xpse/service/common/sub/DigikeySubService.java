@@ -1,7 +1,7 @@
 package kr.co.samplepcb.xpse.service.common.sub;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import coolib.common.CCObjectResult;
 import jakarta.annotation.PostConstruct;
 import kr.co.samplepcb.xpse.config.ApplicationProperties;
@@ -160,12 +160,8 @@ public class DigikeySubService {
                     tokenInfo.setAccessToken(response.getAccessToken());
                     tokenInfo.setExpiryTime(LocalDateTime.now().plusSeconds(response.getExpiresIn()));
 
-                    try {
-                        objectMapper.writeValue(getTokenPath().toFile(), tokenInfo);
-                        log.debug("Token saved to file successfully");
-                    } catch (IOException e) {
-                        log.error("Failed to save token to file: {}", e.getMessage());
-                    }
+                    objectMapper.writeValue(getTokenPath().toFile(), tokenInfo);
+                    log.debug("Token saved to file successfully");
 
                     return response.getAccessToken();
                 });
@@ -173,16 +169,12 @@ public class DigikeySubService {
 
     private Mono<String> getValidToken() {
         Path tokenPath = getTokenPath();
-        try {
-            if (Files.exists(tokenPath)) {
-                TokenInfo tokenInfo = objectMapper.readValue(tokenPath.toFile(), TokenInfo.class);
-                if (tokenInfo.isValid()) {
-                    log.debug("Using token from file cache");
-                    return Mono.just(tokenInfo.getAccessToken());
-                }
+        if (Files.exists(tokenPath)) {
+            TokenInfo tokenInfo = objectMapper.readValue(tokenPath.toFile(), TokenInfo.class);
+            if (tokenInfo.isValid()) {
+                log.debug("Using token from file cache");
+                return Mono.just(tokenInfo.getAccessToken());
             }
-        } catch (IOException e) {
-            log.warn("Failed to read token file: {}", e.getMessage());
         }
         return getNewToken();
     }

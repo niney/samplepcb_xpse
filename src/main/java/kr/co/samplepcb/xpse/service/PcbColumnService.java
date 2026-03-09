@@ -8,6 +8,7 @@ import co.elastic.clients.elasticsearch.core.MsearchRequest;
 import co.elastic.clients.elasticsearch.core.MsearchResponse;
 import co.elastic.clients.elasticsearch.core.msearch.*;
 import co.elastic.clients.elasticsearch.core.search.Hit;
+import co.elastic.clients.elasticsearch.core.search.SearchRequestBody;
 import co.elastic.clients.json.JsonData;
 import coolib.common.CCObjectResult;
 import coolib.common.CCResult;
@@ -127,7 +128,7 @@ public class PcbColumnService {
         for (List<Double> queryVector : queryVectorList) {
             ScriptScoreQuery scriptScoreQuery = getScriptScoreQuery(queryVector);
             mBuilder.searches(new RequestItem.Builder().header(new MultisearchHeader.Builder().build())
-                    .body(new MultisearchBody.Builder()
+                    .body(new SearchRequestBody.Builder()
                             .query(scriptScoreQuery._toQuery())
                             .size(1)
                             .build())
@@ -172,7 +173,7 @@ public class PcbColumnService {
 
         Script inlineScript = new Script.Builder()
                 .lang("painless")
-                .source("cosineSimilarity(params.query_vector, '" + PcbColumnSearchField.COL_NAME_VECTOR + "') + 1.0")
+                .source(s -> s.scriptString("cosineSimilarity(params.query_vector, '" + PcbColumnSearchField.COL_NAME_VECTOR + "') + 1.0"))
                 .params(params)
                 .build();
 

@@ -1,6 +1,6 @@
 package kr.co.samplepcb.xpse.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import coolib.common.CCObjectResult;
 import coolib.common.CCPagingResult;
 import coolib.common.CCResult;

@@ -1,6 +1,6 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.5.8'
+    id 'org.springframework.boot' version '4.0.3'
     id 'io.spring.dependency-management' version '1.1.7'
 }
 
@@ -27,6 +27,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-elasticsearch'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
+    implementation 'org.springframework.boot:spring-boot-starter-webclient'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
 //    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
     implementation 'org.springframework.boot:spring-boot-configuration-processor'
@@ -34,23 +35,19 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
     // https://mvnrepository.com/artifact/org.apache.poi/poi
-    implementation 'org.apache.poi:poi:5.3.0'
+    implementation 'org.apache.poi:poi:5.5.1'
     // https://mvnrepository.com/artifact/org.apache.poi/poi-ooxml
-    implementation 'org.apache.poi:poi-ooxml:5.3.0'
+    implementation 'org.apache.poi:poi-ooxml:5.5.1'
     // https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-cache
     implementation 'org.springframework.boot:spring-boot-starter-cache'
     // https://mvnrepository.com/artifact/com.github.ben-manes.caffeine/caffeine
     implementation 'com.github.ben-manes.caffeine:caffeine'
     // https://mvnrepository.com/artifact/org.json/json
-    implementation 'org.json:json:20240303'
+    implementation 'org.json:json:20251224'
 
     implementation files("libs/cool-library-1.4.6.jar")
 }
 
 tasks.named('test') {
     useJUnitPlatform()
-}
-
-bootJar {
-    launchScript()
 }

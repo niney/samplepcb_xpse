@@ -1,7 +1,8 @@
 package kr.co.samplepcb.xpse.util;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.SerializationFeature;
+import tools.jackson.databind.json.JsonMapper;
 import kr.co.samplepcb.xpse.domain.PcbPartsSearch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,7 +15,6 @@ import org.springframework.core.type.classreading.MetadataReader;
 import org.springframework.core.type.classreading.MetadataReaderFactory;
 import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.core.*;
-import org.springframework.data.elasticsearch.core.index.PutIndexTemplateRequest;
 import org.springframework.data.elasticsearch.core.index.Settings;
 import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
 import org.springframework.data.elasticsearch.core.query.HighlightQuery;
@@ -37,8 +37,9 @@ public class CoolElasticUtils {
     private static final Logger logger = LoggerFactory.getLogger(CoolElasticUtils.class);
     private static final String ENTITY_PACKAGE = "kr.co.samplepcb.xpse.domain";
 
-    private static final ObjectMapper objectMapper = new ObjectMapper()
-            .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
+    private static final ObjectMapper objectMapper = JsonMapper.builder()
+            .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
+            .build();
 
 
     /**
@@ -133,19 +134,16 @@ public class CoolElasticUtils {
         String configJson = readFileContentFirstIgnore(resource);
         JSONObject config = new JSONObject(configJson);
 
-        PutIndexTemplateRequest request = PutIndexTemplateRequest.builder()
-                .withName(indexName + "-template")
-                .withIndexPatterns(indexName)
-                .withSettings(Settings.parse(config.getJSONObject("settings").toString()))
-                .withMapping(org.springframework.data.elasticsearch.core.document.Document.parse(config.getJSONObject("mappings").toString()))
-                .build();
+        Settings settings = Settings.parse(config.getJSONObject("settings").toString());
+        org.springframework.data.elasticsearch.core.document.Document mapping =
+                org.springframework.data.elasticsearch.core.document.Document.parse(config.getJSONObject("mappings").toString());
 
-        boolean success = indexOps.putIndexTemplate(request);
-
-        if (success) {
-            logger.info("Index template applied and index created: {}", indexName);
+        boolean created = indexOps.create(settings);
+        if (created) {
+            indexOps.putMapping(mapping);
+            logger.info("Index created with settings and mapping: {}", indexName);
         } else {
-            logger.error("Failed to apply index template for index: {}", indexName);
+            logger.error("Failed to create index: {}", indexName);
         }
     }
 

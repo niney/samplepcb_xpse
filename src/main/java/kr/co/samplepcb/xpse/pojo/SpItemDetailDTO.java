@@ -3,8 +3,9 @@ package kr.co.samplepcb.xpse.pojo;
 import kr.co.samplepcb.xpse.domain.entity.G5ShopItem;
 import kr.co.samplepcb.xpse.domain.entity.SpPartnerOrder;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -26,7 +27,7 @@ public class SpItemDetailDTO {
     private String itMemberMail;
     private String itEta;
     private String itEstimateStatus;
-    private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final ObjectMapper objectMapper = JsonMapper.builder().build();
 
     private Object itBasic;
     private Object itExplan;
@@ -156,7 +157,7 @@ public class SpItemDetailDTO {
         }
         try {
             return objectMapper.readValue(value, Object.class);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             return value;
         }
     }

@@ -1,6 +1,7 @@
 package kr.co.samplepcb.xpse.resource;
 
 import coolib.common.CCResult;
+import kr.co.samplepcb.xpse.pojo.SpItemUpdateDTO;
 import kr.co.samplepcb.xpse.security.JwtAuth;
 import kr.co.samplepcb.xpse.service.SpItemService;
 import org.springframework.web.bind.annotation.*;
@@ -19,5 +20,11 @@ public class SpItemResource {
     @GetMapping("/{itId}")
     public CCResult getDetail(@PathVariable String itId) {
         return this.spItemService.getDetail(itId);
+    }
+
+    @JwtAuth
+    @PostMapping("/{itId}")
+    public CCResult update(@PathVariable String itId, @RequestBody SpItemUpdateDTO updateDTO) {
+        return this.spItemService.update(itId, updateDTO);
     }
 }

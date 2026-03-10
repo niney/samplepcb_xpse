@@ -9,11 +9,17 @@ import org.springframework.web.cors.CorsConfiguration;
 public class ApplicationProperties {
 
     private final CorsConfiguration cors = new CorsConfiguration();
+    private final Jwt jwt = new Jwt();
     private final SpLinserver spLinserver = new SpLinserver();
     private final MlServer mlServer = new MlServer();
     private final Digikey digikey = new Digikey();
+
     public CorsConfiguration getCors() {
         return cors;
+    }
+
+    public Jwt getJwt() {
+        return jwt;
     }
 
     public SpLinserver getSpLinserver() {
@@ -49,6 +55,18 @@ public class ApplicationProperties {
 
         public void setServerUrl(String serverUrl) {
             this.serverUrl = serverUrl;
+        }
+    }
+
+    public static class Jwt {
+        private String secret;
+
+        public String getSecret() {
+            return secret;
+        }
+
+        public void setSecret(String secret) {
+            this.secret = secret;
         }
     }
 

@@ -46,6 +46,8 @@ application:
         allowed-headers: "*"
         exposed-headers: "authorization, content-type, date, connection, transfer-encoding, x-application-context, x-content-type-options, x-xss-protection"
         max-age: 1800
+    jwt:
+        secret: "change-this-to-your-shared-secret-key-base64-encoded"
     splinserver:
         serverUrl: http://localhost:8098
     mlServer:

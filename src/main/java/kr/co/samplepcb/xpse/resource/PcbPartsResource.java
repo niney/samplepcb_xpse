@@ -3,6 +3,9 @@ package kr.co.samplepcb.xpse.resource;
 import coolib.common.CCObjectResult;
 import coolib.common.CCResult;
 import coolib.common.QueryParam;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import kr.co.samplepcb.xpse.pojo.PcbPartsSearchField;
 import kr.co.samplepcb.xpse.pojo.PcbPartsSearchVM;
 import kr.co.samplepcb.xpse.service.PcbPartsIC114Service;
@@ -21,6 +24,7 @@ import org.springframework.web.multipart.MultipartFile;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+@Tag(name = "PCB 부품", description = "PCB 부품 검색/업로드/인덱싱 API")
 @RestController
 @RequestMapping("/api/pcbParts")
 public class PcbPartsResource {
@@ -38,21 +42,25 @@ public class PcbPartsResource {
         this.pcbPartsMultiSearchService = pcbPartsMultiSearchService;
     }
 
+    @Operation(summary = "Eleparts 파일 업로드", description = "Eleparts 형식의 부품 파일을 업로드하여 인덱싱합니다")
     @PostMapping(value = "/_uploadItemFileByEleparts")
     public CCResult uploadItemFileByEleparts(@RequestParam("file") MultipartFile file/*, HttpServletRequest request*/) {
         return this.pcbPartsService.indexAllByEleparts(file);
     }
 
+    @Operation(summary = "IC114 파일 업로드", description = "IC114 형식의 부품 파일을 업로드하여 인덱싱합니다")
     @PostMapping(value = "/_uploadItemFileByIC114")
     public CCResult uploadItemFileByIC114(@RequestParam("file") MultipartFile file/*, HttpServletRequest request*/) {
         return this.pcbPartsIC114Service.indexAllByIC114(file);
     }
 
+    @Operation(summary = "IC114 다중 파일 업로드", description = "IC114 형식의 부품 파일을 다중 업로드하여 인덱싱합니다")
     @PostMapping(value = "/_uploadItemFilesByIC114")
     public CCResult uploadItemFilesByIC114(@RequestParam("files") MultipartFile[] files/*, HttpServletRequest request*/) {
         return this.pcbPartsIC114Service.indexAllByIC114Multiple(files);
     }
 
+    @Operation(summary = "부품 검색", description = "다양한 조건으로 PCB 부품을 검색합니다")
     @GetMapping("/_search")
     public CCResult search(@PageableDefault @SortDefault.SortDefaults({
             @SortDefault(sort = "_score", direction = Sort.Direction.DESC), // 높은 점수
@@ -64,18 +72,23 @@ public class PcbPartsResource {
         return this.pcbPartsService.search(pageable, queryParam, pcbPartsSearchVM, referencePrefix);
     }
 
+    @Operation(summary = "부품 정확 매칭 검색", description = "부품명과 제조사명으로 정확히 일치하는 부품을 검색합니다")
     @GetMapping("/_searchExactMatch")
-    public Mono<CCResult> searchExactMatch(@RequestParam String partName, @RequestParam(required = false) String manufacturerName) {
+    public Mono<CCResult> searchExactMatch(
+            @Parameter(description = "부품명") @RequestParam String partName,
+            @Parameter(description = "제조사명") @RequestParam(required = false) String manufacturerName) {
         return this.pcbPartsService.searchExactMatch(partName, manufacturerName);
     }
 
+    @Operation(summary = "부품 ID 검색", description = "부품 ID로 검색합니다")
     @GetMapping("/_searchById")
-    public CCResult searchById(@RequestParam String id) {
+    public CCResult searchById(@Parameter(description = "부품 ID") @RequestParam String id) {
         return this.pcbPartsService.searchById(id);
     }
 
+    @Operation(summary = "Digikey 인덱싱", description = "Digikey 부품번호로 부품 정보를 가져와 인덱싱합니다")
     @GetMapping("/_indexingByDigikey")
-    public Mono<CCResult> indexingByDigikey(String partNumber) {
+    public Mono<CCResult> indexingByDigikey(@Parameter(description = "Digikey 부품번호") String partNumber) {
         CCResult ccResult = this.pcbPartsService.searchNonDigikeyParts(partNumber);
         if (ccResult.isResult()) {
             return Mono.just(CCResult.dataNotFound());
@@ -84,6 +97,7 @@ public class PcbPartsResource {
                 .flatMap(resultMap -> Mono.just(pcbPartsService.indexingByDigikey(partNumber, resultMap)));
     }
 
+    @Operation(summary = "Digikey 일괄 인덱싱", description = "여러 Digikey 부품번호를 일괄 인덱싱합니다")
     @PostMapping("/_indexingByDigikey")
     public Mono<CCResult> indexingByDigikeyMultiple(@RequestBody List<String> partNumbers) {
         return Flux.fromIterable(partNumbers)
@@ -99,14 +113,20 @@ public class PcbPartsResource {
                 .map(CCObjectResult::setSimpleData);
     }
 
+    @Operation(summary = "Digikey 후보 검색", description = "Digikey에서 부품 후보를 검색합니다")
     @GetMapping("/_searchCandidateByDigikey")
-    public Mono<CCResult> searchCandidateByDigikey(String partNumber, @RequestParam(required = false) String referencePrefix) {
+    public Mono<CCResult> searchCandidateByDigikey(
+            @Parameter(description = "부품번호") String partNumber,
+            @Parameter(description = "참조 접두사") @RequestParam(required = false) String referencePrefix) {
         return this.digikeySubService.searchByKeyword(referencePrefix, partNumber, 2, 0)
                 .flatMap(resultMap -> Mono.just(pcbPartsService.searchCandidateByDigikey(partNumber, referencePrefix, resultMap)));
     }
 
+    @Operation(summary = "다중 소스 검색", description = "여러 소스에서 부품을 통합 검색합니다")
     @GetMapping("/_searchMultiSource")
-    public Mono<CCResult> searchMultiSource(@RequestParam String searchWord, @RequestParam(required = false) String referencePrefix) {
+    public Mono<CCResult> searchMultiSource(
+            @Parameter(description = "검색어") @RequestParam String searchWord,
+            @Parameter(description = "참조 접두사") @RequestParam(required = false) String referencePrefix) {
         return this.pcbPartsMultiSearchService.searchMultiSource(searchWord, referencePrefix);
     }
 

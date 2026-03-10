@@ -20,6 +20,17 @@ spring:
         caffeine:
             spec: maximumSize=100,expireAfterWrite=50m
 
+springdoc:
+    api-docs:
+        path: /v3/api-docs
+    swagger-ui:
+        path: /swagger-ui.html
+        tags-sorter: alpha
+        operations-sorter: alpha
+        doc-expansion: none
+    default-produces-media-type: application/json
+    default-consumes-media-type: application/json
+
 logging:
     level:
 #        tracer: TRACE

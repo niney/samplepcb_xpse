@@ -1,6 +1,7 @@
 package kr.co.samplepcb.xpse.pojo;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Field;
@@ -8,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+@Schema(description = "PCB 부품 검색 조건")
 public class PcbPartsSearchVM {
 
     public final static List<Field> pcbPartsSearchFields = new ArrayList<>();

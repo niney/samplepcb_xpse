@@ -5,43 +5,75 @@ import kr.co.samplepcb.xpse.domain.entity.G5ShopCart;
 import kr.co.samplepcb.xpse.domain.entity.G5ShopItem;
 import kr.co.samplepcb.xpse.domain.entity.SpPartnerOrder;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+@Schema(description = "SP 주문 목록")
 public class SpOrderListDTO {
 
+    @Schema(description = "장바구니 ID")
     private int ctId;
+    @Schema(description = "주문 ID")
     private long odId;
+    @Schema(description = "회원 ID")
     private String mbId;
+    @Schema(description = "아이템 ID")
     private String itId;
+    @Schema(description = "아이템명")
     private String itName;
+    @Schema(description = "장바구니 가격")
     private int ctPrice;
+    @Schema(description = "장바구니 포인트")
     private int ctPoint;
+    @Schema(description = "장바구니 상태")
     private String ctStatus;
+    @Schema(description = "장바구니 옵션")
     private String ctOption;
+    @Schema(description = "수량")
     private int ctQty;
+    @Schema(description = "장바구니 등록 시간")
     private Date ctTime;
 
+    @Schema(description = "제조사")
     private String itemMaker;
+    @Schema(description = "모델명")
     private String itemModel;
+    @Schema(description = "브랜드")
     private String itemBrand;
+    @Schema(description = "아이템 가격")
     private int itemPrice;
+    @Schema(description = "아이템 대표 이미지")
     private String itemImg1;
+    @Schema(description = "업체명")
     private String itemCompanyName;
+    @Schema(description = "담당자명")
     private String itemMemberName;
+    @Schema(description = "담당자 전화번호")
     private String itemMemberTel;
+    @Schema(description = "담당자 이메일")
     private String itemMemberMail;
+    @Schema(description = "예상 납기일")
     private String itemEta;
+    @Schema(description = "견적 상태")
     private String itemEstimateStatus;
 
+    @Schema(description = "회원 번호")
     private int memberNo;
+    @Schema(description = "회원명")
     private String memberName;
+    @Schema(description = "회원 닉네임")
     private String memberNick;
+    @Schema(description = "회원 이메일")
     private String memberEmail;
+    @Schema(description = "회원 전화번호")
     private String memberTel;
+    @Schema(description = "회원 휴대폰번호")
     private String memberHp;
 
+    @Schema(description = "파트너 주문 목록")
     private List<PartnerOrderDTO> partnerOrders;
 
     public static SpOrderListDTO from(G5ShopCart cart) {
@@ -95,17 +127,29 @@ public class SpOrderListDTO {
         return dto;
     }
 
+    @Schema(description = "파트너 주문 정보")
     public static class PartnerOrderDTO {
+        @Schema(description = "주문 ID")
         private long id;
+        @Schema(description = "파트너 회원번호")
         private int partnerMbNo;
+        @Schema(description = "주문 상태")
         private String status;
+        @Schema(description = "파트너 선정 여부")
         private int isSelectPartner;
+        @Schema(description = "가격")
         private int price;
+        @Schema(description = "포워더")
         private String forwarder;
+        @Schema(description = "배송일")
         private Date shipping;
+        @Schema(description = "추적번호")
         private String tracking;
+        @Schema(description = "메모")
         private String memo;
+        @Schema(description = "작성일")
         private Date writeDate;
+        @Schema(description = "수정일")
         private Date modifyDate;
 
         public static PartnerOrderDTO from(SpPartnerOrder po) {

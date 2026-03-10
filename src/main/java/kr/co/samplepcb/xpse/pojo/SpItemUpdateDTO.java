@@ -1,27 +1,43 @@
 package kr.co.samplepcb.xpse.pojo;
 
 import kr.co.samplepcb.xpse.domain.entity.G5ShopItem;
+import io.swagger.v3.oas.annotations.media.Schema;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
+@Schema(description = "SP 아이템 수정 요청")
 public class SpItemUpdateDTO {
 
     private static final ObjectMapper objectMapper = JsonMapper.builder().build();
 
+    @Schema(description = "아이템명")
     private String itName;
+    @Schema(description = "제조사")
     private String itMaker;
+    @Schema(description = "모델명")
     private String itModel;
+    @Schema(description = "브랜드")
     private String itBrand;
+    @Schema(description = "가격")
     private Integer itPrice;
+    @Schema(description = "대표 이미지")
     private String itImg1;
+    @Schema(description = "업체명")
     private String itCompanyName;
+    @Schema(description = "담당자명")
     private String itMemberName;
+    @Schema(description = "담당자 전화번호")
     private String itMemberTel;
+    @Schema(description = "담당자 이메일")
     private String itMemberMail;
+    @Schema(description = "예상 납기일")
     private String itEta;
+    @Schema(description = "견적 상태")
     private String itEstimateStatus;
+    @Schema(description = "기본 정보 (JSON)")
     private Object itBasic;
+    @Schema(description = "상세 설명 (JSON)")
     private Object itExplan;
 
     public void applyTo(G5ShopItem item) {

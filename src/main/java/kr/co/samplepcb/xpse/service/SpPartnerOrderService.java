@@ -2,8 +2,7 @@ package kr.co.samplepcb.xpse.service;
 
 import coolib.common.CCObjectResult;
 import coolib.common.CCResult;
-import jakarta.persistence.EntityNotFoundException;
-import kr.co.samplepcb.xpse.domain.entity.G5ShopItem;
+import jakarta.persistence.criteria.JoinType;
 import kr.co.samplepcb.xpse.domain.entity.SpPartnerOrder;
 import kr.co.samplepcb.xpse.pojo.SpPartnerOrderCreateDTO;
 import kr.co.samplepcb.xpse.pojo.SpPartnerOrderListDTO;
@@ -19,7 +18,6 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -36,66 +34,63 @@ public class SpPartnerOrderService {
 
     @Transactional
     public CCResult create(SpPartnerOrderCreateDTO createDTO) {
-        SpPartnerOrder saved = upsert(createDTO);
-        return CCObjectResult.setSimpleData(saved);
+        upsert(createDTO);
+        return CCObjectResult.setSimpleData(createDTO);
     }
 
     @Transactional
     public CCResult createBatch(List<SpPartnerOrderCreateDTO> createDTOs) {
-        List<SpPartnerOrder> savedList = new ArrayList<>();
         for (SpPartnerOrderCreateDTO dto : createDTOs) {
-            savedList.add(upsert(dto));
+            upsert(dto);
         }
-        return CCObjectResult.setSimpleData(savedList);
+        return CCObjectResult.setSimpleData(createDTOs);
     }
 
     @Transactional
     public CCResult search(Pageable pageable, SpPartnerOrderSearchParam searchParam) {
-        Specification<SpPartnerOrder> spec = (root, query, cb) -> cb.conjunction();
+        Specification<SpPartnerOrder> fetchSpec = (root, query, cb) -> {
+            if (query.getResultType() != Long.class && query.getResultType() != long.class) {
+                root.fetch("shopItem", JoinType.LEFT);
+                root.fetch("partner", JoinType.LEFT);
+            }
+            return cb.conjunction();
+        };
 
         if (StringUtils.isNotBlank(searchParam.getItId())) {
-            spec = spec.and((root, query, cb) -> cb.equal(root.get("itId"), searchParam.getItId()));
+            fetchSpec = fetchSpec.and((root, query, cb) -> cb.equal(root.get("itId"), searchParam.getItId()));
         }
         if (searchParam.getPartnerMbNo() != null) {
-            spec = spec.and((root, query, cb) -> cb.equal(root.get("partnerMbNo"), searchParam.getPartnerMbNo()));
+            fetchSpec = fetchSpec.and((root, query, cb) -> cb.equal(root.get("partnerMbNo"), searchParam.getPartnerMbNo()));
         }
         if (StringUtils.isNotBlank(searchParam.getStatus())) {
-            spec = spec.and((root, query, cb) -> cb.equal(root.get("status"), searchParam.getStatus()));
+            fetchSpec = fetchSpec.and((root, query, cb) -> cb.equal(root.get("status"), searchParam.getStatus()));
         }
 
-        Page<SpPartnerOrder> page = spPartnerOrderRepository.findAll(spec, pageable);
+        Page<SpPartnerOrder> page = spPartnerOrderRepository.findAll(fetchSpec, pageable);
 
         List<SpPartnerOrder> orphans = page.getContent().stream()
-                .filter(order -> {
-                    try {
-                        G5ShopItem item = order.getShopItem();
-                        if (item != null) {
-                            item.getItName();
-                        }
-                        return false;
-                    } catch (EntityNotFoundException e) {
-                        return true;
-                    }
-                }).toList();
+                .filter(order -> order.getShopItem() == null)
+                .toList();
 
         if (!orphans.isEmpty()) {
             log.info("삭제된 아이템을 참조하는 고아 주문 {}건 삭제", orphans.size());
             spPartnerOrderRepository.deleteAll(orphans);
-            page = spPartnerOrderRepository.findAll(spec, pageable);
+            page = spPartnerOrderRepository.findAll(fetchSpec, pageable);
         }
 
         Page<SpPartnerOrderListDTO> dtoPage = page.map(SpPartnerOrderListDTO::from);
         return PagingAdapter.toCCPagingResult(searchParam.getQ(), pageable, dtoPage);
     }
 
-    private SpPartnerOrder upsert(SpPartnerOrderCreateDTO dto) {
+    private void upsert(SpPartnerOrderCreateDTO dto) {
         Optional<SpPartnerOrder> existing = spPartnerOrderRepository
                 .findByItIdAndPartnerMbNo(dto.getItId(), dto.getPartnerMbNo());
         if (existing.isPresent()) {
             SpPartnerOrder entity = existing.get();
             dto.applyTo(entity);
-            return spPartnerOrderRepository.save(entity);
+            spPartnerOrderRepository.save(entity);
+            return;
         }
-        return spPartnerOrderRepository.save(dto.toEntity());
+        spPartnerOrderRepository.save(dto.toEntity());
     }
 }

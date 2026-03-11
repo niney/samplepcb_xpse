@@ -20,6 +20,16 @@ public class SpPartnerOrder {
     @Column(name = "partner_mb_no", nullable = false)
     private int partnerMbNo;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "it_id", referencedColumnName = "it_id", insertable = false, updatable = false,
+            foreignKey = @ForeignKey(name = "fk_sp_partner_order_it_id"))
+    private G5ShopItem shopItem;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "partner_mb_no", referencedColumnName = "mb_no", insertable = false, updatable = false,
+            foreignKey = @ForeignKey(name = "fk_sp_partner_order_mb_no"))
+    private G5Member partner;
+
     @Lob
     @Column(name = "meta_item", columnDefinition = "longtext")
     private String metaItem;
@@ -91,4 +101,8 @@ public class SpPartnerOrder {
     public void setWriteDate(Date writeDate) { this.writeDate = writeDate; }
     public Date getModifyDate() { return modifyDate; }
     public void setModifyDate(Date modifyDate) { this.modifyDate = modifyDate; }
+    public G5ShopItem getShopItem() { return shopItem; }
+    public void setShopItem(G5ShopItem shopItem) { this.shopItem = shopItem; }
+    public G5Member getPartner() { return partner; }
+    public void setPartner(G5Member partner) { this.partner = partner; }
 }

@@ -4,9 +4,16 @@ import coolib.common.CCObjectResult;
 import coolib.common.CCResult;
 import kr.co.samplepcb.xpse.domain.entity.SpPartnerOrder;
 import kr.co.samplepcb.xpse.pojo.SpPartnerOrderCreateDTO;
+import kr.co.samplepcb.xpse.pojo.SpPartnerOrderListDTO;
+import kr.co.samplepcb.xpse.pojo.SpPartnerOrderSearchParam;
+import kr.co.samplepcb.xpse.pojo.adapter.PagingAdapter;
 import kr.co.samplepcb.xpse.repository.SpPartnerOrderRepository;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,6 +45,25 @@ public class SpPartnerOrderService {
             savedList.add(upsert(dto));
         }
         return CCObjectResult.setSimpleData(savedList);
+    }
+
+    @Transactional(readOnly = true)
+    public CCResult search(Pageable pageable, SpPartnerOrderSearchParam searchParam) {
+        Specification<SpPartnerOrder> spec = (root, query, cb) -> cb.conjunction();
+
+        if (StringUtils.isNotBlank(searchParam.getItId())) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("itId"), searchParam.getItId()));
+        }
+        if (searchParam.getPartnerMbNo() != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("partnerMbNo"), searchParam.getPartnerMbNo()));
+        }
+        if (StringUtils.isNotBlank(searchParam.getStatus())) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("status"), searchParam.getStatus()));
+        }
+
+        Page<SpPartnerOrder> page = spPartnerOrderRepository.findAll(spec, pageable);
+        Page<SpPartnerOrderListDTO> dtoPage = page.map(SpPartnerOrderListDTO::from);
+        return PagingAdapter.toCCPagingResult(searchParam.getQ(), pageable, dtoPage);
     }
 
     private SpPartnerOrder upsert(SpPartnerOrderCreateDTO dto) {

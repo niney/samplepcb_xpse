@@ -2,6 +2,7 @@ package kr.co.samplepcb.xpse.resource;
 
 import coolib.common.CCResult;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import kr.co.samplepcb.xpse.pojo.SpPartnerOrderCreateDTO;
@@ -23,6 +24,14 @@ public class SpPartnerOrderResource {
 
     public SpPartnerOrderResource(SpPartnerOrderService spPartnerOrderService) {
         this.spPartnerOrderService = spPartnerOrderService;
+    }
+
+    @Operation(summary = "협력사 주문 상세 조회", description = "아이템 ID와 파트너 회원번호로 상세 정보를 조회합니다")
+    @JwtAuth
+    @GetMapping("/{itId}/{partnerMbNo}")
+    public CCResult getDetail(@Parameter(description = "아이템 ID") @PathVariable String itId,
+                              @Parameter(description = "파트너 회원번호") @PathVariable int partnerMbNo) {
+        return this.spPartnerOrderService.getDetail(itId, partnerMbNo);
     }
 
     @Operation(summary = "협력사 주문 검색", description = "협력사 주문 목록을 아이템/파트너/상태 조건으로 검색합니다")

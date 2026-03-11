@@ -4,6 +4,7 @@ import coolib.common.CCObjectResult;
 import coolib.common.CCResult;
 import kr.co.samplepcb.xpse.domain.entity.SpPartnerOrder;
 import kr.co.samplepcb.xpse.pojo.SpPartnerOrderCreateDTO;
+import kr.co.samplepcb.xpse.pojo.SpPartnerOrderDetailDTO;
 import kr.co.samplepcb.xpse.pojo.SpPartnerOrderListDTO;
 import kr.co.samplepcb.xpse.pojo.SpPartnerOrderSearchParam;
 import kr.co.samplepcb.xpse.pojo.adapter.PagingAdapter;
@@ -38,6 +39,15 @@ public class SpPartnerOrderService {
             upsert(dto);
         }
         return CCObjectResult.setSimpleData(createDTOs);
+    }
+
+    @Transactional(readOnly = true)
+    public CCResult getDetail(String itId, int partnerMbNo) {
+        SpPartnerOrderDetailDTO dto = spPartnerOrderRepository.findPartnerOrderDetail(itId, partnerMbNo);
+        if (dto == null) {
+            return CCResult.dataNotFound();
+        }
+        return CCObjectResult.setSimpleData(dto);
     }
 
     @Transactional(readOnly = true)

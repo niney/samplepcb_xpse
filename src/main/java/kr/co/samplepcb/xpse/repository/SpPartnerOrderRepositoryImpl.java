@@ -6,6 +6,7 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import kr.co.samplepcb.xpse.domain.entity.QG5Member;
 import kr.co.samplepcb.xpse.domain.entity.QG5ShopItem;
 import kr.co.samplepcb.xpse.domain.entity.QSpPartnerOrder;
+import kr.co.samplepcb.xpse.pojo.SpPartnerOrderDetailDTO;
 import kr.co.samplepcb.xpse.pojo.SpPartnerOrderListDTO;
 import kr.co.samplepcb.xpse.pojo.SpPartnerOrderSearchParam;
 import org.apache.commons.lang3.StringUtils;
@@ -62,6 +63,31 @@ public class SpPartnerOrderRepositoryImpl implements SpPartnerOrderRepositoryCus
                 .where(where)
                 .fetchOne();
         return count != null ? count : 0L;
+    }
+
+    @Override
+    public SpPartnerOrderDetailDTO findPartnerOrderDetail(String itId, int partnerMbNo) {
+        QSpPartnerOrder po = QSpPartnerOrder.spPartnerOrder;
+        QG5ShopItem item = QG5ShopItem.g5ShopItem;
+        QG5Member member = QG5Member.g5Member;
+
+        return queryFactory
+                .select(Projections.constructor(SpPartnerOrderDetailDTO.class,
+                        po.id, po.itId, po.partnerMbNo, po.metaItem,
+                        po.status, po.isSelectPartner, po.price,
+                        po.forwarder, po.shipping, po.tracking,
+                        po.estimateFile1Subj, po.estimateFile1,
+                        po.memo, po.writeDate, po.modifyDate,
+                        item.itName, item.itMaker, item.itModel,
+                        item.itBrand, item.itImg1, item.itBasic,
+                        item.itExplan,
+                        member.mbId, member.mbName, member.mbNick,
+                        member.mbEmail, member.mbHp))
+                .from(po)
+                .leftJoin(po.shopItem, item)
+                .leftJoin(po.partner, member)
+                .where(po.itId.eq(itId), po.partnerMbNo.eq(partnerMbNo))
+                .fetchOne();
     }
 
     private BooleanBuilder buildSearchCondition(SpPartnerOrderSearchParam searchParam, QSpPartnerOrder po) {

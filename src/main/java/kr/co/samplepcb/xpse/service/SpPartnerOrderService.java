@@ -2,6 +2,8 @@ package kr.co.samplepcb.xpse.service;
 
 import coolib.common.CCObjectResult;
 import coolib.common.CCResult;
+import jakarta.persistence.EntityNotFoundException;
+import kr.co.samplepcb.xpse.domain.entity.G5ShopItem;
 import kr.co.samplepcb.xpse.domain.entity.SpPartnerOrder;
 import kr.co.samplepcb.xpse.pojo.SpPartnerOrderCreateDTO;
 import kr.co.samplepcb.xpse.pojo.SpPartnerOrderListDTO;
@@ -47,7 +49,7 @@ public class SpPartnerOrderService {
         return CCObjectResult.setSimpleData(savedList);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public CCResult search(Pageable pageable, SpPartnerOrderSearchParam searchParam) {
         Specification<SpPartnerOrder> spec = (root, query, cb) -> cb.conjunction();
 
@@ -62,6 +64,26 @@ public class SpPartnerOrderService {
         }
 
         Page<SpPartnerOrder> page = spPartnerOrderRepository.findAll(spec, pageable);
+
+        List<SpPartnerOrder> orphans = page.getContent().stream()
+                .filter(order -> {
+                    try {
+                        G5ShopItem item = order.getShopItem();
+                        if (item != null) {
+                            item.getItName();
+                        }
+                        return false;
+                    } catch (EntityNotFoundException e) {
+                        return true;
+                    }
+                }).toList();
+
+        if (!orphans.isEmpty()) {
+            log.info("삭제된 아이템을 참조하는 고아 주문 {}건 삭제", orphans.size());
+            spPartnerOrderRepository.deleteAll(orphans);
+            page = spPartnerOrderRepository.findAll(spec, pageable);
+        }
+
         Page<SpPartnerOrderListDTO> dtoPage = page.map(SpPartnerOrderListDTO::from);
         return PagingAdapter.toCCPagingResult(searchParam.getQ(), pageable, dtoPage);
     }

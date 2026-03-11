@@ -10,3 +10,13 @@ ALTER TABLE sp_partner_order
 
 ALTER TABLE sp_partner_order
   ADD UNIQUE INDEX uk_sp_partner_order_it_partner (it_id, partner_mb_no);
+
+ALTER TABLE sp_partner_order
+  ADD CONSTRAINT fk_sp_partner_order_it_id
+    FOREIGN KEY (it_id) REFERENCES g5_shop_item (it_id)
+    ON DELETE CASCADE;
+
+ALTER TABLE sp_partner_order
+  ADD CONSTRAINT fk_sp_partner_order_mb_no
+    FOREIGN KEY (partner_mb_no) REFERENCES g5_member (mb_no)
+    ON DELETE CASCADE;

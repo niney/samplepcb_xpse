@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import java.util.List;
 import java.util.Optional;
 
-public interface SpPartnerOrderRepository extends JpaRepository<SpPartnerOrder, Long>, JpaSpecificationExecutor<SpPartnerOrder> {
+public interface SpPartnerOrderRepository extends JpaRepository<SpPartnerOrder, Long>, JpaSpecificationExecutor<SpPartnerOrder>, SpPartnerOrderRepositoryCustom {
 
     List<SpPartnerOrder> findByItIdIn(List<String> itIds);
 

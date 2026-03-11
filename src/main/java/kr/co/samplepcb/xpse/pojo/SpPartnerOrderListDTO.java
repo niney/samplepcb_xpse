@@ -1,12 +1,6 @@
 package kr.co.samplepcb.xpse.pojo;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import kr.co.samplepcb.xpse.domain.entity.G5Member;
-import kr.co.samplepcb.xpse.domain.entity.G5ShopItem;
-import kr.co.samplepcb.xpse.domain.entity.SpPartnerOrder;
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.util.Date;
 
@@ -19,10 +13,6 @@ public class SpPartnerOrderListDTO {
     private String itId;
     @Schema(description = "파트너 회원번호")
     private int partnerMbNo;
-    private static final ObjectMapper objectMapper = JsonMapper.builder().build();
-
-    @Schema(description = "메타 아이템 (JSON)")
-    private Object metaItem;
     @Schema(description = "주문 상태")
     private String status;
     @Schema(description = "파트너 선정 여부")
@@ -68,43 +58,41 @@ public class SpPartnerOrderListDTO {
     @Schema(description = "파트너 휴대폰번호")
     private String partnerHp;
 
-    public static SpPartnerOrderListDTO from(SpPartnerOrder order) {
-        SpPartnerOrderListDTO dto = new SpPartnerOrderListDTO();
-        dto.setId(order.getId());
-        dto.setItId(order.getItId());
-        dto.setPartnerMbNo(order.getPartnerMbNo());
-        dto.setMetaItem(parseJson(order.getMetaItem()));
-        dto.setStatus(order.getStatus());
-        dto.setIsSelectPartner(order.getIsSelectPartner());
-        dto.setPrice(order.getPrice());
-        dto.setForwarder(order.getForwarder());
-        dto.setShipping(order.getShipping());
-        dto.setTracking(order.getTracking());
-        dto.setEstimateFile1Subj(order.getEstimateFile1Subj());
-        dto.setEstimateFile1(order.getEstimateFile1());
-        dto.setMemo(order.getMemo());
-        dto.setWriteDate(order.getWriteDate());
-        dto.setModifyDate(order.getModifyDate());
+    public SpPartnerOrderListDTO() {}
 
-        G5ShopItem item = order.getShopItem();
-        if (item != null) {
-            dto.setItemName(item.getItName());
-            dto.setItemMaker(item.getItMaker());
-            dto.setItemModel(item.getItModel());
-            dto.setItemBrand(item.getItBrand());
-            dto.setItemImg1(item.getItImg1());
-        }
-
-        G5Member partner = order.getPartner();
-        if (partner != null) {
-            dto.setPartnerMbId(partner.getMbId());
-            dto.setPartnerName(partner.getMbName());
-            dto.setPartnerNick(partner.getMbNick());
-            dto.setPartnerEmail(partner.getMbEmail());
-            dto.setPartnerHp(partner.getMbHp());
-        }
-
-        return dto;
+    public SpPartnerOrderListDTO(long id, String itId, int partnerMbNo,
+                                  String status, int isSelectPartner, Integer price,
+                                  String forwarder, Date shipping, String tracking,
+                                  String estimateFile1Subj, String estimateFile1,
+                                  String memo, Date writeDate, Date modifyDate,
+                                  String itemName, String itemMaker, String itemModel,
+                                  String itemBrand, String itemImg1,
+                                  String partnerMbId, String partnerName, String partnerNick,
+                                  String partnerEmail, String partnerHp) {
+        this.id = id;
+        this.itId = itId;
+        this.partnerMbNo = partnerMbNo;
+        this.status = status;
+        this.isSelectPartner = isSelectPartner;
+        this.price = price;
+        this.forwarder = forwarder;
+        this.shipping = shipping;
+        this.tracking = tracking;
+        this.estimateFile1Subj = estimateFile1Subj;
+        this.estimateFile1 = estimateFile1;
+        this.memo = memo;
+        this.writeDate = writeDate;
+        this.modifyDate = modifyDate;
+        this.itemName = itemName;
+        this.itemMaker = itemMaker;
+        this.itemModel = itemModel;
+        this.itemBrand = itemBrand;
+        this.itemImg1 = itemImg1;
+        this.partnerMbId = partnerMbId;
+        this.partnerName = partnerName;
+        this.partnerNick = partnerNick;
+        this.partnerEmail = partnerEmail;
+        this.partnerHp = partnerHp;
     }
 
     public long getId() { return id; }
@@ -113,8 +101,6 @@ public class SpPartnerOrderListDTO {
     public void setItId(String itId) { this.itId = itId; }
     public int getPartnerMbNo() { return partnerMbNo; }
     public void setPartnerMbNo(int partnerMbNo) { this.partnerMbNo = partnerMbNo; }
-    public Object getMetaItem() { return metaItem; }
-    public void setMetaItem(Object metaItem) { this.metaItem = metaItem; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
     public int getIsSelectPartner() { return isSelectPartner; }
@@ -158,14 +144,4 @@ public class SpPartnerOrderListDTO {
     public String getPartnerHp() { return partnerHp; }
     public void setPartnerHp(String partnerHp) { this.partnerHp = partnerHp; }
 
-    private static Object parseJson(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-        try {
-            return objectMapper.readValue(value, Object.class);
-        } catch (JacksonException e) {
-            return value;
-        }
-    }
 }

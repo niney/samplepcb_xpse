@@ -158,7 +158,7 @@ public class SpOrderListDTO {
             dto.setPartnerMbNo(po.getPartnerMbNo());
             dto.setStatus(po.getStatus());
             dto.setIsSelectPartner(po.getIsSelectPartner());
-            dto.setPrice(po.getPrice());
+            dto.setPrice(po.getPrice() != null ? po.getPrice() : 0);
             dto.setForwarder(po.getForwarder());
             dto.setShipping(po.getShipping());
             dto.setTracking(po.getTracking());

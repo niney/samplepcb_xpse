@@ -4,7 +4,9 @@ import jakarta.persistence.*;
 import java.util.Date;
 
 @Entity
-@Table(name = "sp_partner_order")
+@Table(name = "sp_partner_order", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_sp_partner_order_it_partner", columnNames = {"it_id", "partner_mb_no"})
+})
 public class SpPartnerOrder {
 
     @Id
@@ -28,27 +30,27 @@ public class SpPartnerOrder {
     @Column(name = "is_select_partner")
     private int isSelectPartner;
 
-    @Column(name = "price", nullable = false)
-    private int price;
+    @Column(name = "price")
+    private Integer price;
 
-    @Column(name = "forwarder", length = 30, nullable = false)
+    @Column(name = "forwarder", length = 30)
     private String forwarder;
 
     @Temporal(TemporalType.TIMESTAMP)
-    @Column(name = "shipping", nullable = false)
+    @Column(name = "shipping")
     private Date shipping;
 
-    @Column(name = "tracking", length = 30, nullable = false)
+    @Column(name = "tracking", length = 30)
     private String tracking;
 
-    @Column(name = "estimate_file1_subj", length = 50, nullable = false)
+    @Column(name = "estimate_file1_subj", length = 50)
     private String estimateFile1Subj;
 
-    @Column(name = "estimate_file1", length = 150, nullable = false)
+    @Column(name = "estimate_file1", length = 150)
     private String estimateFile1;
 
     @Lob
-    @Column(name = "memo", columnDefinition = "text", nullable = false)
+    @Column(name = "memo", columnDefinition = "text")
     private String memo;
 
     @Temporal(TemporalType.TIMESTAMP)
@@ -71,8 +73,8 @@ public class SpPartnerOrder {
     public void setStatus(String status) { this.status = status; }
     public int getIsSelectPartner() { return isSelectPartner; }
     public void setIsSelectPartner(int isSelectPartner) { this.isSelectPartner = isSelectPartner; }
-    public int getPrice() { return price; }
-    public void setPrice(int price) { this.price = price; }
+    public Integer getPrice() { return price; }
+    public void setPrice(Integer price) { this.price = price; }
     public String getForwarder() { return forwarder; }
     public void setForwarder(String forwarder) { this.forwarder = forwarder; }
     public Date getShipping() { return shipping; }

@@ -36,7 +36,7 @@ public class OpenApiConfig {
         return GroupedOpenApi.builder()
                 .group("sp-api")
                 .displayName("SP 주문/아이템 API")
-                .pathsToMatch("/api/spOrders/**", "/api/spItems/**")
+                .pathsToMatch("/api/spOrders/**", "/api/spItems/**", "/api/spPartnerOrders/**")
                 .build();
     }
 

@@ -14,6 +14,9 @@ public class PcbParts {
     @Column(name = "id")
     private Long id;
 
+    @Column(name = "doc_id", length = 20, nullable = false, unique = true)
+    private String docId;
+
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "write_date", nullable = false)
     private Date writeDate;
@@ -147,6 +150,9 @@ public class PcbParts {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    public String getDocId() { return docId; }
+    public void setDocId(String docId) { this.docId = docId; }
 
     public Date getWriteDate() { return writeDate; }
     public void setWriteDate(Date writeDate) { this.writeDate = writeDate; }

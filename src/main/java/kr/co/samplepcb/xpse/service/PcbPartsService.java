@@ -17,11 +17,13 @@ import kr.co.samplepcb.xpse.pojo.PcbPartsSearchVM;
 import kr.co.samplepcb.xpse.pojo.adapter.PagingAdapter;
 import kr.co.samplepcb.xpse.repository.NonDigikeyPartsSearchRepository;
 import kr.co.samplepcb.xpse.repository.PcbKindSearchRepository;
+import kr.co.samplepcb.xpse.repository.PcbPartsRepository;
 import kr.co.samplepcb.xpse.repository.PcbPartsSearchRepository;
 import kr.co.samplepcb.xpse.service.common.sub.DataExtractorSubService;
 import kr.co.samplepcb.xpse.service.common.sub.DigikeyPartsParserSubService;
 import kr.co.samplepcb.xpse.service.common.sub.DigikeySubService;
 import kr.co.samplepcb.xpse.service.common.sub.ExcelSubService;
+import kr.co.samplepcb.xpse.service.common.sub.PcbPartsConvertSubService;
 import kr.co.samplepcb.xpse.util.CoolElasticUtils;
 import kr.co.samplepcb.xpse.util.CoolStringUtils;
 import kr.co.samplepcb.xpse.util.PcbPartsUtils;
@@ -94,23 +96,27 @@ public class PcbPartsService {
     private final PcbPartsSearchRepository pcbPartsSearchRepository;
     private final PcbKindSearchRepository pcbKindSearchRepository;
     private final NonDigikeyPartsSearchRepository nonDigikeyPartsSearchRepository;
+    private final PcbPartsRepository pcbPartsRepository;
 
     // service
     private final ExcelSubService excelSubService;
     private final DataExtractorSubService dataExtractorSubService;
     private final DigikeyPartsParserSubService digikeyPartsParserSubService;
     private final DigikeySubService digikeySubService;
+    private final PcbPartsConvertSubService pcbPartsConvertSubService;
 
-    public PcbPartsService(ApplicationProperties applicationProperties, ElasticsearchOperations elasticsearchOperations, PcbPartsSearchRepository pcbPartsSearchRepository, PcbKindSearchRepository pcbKindSearchRepository, NonDigikeyPartsSearchRepository nonDigikeyPartsSearchRepository, ExcelSubService excelSubService, DataExtractorSubService dataExtractorSubService, DigikeyPartsParserSubService digikeyPartsParserSubService, DigikeySubService digikeySubService) {
+    public PcbPartsService(ApplicationProperties applicationProperties, ElasticsearchOperations elasticsearchOperations, PcbPartsSearchRepository pcbPartsSearchRepository, PcbKindSearchRepository pcbKindSearchRepository, NonDigikeyPartsSearchRepository nonDigikeyPartsSearchRepository, PcbPartsRepository pcbPartsRepository, ExcelSubService excelSubService, DataExtractorSubService dataExtractorSubService, DigikeyPartsParserSubService digikeyPartsParserSubService, DigikeySubService digikeySubService, PcbPartsConvertSubService pcbPartsConvertSubService) {
         this.applicationProperties = applicationProperties;
         this.elasticsearchOperations = elasticsearchOperations;
         this.pcbPartsSearchRepository = pcbPartsSearchRepository;
         this.pcbKindSearchRepository = pcbKindSearchRepository;
         this.nonDigikeyPartsSearchRepository = nonDigikeyPartsSearchRepository;
+        this.pcbPartsRepository = pcbPartsRepository;
         this.excelSubService = excelSubService;
         this.dataExtractorSubService = dataExtractorSubService;
         this.digikeyPartsParserSubService = digikeyPartsParserSubService;
         this.digikeySubService = digikeySubService;
+        this.pcbPartsConvertSubService = pcbPartsConvertSubService;
     }
 
     /**
@@ -325,6 +331,7 @@ public class PcbPartsService {
             log.info("pcb parts items, new kind items indexing");
         }
 
+        this.pcbPartsRepository.saveAll(this.pcbPartsConvertSubService.toEntities(pcbPartsSearchList));
         this.pcbPartsSearchRepository.saveAll(pcbPartsSearchList);
         log.info("pcb parts items indexing");
     }
@@ -818,11 +825,21 @@ public class PcbPartsService {
         PcbPartsSearch findPcbParts = this.pcbPartsSearchRepository.findByPartNameKeyword(pcbPartsSearch.getPartName());
         if (findPcbParts != null) {
             pcbPartsSearch.setId(findPcbParts.getId());
+            this.pcbPartsRepository.findByDocId(findPcbParts.getId())
+                    .ifPresent(existingEntity -> {
+                        kr.co.samplepcb.xpse.domain.entity.PcbParts updated = this.pcbPartsConvertSubService.toEntity(pcbPartsSearch);
+                        updated.setId(existingEntity.getId());
+                        updated.setDocId(existingEntity.getDocId());
+                        this.pcbPartsRepository.save(updated);
+                    });
             PcbPartsSearch savedPartSearch = this.pcbPartsSearchRepository.save(pcbPartsSearch);
             CCResult findResult = CCObjectResult.setSimpleData(savedPartSearch);
             findResult.setMessage("Already exists");
             return findResult;
         }
+        kr.co.samplepcb.xpse.domain.entity.PcbParts newEntity = this.pcbPartsConvertSubService.toEntity(pcbPartsSearch);
+        this.pcbPartsRepository.save(newEntity);
+        pcbPartsSearch.setId(newEntity.getDocId());
         return CCObjectResult.setSimpleData(this.pcbPartsSearchRepository.save(pcbPartsSearch));
     }
 

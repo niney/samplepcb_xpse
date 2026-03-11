@@ -3,6 +3,7 @@
 -- ============================================
 CREATE TABLE sp_pcb_parts (
     id                    BIGINT        NOT NULL AUTO_INCREMENT,
+    doc_id                VARCHAR(20)   NOT NULL,
     write_date            DATETIME      NOT NULL,
     last_modified_date    DATETIME      NOT NULL,
     service_type          VARCHAR(100)  DEFAULT NULL,
@@ -44,7 +45,8 @@ CREATE TABLE sp_pcb_parts (
     INDEX idx_sp_pcb_parts_part_name (part_name),
     INDEX idx_sp_pcb_parts_manufacturer (manufacturer_name),
     INDEX idx_sp_pcb_parts_member_id (member_id),
-    INDEX idx_sp_pcb_parts_price (price)
+    INDEX idx_sp_pcb_parts_price (price),
+    UNIQUE INDEX uk_sp_pcb_parts_doc_id (doc_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- ============================================

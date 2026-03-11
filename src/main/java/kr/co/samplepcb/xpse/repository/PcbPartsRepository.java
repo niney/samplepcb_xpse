@@ -5,8 +5,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface PcbPartsRepository extends JpaRepository<PcbParts, Long>, JpaSpecificationExecutor<PcbParts> {
+
+    Optional<PcbParts> findByDocId(String docId);
 
     List<PcbParts> findByPartName(String partName);
 

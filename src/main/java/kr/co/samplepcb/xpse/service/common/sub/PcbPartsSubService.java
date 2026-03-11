@@ -2,8 +2,10 @@ package kr.co.samplepcb.xpse.service.common.sub;
 
 import coolib.common.CCResult;
 import kr.co.samplepcb.xpse.domain.document.PcbPartsSearch;
+import kr.co.samplepcb.xpse.domain.entity.PcbParts;
 import kr.co.samplepcb.xpse.pojo.ElasticIndexName;
 import kr.co.samplepcb.xpse.pojo.PcbPartsSearchField;
+import kr.co.samplepcb.xpse.repository.PcbPartsRepository;
 import kr.co.samplepcb.xpse.repository.PcbPartsSearchRepository;
 import kr.co.samplepcb.xpse.util.CoolElasticUtils;
 import org.slf4j.Logger;
@@ -28,10 +30,12 @@ public class PcbPartsSubService {
 
     // repo
     private final PcbPartsSearchRepository pcbPartsSearchRepository;
+    private final PcbPartsRepository pcbPartsRepository;
 
-    public PcbPartsSubService(ElasticsearchOperations elasticsearchOperations, PcbPartsSearchRepository pcbPartsSearchRepository) {
+    public PcbPartsSubService(ElasticsearchOperations elasticsearchOperations, PcbPartsSearchRepository pcbPartsSearchRepository, PcbPartsRepository pcbPartsRepository) {
         this.elasticsearchOperations = elasticsearchOperations;
         this.pcbPartsSearchRepository = pcbPartsSearchRepository;
+        this.pcbPartsRepository = pcbPartsRepository;
     }
 
     /**
@@ -71,6 +75,26 @@ public class PcbPartsSubService {
                 return CCResult.exceptionSimpleMsg(e);
             }
             this.pcbPartsSearchRepository.saveAll(pcbPartsSearches);
+
+            // DB 동기화: 동일 필드 업데이트
+            String dbFieldName = PcbPartsSearchField.PCB_PART_COLUMN_IDX_TARGET[target];
+            for (PcbPartsSearch pcbPartsSearch : pcbPartsSearches) {
+                if (pcbPartsSearch.getId() != null) {
+                    this.pcbPartsRepository.findByDocId(pcbPartsSearch.getId())
+                            .ifPresent(entity -> {
+                                Field dbField = ReflectionUtils.findField(PcbParts.class, dbFieldName);
+                                if (dbField != null) {
+                                    try {
+                                        dbField.setAccessible(true);
+                                        dbField.set(entity, to);
+                                        this.pcbPartsRepository.save(entity);
+                                    } catch (IllegalAccessException e) {
+                                        log.error("Failed to update DB entity field: {}", e.getMessage());
+                                    }
+                                }
+                            });
+                }
+            }
         }
         return CCResult.ok();
     }

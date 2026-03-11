@@ -1,5 +1,6 @@
 package kr.co.samplepcb.xpse.domain.entity;
 
+import kr.co.samplepcb.xpse.util.DocIdGenerator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -15,6 +16,7 @@ class PcbPartsTest {
     void setUp() {
         pcbParts = new PcbParts();
         pcbParts.setId(1L);
+        pcbParts.setDocId(DocIdGenerator.generate());
         pcbParts.setWriteDate(new Date());
         pcbParts.setLastModifiedDate(new Date());
         pcbParts.setServiceType("TYPE_A");
@@ -272,6 +274,7 @@ class PcbPartsTest {
     void testNullableFields() {
         PcbParts newParts = new PcbParts();
         assertNull(newParts.getId());
+        assertNull(newParts.getDocId());
         assertNull(newParts.getServiceType());
         assertNull(newParts.getPartName());
         assertNull(newParts.getPrice());
@@ -279,5 +282,36 @@ class PcbPartsTest {
         assertNull(newParts.getStatus());
         assertNull(newParts.getWatt());
         assertNull(newParts.getVoltage());
+    }
+
+    @Test
+    void testDocIdGenerator_Length() {
+        String docId = DocIdGenerator.generate();
+        assertEquals(20, docId.length());
+    }
+
+    @Test
+    void testDocIdGenerator_Uniqueness() {
+        int count = 1000;
+        java.util.Set<String> ids = new java.util.HashSet<>();
+        for (int i = 0; i < count; i++) {
+            ids.add(DocIdGenerator.generate());
+        }
+        assertEquals(count, ids.size(), "All generated IDs should be unique");
+    }
+
+    @Test
+    void testDocIdGenerator_UrlSafeCharacters() {
+        for (int i = 0; i < 100; i++) {
+            String docId = DocIdGenerator.generate();
+            assertTrue(docId.matches("[A-Za-z0-9_-]+"),
+                    "DocId should contain only URL-safe Base64 characters: " + docId);
+        }
+    }
+
+    @Test
+    void testDocIdField() {
+        assertNotNull(pcbParts.getDocId());
+        assertEquals(20, pcbParts.getDocId().length());
     }
 }

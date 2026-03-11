@@ -8,8 +8,10 @@ import kr.co.samplepcb.xpse.pojo.BatchProcessingResult;
 import kr.co.samplepcb.xpse.pojo.FileProcessingResult;
 import kr.co.samplepcb.xpse.pojo.PcbPartsSearchField;
 import kr.co.samplepcb.xpse.pojo.PcbPkgType;
+import kr.co.samplepcb.xpse.repository.PcbPartsRepository;
 import kr.co.samplepcb.xpse.repository.PcbPartsSearchRepository;
 import kr.co.samplepcb.xpse.service.common.sub.ExcelSubService;
+import kr.co.samplepcb.xpse.service.common.sub.PcbPartsConvertSubService;
 import kr.co.samplepcb.xpse.util.CoolStringUtils;
 import kr.co.samplepcb.xpse.util.PcbPartsUtils;
 import org.apache.poi.util.IOUtils;
@@ -115,13 +117,17 @@ public class PcbPartsIC114Service {
 
     // service
     private final ExcelSubService excelSubService;
+    private final PcbPartsConvertSubService pcbPartsConvertSubService;
     // repository
     private final PcbPartsSearchRepository pcbPartsSearchRepository;
+    private final PcbPartsRepository pcbPartsRepository;
 
 
-    public PcbPartsIC114Service(ExcelSubService excelSubService, PcbPartsSearchRepository pcbPartsSearchRepository) {
+    public PcbPartsIC114Service(ExcelSubService excelSubService, PcbPartsConvertSubService pcbPartsConvertSubService, PcbPartsSearchRepository pcbPartsSearchRepository, PcbPartsRepository pcbPartsRepository) {
         this.excelSubService = excelSubService;
+        this.pcbPartsConvertSubService = pcbPartsConvertSubService;
         this.pcbPartsSearchRepository = pcbPartsSearchRepository;
+        this.pcbPartsRepository = pcbPartsRepository;
     }
 
     /**
@@ -211,6 +217,7 @@ public class PcbPartsIC114Service {
             pcbPartsSearchList.add(pcbPartsSearch);
         }
 
+        this.pcbPartsRepository.saveAll(this.pcbPartsConvertSubService.toEntities(pcbPartsSearchList));
         this.pcbPartsSearchRepository.saveAll(pcbPartsSearchList);
         log.info("Indexed {} rows from sheet {}", pcbPartsSearchList.size(), sheet.getSheetName());
     }

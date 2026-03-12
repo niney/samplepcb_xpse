@@ -163,11 +163,9 @@ public class G5ShopItem {
     @Column(name = "it_hit")
     private int itHit;
 
-    @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "it_time")
     private Date itTime;
 
-    @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "it_update_time")
     private Date itUpdateTime;
 

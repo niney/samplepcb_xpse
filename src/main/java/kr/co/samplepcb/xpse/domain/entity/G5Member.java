@@ -24,7 +24,6 @@ public class G5Member {
     @Column(name = "mb_nick")
     private String mbNick;
 
-    @Temporal(TemporalType.DATE)
     @Column(name = "mb_nick_date")
     private Date mbNickDate;
 
@@ -86,14 +85,12 @@ public class G5Member {
     @Column(name = "mb_point")
     private int mbPoint;
 
-    @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "mb_today_login")
     private Date mbTodayLogin;
 
     @Column(name = "mb_login_ip")
     private String mbLoginIp;
 
-    @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "mb_datetime")
     private Date mbDatetime;
 
@@ -106,7 +103,6 @@ public class G5Member {
     @Column(name = "mb_intercept_date", length = 8)
     private String mbInterceptDate;
 
-    @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "mb_email_certify")
     private Date mbEmailCertify;
 
@@ -129,7 +125,6 @@ public class G5Member {
     @Column(name = "mb_open")
     private int mbOpen;
 
-    @Temporal(TemporalType.DATE)
     @Column(name = "mb_open_date")
     private Date mbOpenDate;
 

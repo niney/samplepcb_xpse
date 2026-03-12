@@ -87,7 +87,6 @@ public class G5ShopCart {
     @Column(name = "io_price")
     private int ioPrice;
 
-    @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "ct_time")
     private Date ctTime;
 
@@ -103,7 +102,6 @@ public class G5ShopCart {
     @Column(name = "ct_select")
     private int ctSelect;
 
-    @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "ct_select_time")
     private Date ctSelectTime;
 

@@ -34,7 +34,6 @@ public class PcbPartsPrice {
     @Column(name = "pkg", length = 100)
     private String pkg;
 
-    @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "updated_date")
     private Date updatedDate;
 

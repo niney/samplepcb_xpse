@@ -46,7 +46,6 @@ public class SpPartnerOrder {
     @Column(name = "forwarder", length = 30)
     private String forwarder;
 
-    @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "shipping")
     private Date shipping;
 
@@ -63,11 +62,9 @@ public class SpPartnerOrder {
     @Column(name = "memo", columnDefinition = "text")
     private String memo;
 
-    @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "write_date", nullable = false)
     private Date writeDate;
 
-    @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "modify_date", nullable = false)
     private Date modifyDate;
 

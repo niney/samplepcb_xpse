@@ -17,11 +17,9 @@ public class PcbParts {
     @Column(name = "doc_id", length = 20, nullable = false, unique = true)
     private String docId;
 
-    @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "write_date", nullable = false)
     private Date writeDate;
 
-    @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "last_modified_date", nullable = false)
     private Date lastModifiedDate;
 

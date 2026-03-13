@@ -1,0 +1,196 @@
+package kr.co.samplepcb.xpse.pojo;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import kr.co.samplepcb.xpse.domain.entity.SpEstimateDocument;
+import kr.co.samplepcb.xpse.domain.entity.SpEstimateItem;
+import kr.co.samplepcb.xpse.domain.entity.SpFile;
+
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
+@Schema(description = "견적서 상세 응답")
+public class SpEstimateDetailDTO {
+
+    private static final ObjectMapper objectMapper = JsonMapper.builder().build();
+
+    @Schema(description = "견적서 ID")
+    private Long id;
+    @Schema(description = "아이템 ID")
+    private String itId;
+    @Schema(description = "상태")
+    private String status;
+    @Schema(description = "예상 납기")
+    private String expectedDelivery;
+    @Schema(description = "배송비")
+    private Integer shippingFee;
+    @Schema(description = "관리비")
+    private Integer managementFee;
+    @Schema(description = "총액")
+    private Integer totalAmount;
+    @Schema(description = "최종 금액")
+    private Integer finalAmount;
+    @Schema(description = "작성일")
+    private Date writeDate;
+    @Schema(description = "수정일")
+    private Date modifyDate;
+
+    @Schema(description = "견적 항목 리스트")
+    private List<EstimateItemDTO> items;
+    @Schema(description = "첨부파일 리스트")
+    private List<FileDTO> files;
+
+    public static SpEstimateDetailDTO from(SpEstimateDocument doc, List<SpFile> spFiles) {
+        SpEstimateDetailDTO dto = new SpEstimateDetailDTO();
+        dto.setId(doc.getId());
+        dto.setItId(doc.getItId());
+        dto.setStatus(doc.getStatus());
+        dto.setExpectedDelivery(doc.getExpectedDelivery());
+        dto.setShippingFee(doc.getShippingFee());
+        dto.setManagementFee(doc.getManagementFee());
+        dto.setTotalAmount(doc.getTotalAmount());
+        dto.setFinalAmount(doc.getFinalAmount());
+        dto.setWriteDate(doc.getWriteDate());
+        dto.setModifyDate(doc.getModifyDate());
+
+        if (doc.getItems() != null) {
+            List<EstimateItemDTO> itemDTOs = new ArrayList<>();
+            for (SpEstimateItem ei : doc.getItems()) {
+                itemDTOs.add(EstimateItemDTO.from(ei));
+            }
+            dto.setItems(itemDTOs);
+        }
+
+        if (spFiles != null) {
+            List<FileDTO> fileDTOs = new ArrayList<>();
+            for (SpFile sf : spFiles) {
+                fileDTOs.add(FileDTO.from(sf));
+            }
+            dto.setFiles(fileDTOs);
+        }
+
+        return dto;
+    }
+
+    @Schema(description = "견적 항목")
+    public static class EstimateItemDTO {
+        @Schema(description = "항목 ID")
+        private Long id;
+        @Schema(description = "PCB 부품 doc_id")
+        private String pcbPartDocId;
+        @Schema(description = "수량")
+        private int qty;
+        @Schema(description = "분석 메타 (JSON)")
+        private Object analysisMeta;
+        @Schema(description = "선택된 가격 (JSON)")
+        private Object selectedPrice;
+        @Schema(description = "작성일")
+        private Date writeDate;
+        @Schema(description = "수정일")
+        private Date modifyDate;
+
+        public static EstimateItemDTO from(SpEstimateItem ei) {
+            EstimateItemDTO dto = new EstimateItemDTO();
+            dto.setId(ei.getId());
+            dto.setPcbPartDocId(ei.getPcbPartDocId());
+            dto.setQty(ei.getQty());
+            dto.setAnalysisMeta(parseJson(ei.getAnalysisMeta()));
+            dto.setSelectedPrice(parseJson(ei.getSelectedPrice()));
+            dto.setWriteDate(ei.getWriteDate());
+            dto.setModifyDate(ei.getModifyDate());
+            return dto;
+        }
+
+        public Long getId() { return id; }
+        public void setId(Long id) { this.id = id; }
+        public String getPcbPartDocId() { return pcbPartDocId; }
+        public void setPcbPartDocId(String pcbPartDocId) { this.pcbPartDocId = pcbPartDocId; }
+        public int getQty() { return qty; }
+        public void setQty(int qty) { this.qty = qty; }
+        public Object getAnalysisMeta() { return analysisMeta; }
+        public void setAnalysisMeta(Object analysisMeta) { this.analysisMeta = analysisMeta; }
+        public Object getSelectedPrice() { return selectedPrice; }
+        public void setSelectedPrice(Object selectedPrice) { this.selectedPrice = selectedPrice; }
+        public Date getWriteDate() { return writeDate; }
+        public void setWriteDate(Date writeDate) { this.writeDate = writeDate; }
+        public Date getModifyDate() { return modifyDate; }
+        public void setModifyDate(Date modifyDate) { this.modifyDate = modifyDate; }
+    }
+
+    @Schema(description = "첨부파일")
+    public static class FileDTO {
+        @Schema(description = "파일 ID")
+        private Long id;
+        @Schema(description = "업로드된 파일명")
+        private String uploadFileName;
+        @Schema(description = "원본 파일명")
+        private String originFileName;
+        @Schema(description = "경로 토큰")
+        private String pathToken;
+        @Schema(description = "파일 크기 (bytes)")
+        private long size;
+
+        public static FileDTO from(SpFile sf) {
+            FileDTO dto = new FileDTO();
+            dto.setId(sf.getId());
+            dto.setUploadFileName(sf.getUploadFileName());
+            dto.setOriginFileName(sf.getOriginFileName());
+            dto.setPathToken(sf.getPathToken());
+            dto.setSize(sf.getSize());
+            return dto;
+        }
+
+        public Long getId() { return id; }
+        public void setId(Long id) { this.id = id; }
+        public String getUploadFileName() { return uploadFileName; }
+        public void setUploadFileName(String uploadFileName) { this.uploadFileName = uploadFileName; }
+        public String getOriginFileName() { return originFileName; }
+        public void setOriginFileName(String originFileName) { this.originFileName = originFileName; }
+        public String getPathToken() { return pathToken; }
+        public void setPathToken(String pathToken) { this.pathToken = pathToken; }
+        public long getSize() { return size; }
+        public void setSize(long size) { this.size = size; }
+    }
+
+    // === getter / setter ===
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public String getItId() { return itId; }
+    public void setItId(String itId) { this.itId = itId; }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+    public String getExpectedDelivery() { return expectedDelivery; }
+    public void setExpectedDelivery(String expectedDelivery) { this.expectedDelivery = expectedDelivery; }
+    public Integer getShippingFee() { return shippingFee; }
+    public void setShippingFee(Integer shippingFee) { this.shippingFee = shippingFee; }
+    public Integer getManagementFee() { return managementFee; }
+    public void setManagementFee(Integer managementFee) { this.managementFee = managementFee; }
+    public Integer getTotalAmount() { return totalAmount; }
+    public void setTotalAmount(Integer totalAmount) { this.totalAmount = totalAmount; }
+    public Integer getFinalAmount() { return finalAmount; }
+    public void setFinalAmount(Integer finalAmount) { this.finalAmount = finalAmount; }
+    public Date getWriteDate() { return writeDate; }
+    public void setWriteDate(Date writeDate) { this.writeDate = writeDate; }
+    public Date getModifyDate() { return modifyDate; }
+    public void setModifyDate(Date modifyDate) { this.modifyDate = modifyDate; }
+    public List<EstimateItemDTO> getItems() { return items; }
+    public void setItems(List<EstimateItemDTO> items) { this.items = items; }
+    public List<FileDTO> getFiles() { return files; }
+    public void setFiles(List<FileDTO> files) { this.files = files; }
+
+    private static Object parseJson(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return objectMapper.readValue(value, Object.class);
+        } catch (JacksonException e) {
+            return value;
+        }
+    }
+}

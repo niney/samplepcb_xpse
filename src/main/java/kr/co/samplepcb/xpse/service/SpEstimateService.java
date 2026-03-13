@@ -268,15 +268,16 @@ public class SpEstimateService {
      * 협력사 주문 단건 생성 (estimateItemId를 DTO에서 추출).
      */
     @Transactional
-    public CCResult createPartnerOrder(SpPartnerEstimateItemCreateDTO createDTO) {
+    public CCObjectResult<SpPartnerEstimateItem> createPartnerOrder(SpPartnerEstimateItemCreateDTO createDTO) {
         return createPartnerEstimateItem(createDTO.getEstimateItemId(), createDTO);
     }
 
     /**
      * 협력사 주문 다중 생성.
      */
+    @SuppressWarnings("unchecked")
     @Transactional
-    public CCResult createPartnerOrderBatch(List<SpPartnerEstimateItemCreateDTO> createDTOs) {
+    public CCObjectResult<List<SpPartnerEstimateItemCreateDTO>> createPartnerOrderBatch(List<SpPartnerEstimateItemCreateDTO> createDTOs) {
         for (SpPartnerEstimateItemCreateDTO dto : createDTOs) {
             createPartnerEstimateItem(dto.getEstimateItemId(), dto);
         }
@@ -287,10 +288,10 @@ public class SpEstimateService {
      * 협력사 견적 항목 상세 조회.
      */
     @Transactional(readOnly = true)
-    public CCResult getPartnerEstimateItemDetail(Long estimateItemId, int mbNo) {
+    public CCObjectResult<SpPartnerEstimateItemDetailDTO> getPartnerEstimateItemDetail(Long estimateItemId, int mbNo) {
         SpPartnerEstimateItemDetailDTO dto = partnerEstimateItemRepository.findPartnerEstimateItemDetail(estimateItemId, mbNo);
         if (dto == null) {
-            return CCResult.dataNotFound();
+            return dataNotFound();
         }
         // 첨부파일 조회
         Optional<SpPartnerEstimateItem> optPartner = partnerEstimateItemRepository.findByEstimateItemIdAndMbNo(estimateItemId, mbNo);
@@ -314,7 +315,7 @@ public class SpEstimateService {
      * 협력사 견적 항목 검색 (페이징).
      */
     @Transactional(readOnly = true)
-    public CCResult searchPartnerEstimateItems(Pageable pageable, SpPartnerEstimateItemSearchParam searchParam) {
+    public CCPagingResult<SpPartnerEstimateItemListDTO> searchPartnerEstimateItems(Pageable pageable, SpPartnerEstimateItemSearchParam searchParam) {
         List<SpPartnerEstimateItemListDTO> list = partnerEstimateItemRepository.findPartnerEstimateItemList(pageable, searchParam);
         long total = partnerEstimateItemRepository.countPartnerEstimateItemList(searchParam);
 
@@ -322,7 +323,7 @@ public class SpEstimateService {
         return PagingAdapter.toCCPagingResult(searchParam.getQ(), pageable, dtoPage);
     }
 
-    public CCResult searchPartnerEstimateDocs(Pageable pageable, SpPartnerEstimateItemSearchParam searchParam) {
+    public CCPagingResult<SpPartnerEstimateDocListDTO> searchPartnerEstimateDocs(Pageable pageable, SpPartnerEstimateItemSearchParam searchParam) {
         List<SpPartnerEstimateDocListDTO> list = partnerEstimateItemRepository.findPartnerEstimateDocList(pageable, searchParam);
         long total = partnerEstimateItemRepository.countPartnerEstimateDocList(searchParam);
 

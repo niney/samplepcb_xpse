@@ -107,6 +107,7 @@ public class SpPartnerEstimateItemRepositoryImpl implements SpPartnerEstimateIte
         QSpEstimateItem ei = QSpEstimateItem.spEstimateItem;
         QSpPartnerEstimateItem pei = QSpPartnerEstimateItem.spPartnerEstimateItem;
         QG5ShopItem shopItem = QG5ShopItem.g5ShopItem;
+        QG5Member member = QG5Member.g5Member;
 
         // 서브쿼리: 해당 파트너가 참여한 estimate_document ID 목록
         BooleanBuilder subWhere = new BooleanBuilder();
@@ -129,16 +130,22 @@ public class SpPartnerEstimateItemRepositoryImpl implements SpPartnerEstimateIte
                         JPAExpressions.select(eiCount.count())
                                 .from(eiCount)
                                 .where(eiCount.estimateDocument.id.eq(doc.id)),
+                        pei.mbNo, member.mbName, member.mbTel,
+                        member.mbHp, member.mbEmail,
                         doc.writeDate, doc.modifyDate))
-                .from(doc)
+                .from(pei)
+                .join(pei.estimateItem, ei)
+                .join(ei.estimateDocument, doc)
                 .leftJoin(doc.shopItem, shopItem)
-                .where(doc.id.in(
-                        JPAExpressions.select(ei.estimateDocument.id)
-                                .from(pei)
-                                .join(pei.estimateItem, ei)
-                                .where(subWhere)
-                                .distinct()
-                ))
+                .leftJoin(pei.member, member)
+                .where(subWhere)
+                .groupBy(doc.id, doc.itId, shopItem.itName,
+                        doc.status, doc.expectedDelivery,
+                        doc.totalAmount, doc.finalAmount,
+                        doc.memo, doc.globalMarginRate,
+                        pei.mbNo, member.mbName, member.mbTel,
+                        member.mbHp, member.mbEmail,
+                        doc.writeDate, doc.modifyDate)
                 .orderBy(doc.writeDate.desc())
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())

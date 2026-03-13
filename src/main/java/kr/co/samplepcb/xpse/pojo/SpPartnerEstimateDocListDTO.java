@@ -27,6 +27,16 @@ public class SpPartnerEstimateDocListDTO {
     private Integer globalMarginRate;
     @Schema(description = "항목 수")
     private long itemCount;
+    @Schema(description = "파트너 회원번호")
+    private int mbNo;
+    @Schema(description = "파트너 이름")
+    private String partnerName;
+    @Schema(description = "파트너 전화번호")
+    private String partnerTel;
+    @Schema(description = "파트너 휴대폰")
+    private String partnerHp;
+    @Schema(description = "파트너 이메일")
+    private String partnerEmail;
     @Schema(description = "작성일")
     private Date writeDate;
     @Schema(description = "수정일")
@@ -39,6 +49,8 @@ public class SpPartnerEstimateDocListDTO {
                                         Integer totalAmount, Integer finalAmount,
                                         String memo, Integer globalMarginRate,
                                         long itemCount,
+                                        int mbNo, String partnerName, String partnerTel,
+                                        String partnerHp, String partnerEmail,
                                         Date writeDate, Date modifyDate) {
         this.id = id;
         this.itId = itId;
@@ -50,6 +62,11 @@ public class SpPartnerEstimateDocListDTO {
         this.memo = memo;
         this.globalMarginRate = globalMarginRate;
         this.itemCount = itemCount;
+        this.mbNo = mbNo;
+        this.partnerName = partnerName;
+        this.partnerTel = partnerTel;
+        this.partnerHp = partnerHp;
+        this.partnerEmail = partnerEmail;
         this.writeDate = writeDate;
         this.modifyDate = modifyDate;
     }
@@ -74,6 +91,16 @@ public class SpPartnerEstimateDocListDTO {
     public void setGlobalMarginRate(Integer globalMarginRate) { this.globalMarginRate = globalMarginRate; }
     public long getItemCount() { return itemCount; }
     public void setItemCount(long itemCount) { this.itemCount = itemCount; }
+    public int getMbNo() { return mbNo; }
+    public void setMbNo(int mbNo) { this.mbNo = mbNo; }
+    public String getPartnerName() { return partnerName; }
+    public void setPartnerName(String partnerName) { this.partnerName = partnerName; }
+    public String getPartnerTel() { return partnerTel; }
+    public void setPartnerTel(String partnerTel) { this.partnerTel = partnerTel; }
+    public String getPartnerHp() { return partnerHp; }
+    public void setPartnerHp(String partnerHp) { this.partnerHp = partnerHp; }
+    public String getPartnerEmail() { return partnerEmail; }
+    public void setPartnerEmail(String partnerEmail) { this.partnerEmail = partnerEmail; }
     public Date getWriteDate() { return writeDate; }
     public void setWriteDate(Date writeDate) { this.writeDate = writeDate; }
     public Date getModifyDate() { return modifyDate; }

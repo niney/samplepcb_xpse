@@ -7,13 +7,15 @@ import java.util.Date;
 @Schema(description = "파트너별 견적서 목록")
 public class SpPartnerEstimateDocListDTO {
 
-    @Schema(description = "견적서 ID")
+    @Schema(description = "협력사 견적서 ID")
     private Long id;
+    @Schema(description = "원본 견적서 ID")
+    private Long estimateDocumentId;
     @Schema(description = "아이템 ID")
     private String itId;
     @Schema(description = "아이템 이름")
     private String itName;
-    @Schema(description = "상태")
+    @Schema(description = "협력사 견적서 상태")
     private String status;
     @Schema(description = "예상 납기")
     private String expectedDelivery;
@@ -44,7 +46,7 @@ public class SpPartnerEstimateDocListDTO {
 
     public SpPartnerEstimateDocListDTO() {}
 
-    public SpPartnerEstimateDocListDTO(Long id, String itId, String itName,
+    public SpPartnerEstimateDocListDTO(Long id, Long estimateDocumentId, String itId, String itName,
                                         String status, String expectedDelivery,
                                         Integer totalAmount, Integer finalAmount,
                                         String memo, Integer globalMarginRate,
@@ -53,6 +55,7 @@ public class SpPartnerEstimateDocListDTO {
                                         String partnerHp, String partnerEmail,
                                         Date writeDate, Date modifyDate) {
         this.id = id;
+        this.estimateDocumentId = estimateDocumentId;
         this.itId = itId;
         this.itName = itName;
         this.status = status;
@@ -73,6 +76,8 @@ public class SpPartnerEstimateDocListDTO {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+    public Long getEstimateDocumentId() { return estimateDocumentId; }
+    public void setEstimateDocumentId(Long estimateDocumentId) { this.estimateDocumentId = estimateDocumentId; }
     public String getItId() { return itId; }
     public void setItId(String itId) { this.itId = itId; }
     public String getItName() { return itName; }

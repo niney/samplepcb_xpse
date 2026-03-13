@@ -8,6 +8,7 @@ import kr.co.samplepcb.xpse.domain.entity.QG5Member;
 import kr.co.samplepcb.xpse.domain.entity.QG5ShopItem;
 import kr.co.samplepcb.xpse.domain.entity.QSpEstimateDocument;
 import kr.co.samplepcb.xpse.domain.entity.QSpEstimateItem;
+import kr.co.samplepcb.xpse.domain.entity.QSpPartnerEstimateDocument;
 import kr.co.samplepcb.xpse.domain.entity.QSpPartnerEstimateItem;
 import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateDocListDTO;
 import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateItemDetailDTO;
@@ -103,50 +104,38 @@ public class SpPartnerEstimateItemRepositoryImpl implements SpPartnerEstimateIte
 
     @Override
     public List<SpPartnerEstimateDocListDTO> findPartnerEstimateDocList(Pageable pageable, SpPartnerEstimateItemSearchParam searchParam) {
+        QSpPartnerEstimateDocument ped = QSpPartnerEstimateDocument.spPartnerEstimateDocument;
         QSpEstimateDocument doc = QSpEstimateDocument.spEstimateDocument;
-        QSpEstimateItem ei = QSpEstimateItem.spEstimateItem;
-        QSpPartnerEstimateItem pei = QSpPartnerEstimateItem.spPartnerEstimateItem;
         QG5ShopItem shopItem = QG5ShopItem.g5ShopItem;
         QG5Member member = QG5Member.g5Member;
+        QSpEstimateItem eiCount = new QSpEstimateItem("eiCount");
 
-        // 서브쿼리: 해당 파트너가 참여한 estimate_document ID 목록
-        BooleanBuilder subWhere = new BooleanBuilder();
+        BooleanBuilder where = new BooleanBuilder();
         if (searchParam.getMbNo() != null) {
-            subWhere.and(pei.mbNo.eq(searchParam.getMbNo()));
+            where.and(ped.mbNo.eq(searchParam.getMbNo()));
         }
         if (StringUtils.isNotBlank(searchParam.getStatus())) {
-            subWhere.and(doc.status.eq(searchParam.getStatus()));
+            where.and(ped.status.eq(searchParam.getStatus()));
         }
-
-        // 항목 수 서브쿼리
-        QSpEstimateItem eiCount = new QSpEstimateItem("eiCount");
 
         return queryFactory
                 .select(Projections.constructor(SpPartnerEstimateDocListDTO.class,
-                        doc.id, doc.itId, shopItem.itName,
-                        doc.status, doc.expectedDelivery,
+                        ped.id, doc.id, doc.itId, shopItem.itName,
+                        ped.status, doc.expectedDelivery,
                         doc.totalAmount, doc.finalAmount,
-                        doc.memo, doc.globalMarginRate,
+                        ped.memo, doc.globalMarginRate,
                         JPAExpressions.select(eiCount.count())
                                 .from(eiCount)
                                 .where(eiCount.estimateDocument.id.eq(doc.id)),
-                        pei.mbNo, member.mbName, member.mbTel,
+                        ped.mbNo, member.mbName, member.mbTel,
                         member.mbHp, member.mbEmail,
-                        doc.writeDate, doc.modifyDate))
-                .from(pei)
-                .join(pei.estimateItem, ei)
-                .join(ei.estimateDocument, doc)
+                        ped.writeDate, ped.modifyDate))
+                .from(ped)
+                .join(ped.estimateDocument, doc)
                 .leftJoin(doc.shopItem, shopItem)
-                .leftJoin(pei.member, member)
-                .where(subWhere)
-                .groupBy(doc.id, doc.itId, shopItem.itName,
-                        doc.status, doc.expectedDelivery,
-                        doc.totalAmount, doc.finalAmount,
-                        doc.memo, doc.globalMarginRate,
-                        pei.mbNo, member.mbName, member.mbTel,
-                        member.mbHp, member.mbEmail,
-                        doc.writeDate, doc.modifyDate)
-                .orderBy(doc.writeDate.desc())
+                .leftJoin(ped.member, member)
+                .where(where)
+                .orderBy(ped.writeDate.desc())
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .fetch();
@@ -154,28 +143,20 @@ public class SpPartnerEstimateItemRepositoryImpl implements SpPartnerEstimateIte
 
     @Override
     public long countPartnerEstimateDocList(SpPartnerEstimateItemSearchParam searchParam) {
-        QSpEstimateDocument doc = QSpEstimateDocument.spEstimateDocument;
-        QSpEstimateItem ei = QSpEstimateItem.spEstimateItem;
-        QSpPartnerEstimateItem pei = QSpPartnerEstimateItem.spPartnerEstimateItem;
+        QSpPartnerEstimateDocument ped = QSpPartnerEstimateDocument.spPartnerEstimateDocument;
 
-        BooleanBuilder subWhere = new BooleanBuilder();
+        BooleanBuilder where = new BooleanBuilder();
         if (searchParam.getMbNo() != null) {
-            subWhere.and(pei.mbNo.eq(searchParam.getMbNo()));
+            where.and(ped.mbNo.eq(searchParam.getMbNo()));
         }
         if (StringUtils.isNotBlank(searchParam.getStatus())) {
-            subWhere.and(doc.status.eq(searchParam.getStatus()));
+            where.and(ped.status.eq(searchParam.getStatus()));
         }
 
         Long count = queryFactory
-                .select(doc.countDistinct())
-                .from(doc)
-                .where(doc.id.in(
-                        JPAExpressions.select(ei.estimateDocument.id)
-                                .from(pei)
-                                .join(pei.estimateItem, ei)
-                                .where(subWhere)
-                                .distinct()
-                ))
+                .select(ped.count())
+                .from(ped)
+                .where(where)
                 .fetchOne();
         return count != null ? count : 0L;
     }

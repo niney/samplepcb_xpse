@@ -8,6 +8,7 @@ import kr.co.samplepcb.xpse.domain.entity.G5ShopItem;
 import kr.co.samplepcb.xpse.domain.entity.SpEstimateDocument;
 import kr.co.samplepcb.xpse.domain.entity.SpFile;
 import kr.co.samplepcb.xpse.domain.entity.SpEstimateItem;
+import kr.co.samplepcb.xpse.domain.entity.SpPartnerEstimateDocument;
 import kr.co.samplepcb.xpse.domain.entity.SpPartnerEstimateItem;
 import kr.co.samplepcb.xpse.mapper.SpEstimateMapper;
 import kr.co.samplepcb.xpse.pojo.SpEstimateCreateDTO;
@@ -26,6 +27,7 @@ import kr.co.samplepcb.xpse.repository.G5ShopItemRepository;
 import kr.co.samplepcb.xpse.repository.SpEstimateDocumentRepository;
 import kr.co.samplepcb.xpse.repository.SpEstimateItemRepository;
 import kr.co.samplepcb.xpse.repository.SpFileRepository;
+import kr.co.samplepcb.xpse.repository.SpPartnerEstimateDocumentRepository;
 import kr.co.samplepcb.xpse.repository.SpPartnerEstimateItemRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,6 +55,7 @@ public class SpEstimateService {
     private final SpEstimateDocumentRepository estimateDocumentRepository;
     private final SpEstimateItemRepository estimateItemRepository;
     private final SpPartnerEstimateItemRepository partnerEstimateItemRepository;
+    private final SpPartnerEstimateDocumentRepository partnerEstimateDocumentRepository;
     private final SpFileRepository spFileRepository;
     private final SpEstimateMapper spEstimateMapper;
 
@@ -61,6 +64,7 @@ public class SpEstimateService {
                              SpEstimateDocumentRepository estimateDocumentRepository,
                              SpEstimateItemRepository estimateItemRepository,
                              SpPartnerEstimateItemRepository partnerEstimateItemRepository,
+                             SpPartnerEstimateDocumentRepository partnerEstimateDocumentRepository,
                              SpFileRepository spFileRepository,
                              SpEstimateMapper spEstimateMapper) {
         this.shopItemRepository = shopItemRepository;
@@ -68,6 +72,7 @@ public class SpEstimateService {
         this.estimateDocumentRepository = estimateDocumentRepository;
         this.estimateItemRepository = estimateItemRepository;
         this.partnerEstimateItemRepository = partnerEstimateItemRepository;
+        this.partnerEstimateDocumentRepository = partnerEstimateDocumentRepository;
         this.spFileRepository = spFileRepository;
         this.spEstimateMapper = spEstimateMapper;
     }
@@ -241,10 +246,25 @@ public class SpEstimateService {
             return dataNotFound();
         }
         SpEstimateItem estimateItem = optItem.get();
+        SpEstimateDocument estimateDocument = estimateItem.getEstimateDocument();
         Date now = new Date();
 
+        // SpPartnerEstimateDocument upsert (estimate_document_id + mb_no)
+        SpPartnerEstimateDocument partnerDoc = partnerEstimateDocumentRepository
+                .findByEstimateDocumentIdAndMbNo(estimateDocument.getId(), createDTO.getMbNo())
+                .orElseGet(() -> {
+                    SpPartnerEstimateDocument newDoc = new SpPartnerEstimateDocument();
+                    newDoc.setEstimateDocument(estimateDocument);
+                    newDoc.setMbNo(createDTO.getMbNo());
+                    newDoc.setStatus(DEFAULT_STATUS);
+                    newDoc.setWriteDate(now);
+                    newDoc.setModifyDate(now);
+                    return partnerEstimateDocumentRepository.save(newDoc);
+                });
+
+        // SpPartnerEstimateItem upsert (estimate_item_id + partner_estimate_document_id)
         Optional<SpPartnerEstimateItem> optPartner =
-                partnerEstimateItemRepository.findByEstimateItemIdAndMbNo(estimateItemId, createDTO.getMbNo());
+                partnerEstimateItemRepository.findByEstimateItemIdAndPartnerEstimateDocumentId(estimateItemId, partnerDoc.getId());
         SpPartnerEstimateItem partner;
         if (optPartner.isPresent()) {
             partner = optPartner.get();
@@ -252,6 +272,7 @@ public class SpEstimateService {
         } else {
             partner = new SpPartnerEstimateItem();
             partner.setEstimateItem(estimateItem);
+            partner.setPartnerEstimateDocument(partnerDoc);
             partner.setMbNo(createDTO.getMbNo());
             partner.setWriteDate(now);
             partner.setModifyDate(now);

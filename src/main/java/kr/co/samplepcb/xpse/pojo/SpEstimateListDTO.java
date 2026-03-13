@@ -1,7 +1,6 @@
 package kr.co.samplepcb.xpse.pojo;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import kr.co.samplepcb.xpse.domain.entity.SpEstimateDocument;
 
 import java.util.Date;
 
@@ -26,20 +25,6 @@ public class SpEstimateListDTO {
     private Date writeDate;
     @Schema(description = "수정일")
     private Date modifyDate;
-
-    public static SpEstimateListDTO from(SpEstimateDocument doc) {
-        SpEstimateListDTO dto = new SpEstimateListDTO();
-        dto.setId(doc.getId());
-        dto.setItId(doc.getItId());
-        dto.setStatus(doc.getStatus());
-        dto.setExpectedDelivery(doc.getExpectedDelivery());
-        dto.setTotalAmount(doc.getTotalAmount());
-        dto.setFinalAmount(doc.getFinalAmount());
-        dto.setItemCount(doc.getItems() != null ? doc.getItems().size() : 0);
-        dto.setWriteDate(doc.getWriteDate());
-        dto.setModifyDate(doc.getModifyDate());
-        return dto;
-    }
 
     // === getter / setter ===
 

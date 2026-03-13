@@ -1,22 +1,12 @@
 package kr.co.samplepcb.xpse.pojo;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import kr.co.samplepcb.xpse.domain.entity.SpEstimateDocument;
-import kr.co.samplepcb.xpse.domain.entity.SpEstimateItem;
-import kr.co.samplepcb.xpse.domain.entity.SpFile;
 
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
-
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
 @Schema(description = "견적서 상세 응답")
 public class SpEstimateDetailDTO {
-
-    private static final ObjectMapper objectMapper = JsonMapper.builder().build();
 
     @Schema(description = "견적서 ID")
     private Long id;
@@ -44,38 +34,6 @@ public class SpEstimateDetailDTO {
     @Schema(description = "첨부파일 리스트")
     private List<FileDTO> files;
 
-    public static SpEstimateDetailDTO from(SpEstimateDocument doc, List<SpFile> spFiles) {
-        SpEstimateDetailDTO dto = new SpEstimateDetailDTO();
-        dto.setId(doc.getId());
-        dto.setItId(doc.getItId());
-        dto.setStatus(doc.getStatus());
-        dto.setExpectedDelivery(doc.getExpectedDelivery());
-        dto.setShippingFee(doc.getShippingFee());
-        dto.setManagementFee(doc.getManagementFee());
-        dto.setTotalAmount(doc.getTotalAmount());
-        dto.setFinalAmount(doc.getFinalAmount());
-        dto.setWriteDate(doc.getWriteDate());
-        dto.setModifyDate(doc.getModifyDate());
-
-        if (doc.getItems() != null) {
-            List<EstimateItemDTO> itemDTOs = new ArrayList<>();
-            for (SpEstimateItem ei : doc.getItems()) {
-                itemDTOs.add(EstimateItemDTO.from(ei));
-            }
-            dto.setItems(itemDTOs);
-        }
-
-        if (spFiles != null) {
-            List<FileDTO> fileDTOs = new ArrayList<>();
-            for (SpFile sf : spFiles) {
-                fileDTOs.add(FileDTO.from(sf));
-            }
-            dto.setFiles(fileDTOs);
-        }
-
-        return dto;
-    }
-
     @Schema(description = "견적 항목")
     public static class EstimateItemDTO {
         @Schema(description = "항목 ID")
@@ -92,18 +50,6 @@ public class SpEstimateDetailDTO {
         private Date writeDate;
         @Schema(description = "수정일")
         private Date modifyDate;
-
-        public static EstimateItemDTO from(SpEstimateItem ei) {
-            EstimateItemDTO dto = new EstimateItemDTO();
-            dto.setId(ei.getId());
-            dto.setPcbPartDocId(ei.getPcbPartDocId());
-            dto.setQty(ei.getQty());
-            dto.setAnalysisMeta(parseJson(ei.getAnalysisMeta()));
-            dto.setSelectedPrice(parseJson(ei.getSelectedPrice()));
-            dto.setWriteDate(ei.getWriteDate());
-            dto.setModifyDate(ei.getModifyDate());
-            return dto;
-        }
 
         public Long getId() { return id; }
         public void setId(Long id) { this.id = id; }
@@ -133,16 +79,6 @@ public class SpEstimateDetailDTO {
         private String pathToken;
         @Schema(description = "파일 크기 (bytes)")
         private long size;
-
-        public static FileDTO from(SpFile sf) {
-            FileDTO dto = new FileDTO();
-            dto.setId(sf.getId());
-            dto.setUploadFileName(sf.getUploadFileName());
-            dto.setOriginFileName(sf.getOriginFileName());
-            dto.setPathToken(sf.getPathToken());
-            dto.setSize(sf.getSize());
-            return dto;
-        }
 
         public Long getId() { return id; }
         public void setId(Long id) { this.id = id; }
@@ -182,15 +118,4 @@ public class SpEstimateDetailDTO {
     public void setItems(List<EstimateItemDTO> items) { this.items = items; }
     public List<FileDTO> getFiles() { return files; }
     public void setFiles(List<FileDTO> files) { this.files = files; }
-
-    private static Object parseJson(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-        try {
-            return objectMapper.readValue(value, Object.class);
-        } catch (JacksonException e) {
-            return value;
-        }
-    }
 }

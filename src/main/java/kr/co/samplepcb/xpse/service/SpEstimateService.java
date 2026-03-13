@@ -8,8 +8,8 @@ import kr.co.samplepcb.xpse.domain.entity.SpEstimateDocument;
 import kr.co.samplepcb.xpse.domain.entity.SpFile;
 import kr.co.samplepcb.xpse.domain.entity.SpEstimateItem;
 import kr.co.samplepcb.xpse.domain.entity.SpPartnerEstimateItem;
+import kr.co.samplepcb.xpse.mapper.SpEstimateMapper;
 import kr.co.samplepcb.xpse.pojo.SpEstimateCreateDTO;
-import kr.co.samplepcb.xpse.pojo.SpEstimateDetailDTO;
 import kr.co.samplepcb.xpse.pojo.SpEstimateListDTO;
 import kr.co.samplepcb.xpse.pojo.SpEstimateSearchParam;
 import kr.co.samplepcb.xpse.pojo.SpItemCreateDTO;
@@ -43,19 +43,22 @@ public class SpEstimateService {
     private final SpEstimateItemRepository estimateItemRepository;
     private final SpPartnerEstimateItemRepository partnerEstimateItemRepository;
     private final SpFileRepository spFileRepository;
+    private final SpEstimateMapper spEstimateMapper;
 
     public SpEstimateService(G5ShopItemRepository shopItemRepository,
                              G5ShopCartRepository shopCartRepository,
                              SpEstimateDocumentRepository estimateDocumentRepository,
                              SpEstimateItemRepository estimateItemRepository,
                              SpPartnerEstimateItemRepository partnerEstimateItemRepository,
-                             SpFileRepository spFileRepository) {
+                             SpFileRepository spFileRepository,
+                             SpEstimateMapper spEstimateMapper) {
         this.shopItemRepository = shopItemRepository;
         this.shopCartRepository = shopCartRepository;
         this.estimateDocumentRepository = estimateDocumentRepository;
         this.estimateItemRepository = estimateItemRepository;
         this.partnerEstimateItemRepository = partnerEstimateItemRepository;
         this.spFileRepository = spFileRepository;
+        this.spEstimateMapper = spEstimateMapper;
     }
 
     /**
@@ -109,24 +112,15 @@ public class SpEstimateService {
             doc.setWriteDate(now);
             doc.setModifyDate(now);
         }
-        doc.setStatus(createDTO.getStatus());
-        doc.setExpectedDelivery(createDTO.getExpectedDelivery());
-        doc.setShippingFee(createDTO.getShippingFee());
-        doc.setManagementFee(createDTO.getManagementFee());
-        doc.setTotalAmount(createDTO.getTotalAmount());
-        doc.setFinalAmount(createDTO.getFinalAmount());
+        spEstimateMapper.updateDocument(createDTO, doc);
 
         // ── 4. 견적 항목 upsert (기존 항목 교체) ──
         doc.getItems().clear();
         List<SpEstimateCreateDTO.EstimateItemDTO> itemDTOs = createDTO.getItems();
         if (itemDTOs != null) {
             for (SpEstimateCreateDTO.EstimateItemDTO eiDTO : itemDTOs) {
-                SpEstimateItem ei = new SpEstimateItem();
+                SpEstimateItem ei = spEstimateMapper.toEstimateItemEntity(eiDTO);
                 ei.setEstimateDocument(doc);
-                ei.setPcbPartDocId(eiDTO.getPcbPartDocId());
-                ei.setQty(eiDTO.getQty());
-                ei.setAnalysisMeta(eiDTO.getAnalysisMeta());
-                ei.setSelectedPrice(eiDTO.getSelectedPrice());
                 ei.setWriteDate(now);
                 ei.setModifyDate(now);
                 doc.getItems().add(ei);
@@ -142,20 +136,16 @@ public class SpEstimateService {
         if (fileDTOs != null) {
             List<SpFile> spFiles = new ArrayList<>();
             for (SpEstimateCreateDTO.FileDTO fDTO : fileDTOs) {
-                SpFile sf = new SpFile();
+                SpFile sf = spEstimateMapper.toFileEntity(fDTO);
                 sf.setRefType("estimate_document");
                 sf.setRefId(savedDoc.getId());
-                sf.setUploadFileName(fDTO.getUploadFileName());
-                sf.setOriginFileName(fDTO.getOriginFileName());
-                sf.setPathToken(fDTO.getPathToken());
-                sf.setSize(fDTO.getSize());
                 sf.setWriteDate(now);
                 spFiles.add(sf);
             }
             savedFiles = spFileRepository.saveAll(spFiles);
         }
 
-        return CCObjectResult.setSimpleData(SpEstimateDetailDTO.from(savedDoc, savedFiles));
+        return CCObjectResult.setSimpleData(spEstimateMapper.toDetailDTO(savedDoc, savedFiles));
     }
 
     /**
@@ -169,7 +159,7 @@ public class SpEstimateService {
         }
         SpEstimateDocument doc = optDoc.get();
         List<SpFile> files = spFileRepository.findByRefTypeAndRefId("estimate_document", doc.getId());
-        return CCObjectResult.setSimpleData(SpEstimateDetailDTO.from(doc, files));
+        return CCObjectResult.setSimpleData(spEstimateMapper.toDetailDTO(doc, files));
     }
 
     /**
@@ -183,7 +173,7 @@ public class SpEstimateService {
         }
         SpEstimateDocument doc = optDoc.get();
         List<SpFile> files = spFileRepository.findByRefTypeAndRefId("estimate_document", doc.getId());
-        return CCObjectResult.setSimpleData(SpEstimateDetailDTO.from(doc, files));
+        return CCObjectResult.setSimpleData(spEstimateMapper.toDetailDTO(doc, files));
     }
 
     /**
@@ -194,7 +184,7 @@ public class SpEstimateService {
         List<SpEstimateDocument> docs = estimateDocumentRepository.findEstimateList(pageable, searchParam);
         long totalCount = estimateDocumentRepository.countEstimateList(searchParam);
         List<SpEstimateListDTO> dtoList = docs.stream()
-                .map(SpEstimateListDTO::from)
+                .map(spEstimateMapper::toListDTO)
                 .toList();
         return PagingAdapter.toCCPagingResult(searchParam.getQ(), pageable, dtoList, totalCount);
     }

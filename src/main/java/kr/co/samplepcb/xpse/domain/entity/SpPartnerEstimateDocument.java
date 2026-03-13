@@ -31,6 +31,9 @@ public class SpPartnerEstimateDocument {
     @Column(name = "status", length = 30)
     private String status;
 
+    @Column(name = "estimate_price")
+    private Integer estimatePrice;
+
     @Lob
     @Column(name = "memo", columnDefinition = "text")
     private String memo;
@@ -60,6 +63,9 @@ public class SpPartnerEstimateDocument {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public Integer getEstimatePrice() { return estimatePrice; }
+    public void setEstimatePrice(Integer estimatePrice) { this.estimatePrice = estimatePrice; }
 
     public String getMemo() { return memo; }
     public void setMemo(String memo) { this.memo = memo; }

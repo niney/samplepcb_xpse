@@ -124,6 +124,7 @@ public class SpPartnerEstimateItemRepositoryImpl implements SpPartnerEstimateIte
                         ped.status, doc.expectedDelivery,
                         doc.totalAmount, doc.finalAmount,
                         ped.memo, doc.globalMarginRate,
+                        ped.estimatePrice,
                         JPAExpressions.select(eiCount.count())
                                 .from(eiCount)
                                 .where(eiCount.estimateDocument.id.eq(doc.id)),

@@ -4,6 +4,7 @@ CREATE TABLE sp_partner_estimate_document (
     estimate_document_id BIGINT NOT NULL,
     mb_no INT NOT NULL,
     status VARCHAR(30) DEFAULT '협력사 견적요청',
+    estimate_price INT NULL,
     memo TEXT NULL,
     write_date DATETIME NOT NULL,
     modify_date DATETIME NOT NULL,

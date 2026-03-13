@@ -27,6 +27,8 @@ public class SpPartnerEstimateDocListDTO {
     private String memo;
     @Schema(description = "글로벌 마진율")
     private Integer globalMarginRate;
+    @Schema(description = "협력사 견적가")
+    private Integer estimatePrice;
     @Schema(description = "항목 수")
     private long itemCount;
     @Schema(description = "파트너 회원번호")
@@ -50,6 +52,7 @@ public class SpPartnerEstimateDocListDTO {
                                         String status, String expectedDelivery,
                                         Integer totalAmount, Integer finalAmount,
                                         String memo, Integer globalMarginRate,
+                                        Integer estimatePrice,
                                         long itemCount,
                                         int mbNo, String partnerName, String partnerTel,
                                         String partnerHp, String partnerEmail,
@@ -64,6 +67,7 @@ public class SpPartnerEstimateDocListDTO {
         this.finalAmount = finalAmount;
         this.memo = memo;
         this.globalMarginRate = globalMarginRate;
+        this.estimatePrice = estimatePrice;
         this.itemCount = itemCount;
         this.mbNo = mbNo;
         this.partnerName = partnerName;
@@ -94,6 +98,8 @@ public class SpPartnerEstimateDocListDTO {
     public void setMemo(String memo) { this.memo = memo; }
     public Integer getGlobalMarginRate() { return globalMarginRate; }
     public void setGlobalMarginRate(Integer globalMarginRate) { this.globalMarginRate = globalMarginRate; }
+    public Integer getEstimatePrice() { return estimatePrice; }
+    public void setEstimatePrice(Integer estimatePrice) { this.estimatePrice = estimatePrice; }
     public long getItemCount() { return itemCount; }
     public void setItemCount(long itemCount) { this.itemCount = itemCount; }
     public int getMbNo() { return mbNo; }

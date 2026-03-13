@@ -3,6 +3,7 @@ package kr.co.samplepcb.xpse.repository;
 import kr.co.samplepcb.xpse.domain.entity.SpEstimateDocument;
 import kr.co.samplepcb.xpse.pojo.SpEstimateListDTO;
 import kr.co.samplepcb.xpse.pojo.SpEstimateSearchParam;
+import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateDocDetailDTO;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
@@ -17,4 +18,10 @@ public interface SpEstimateDocumentRepositoryCustom {
     Optional<SpEstimateDocument> findDetailById(Long id);
 
     Optional<SpEstimateDocument> findDetailByItId(String itId);
+
+    List<SpEstimateListDTO> findEstimateListForPartner(Pageable pageable, SpEstimateSearchParam searchParam, int mbNo);
+
+    long countEstimateListForPartner(SpEstimateSearchParam searchParam, int mbNo);
+
+    List<SpPartnerEstimateDocDetailDTO.ItemDTO> findDetailItemsForPartner(Long docId, Long pedId);
 }

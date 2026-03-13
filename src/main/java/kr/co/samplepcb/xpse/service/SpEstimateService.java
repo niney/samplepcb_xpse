@@ -16,6 +16,7 @@ import kr.co.samplepcb.xpse.pojo.SpEstimateDetailDTO;
 import kr.co.samplepcb.xpse.pojo.SpEstimateListDTO;
 import kr.co.samplepcb.xpse.pojo.SpEstimateSearchParam;
 import kr.co.samplepcb.xpse.pojo.SpItemCreateDTO;
+import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateDocDetailDTO;
 import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateDocListDTO;
 import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateItemCreateDTO;
 import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateItemDetailDTO;
@@ -38,8 +39,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -350,6 +354,91 @@ public class SpEstimateService {
 
         Page<SpPartnerEstimateDocListDTO> dtoPage = new PageImpl<>(list, pageable, total);
         return PagingAdapter.toCCPagingResult(searchParam.getQ(), pageable, dtoPage);
+    }
+
+    /**
+     * 협력사용 견적서 목록 검색 (sp_partner_estimate_document 존재하는 것만).
+     */
+    @Transactional(readOnly = true)
+    public CCPagingResult<SpEstimateListDTO> searchEstimateDocsForPartner(Pageable pageable, SpEstimateSearchParam searchParam, int mbNo) {
+        List<SpEstimateListDTO> list = estimateDocumentRepository.findEstimateListForPartner(pageable, searchParam, mbNo);
+        long total = estimateDocumentRepository.countEstimateListForPartner(searchParam, mbNo);
+        return PagingAdapter.toCCPagingResult(searchParam.getQ(), pageable, list, total);
+    }
+
+    /**
+     * 협력사용 견적서 상세 조회 (mbNo 접근 검증 포함).
+     */
+    @Transactional(readOnly = true)
+    @SuppressWarnings("unchecked")
+    public CCObjectResult<SpPartnerEstimateDocDetailDTO> getEstimateDocDetailForPartner(Long id, int mbNo) {
+        Optional<SpPartnerEstimateDocument> optPed = partnerEstimateDocumentRepository.findByEstimateDocumentIdAndMbNo(id, mbNo);
+        if (optPed.isEmpty()) {
+            return dataNotFound();
+        }
+        SpPartnerEstimateDocument ped = optPed.get();
+        Optional<SpEstimateDocument> optDoc = estimateDocumentRepository.findById(id);
+        if (optDoc.isEmpty()) {
+            return dataNotFound();
+        }
+        SpEstimateDocument doc = optDoc.get();
+
+        // 문서 레벨 정보
+        SpPartnerEstimateDocDetailDTO dto = new SpPartnerEstimateDocDetailDTO();
+        dto.setId(doc.getId());
+        dto.setItId(doc.getItId());
+        dto.setItName(doc.getShopItem() != null ? doc.getShopItem().getItName() : null);
+        dto.setStatus(doc.getStatus());
+        dto.setExpectedDelivery(doc.getExpectedDelivery());
+        dto.setTotalAmount(doc.getTotalAmount());
+        dto.setFinalAmount(doc.getFinalAmount());
+        dto.setMemo(doc.getMemo());
+        dto.setPartnerName(ped.getMember() != null ? ped.getMember().getMbName() : null);
+        dto.setWriteDate(doc.getWriteDate());
+        dto.setModifyDate(doc.getModifyDate());
+
+        // 견적서 첨부파일
+        List<SpFile> docFiles = spFileRepository.findByRefTypeAndRefId("estimate_document", doc.getId());
+        dto.setFiles(docFiles.stream().map(f -> {
+            SpPartnerEstimateDocDetailDTO.FileDTO fileDTO = new SpPartnerEstimateDocDetailDTO.FileDTO();
+            fileDTO.setId(f.getId());
+            fileDTO.setUploadFileName(f.getUploadFileName());
+            fileDTO.setOriginFileName(f.getOriginFileName());
+            fileDTO.setPathToken(f.getPathToken());
+            fileDTO.setSize(f.getSize());
+            return fileDTO;
+        }).collect(Collectors.toList()));
+
+        // flat 조인: estimate_item + pcb_parts + partner_estimate_item
+        List<SpPartnerEstimateDocDetailDTO.ItemDTO> items =
+                estimateDocumentRepository.findDetailItemsForPartner(doc.getId(), ped.getId());
+
+        // partner_estimate_item 첨부파일 일괄 조회
+        List<Long> peiIds = items.stream()
+                .map(SpPartnerEstimateDocDetailDTO.ItemDTO::getPartnerEstimateItemId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+        if (!peiIds.isEmpty()) {
+            List<SpFile> peiFiles = spFileRepository.findByRefTypeAndRefIdIn(PARTNER_ESTIMATE_ITEM_REF_TYPE, peiIds);
+            Map<Long, List<SpFile>> fileMap = peiFiles.stream().collect(Collectors.groupingBy(SpFile::getRefId));
+            for (SpPartnerEstimateDocDetailDTO.ItemDTO item : items) {
+                if (item.getPartnerEstimateItemId() != null) {
+                    List<SpFile> files = fileMap.getOrDefault(item.getPartnerEstimateItemId(), Collections.emptyList());
+                    item.setPartnerFiles(files.stream().map(f -> {
+                        SpPartnerEstimateDocDetailDTO.FileDTO fileDTO = new SpPartnerEstimateDocDetailDTO.FileDTO();
+                        fileDTO.setId(f.getId());
+                        fileDTO.setUploadFileName(f.getUploadFileName());
+                        fileDTO.setOriginFileName(f.getOriginFileName());
+                        fileDTO.setPathToken(f.getPathToken());
+                        fileDTO.setSize(f.getSize());
+                        return fileDTO;
+                    }).collect(Collectors.toList()));
+                }
+            }
+        }
+
+        dto.setItems(items);
+        return CCObjectResult.setSimpleData(dto);
     }
 
     /**

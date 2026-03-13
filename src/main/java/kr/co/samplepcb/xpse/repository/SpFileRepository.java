@@ -9,5 +9,7 @@ public interface SpFileRepository extends JpaRepository<SpFile, Long> {
 
     List<SpFile> findByRefTypeAndRefId(String refType, Long refId);
 
+    List<SpFile> findByRefTypeAndRefIdIn(String refType, List<Long> refIds);
+
     void deleteByRefTypeAndRefId(String refType, Long refId);
 }

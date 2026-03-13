@@ -13,6 +13,9 @@ import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateItemCreateDTO;
 import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateItemDetailDTO;
 import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateItemListDTO;
 import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateItemSearchParam;
+import kr.co.samplepcb.xpse.pojo.SpEstimateListDTO;
+import kr.co.samplepcb.xpse.pojo.SpEstimateSearchParam;
+import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateDocDetailDTO;
 import kr.co.samplepcb.xpse.security.JwtAuth;
 import kr.co.samplepcb.xpse.service.SpEstimateService;
 import org.springframework.data.domain.Pageable;
@@ -52,6 +55,22 @@ public class SpPartnerOrderResource {
     @GetMapping("/estimates/_search")
     public CCPagingResult<SpPartnerEstimateDocListDTO> searchEstimateDocs(Pageable pageable, SpPartnerEstimateItemSearchParam searchParam) {
         return this.spEstimateService.searchPartnerEstimateDocs(pageable, searchParam);
+    }
+
+    @Operation(summary = "협력사용 견적서 목록 조회", description = "협력사에 배정된 견적서(sp_estimate_document) 목록을 조회합니다 (마진율 미노출)")
+    @JwtAuth
+    @GetMapping("/estimateDocuments/_search")
+    public CCPagingResult<SpEstimateListDTO> searchEstimateDocuments(Pageable pageable, SpEstimateSearchParam searchParam,
+                                                                     @Parameter(description = "파트너 회원번호") @RequestParam int mbNo) {
+        return this.spEstimateService.searchEstimateDocsForPartner(pageable, searchParam, mbNo);
+    }
+
+    @Operation(summary = "협력사용 견적서 상세 조회", description = "견적서 상세를 조회합니다 (마진율 미노출, 협력사 견적항목 포함, 파트너 접근 검증)")
+    @JwtAuth
+    @GetMapping("/estimateDocuments/{id}")
+    public CCObjectResult<SpPartnerEstimateDocDetailDTO> getEstimateDocumentDetail(@Parameter(description = "견적서 ID") @PathVariable Long id,
+                                                                         @Parameter(description = "파트너 회원번호") @RequestParam int mbNo) {
+        return this.spEstimateService.getEstimateDocDetailForPartner(id, mbNo);
     }
 
     @Operation(summary = "협력사 주문 단건 생성", description = "협력사 주문을 단건으로 생성합니다")

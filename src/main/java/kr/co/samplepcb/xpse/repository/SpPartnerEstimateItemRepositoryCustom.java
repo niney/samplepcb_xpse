@@ -1,5 +1,6 @@
 package kr.co.samplepcb.xpse.repository;
 
+import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateDocListDTO;
 import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateItemDetailDTO;
 import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateItemListDTO;
 import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateItemSearchParam;
@@ -14,4 +15,8 @@ public interface SpPartnerEstimateItemRepositoryCustom {
     long countPartnerEstimateItemList(SpPartnerEstimateItemSearchParam searchParam);
 
     SpPartnerEstimateItemDetailDTO findPartnerEstimateItemDetail(Long estimateItemId, int mbNo);
+
+    List<SpPartnerEstimateDocListDTO> findPartnerEstimateDocList(Pageable pageable, SpPartnerEstimateItemSearchParam searchParam);
+
+    long countPartnerEstimateDocList(SpPartnerEstimateItemSearchParam searchParam);
 }

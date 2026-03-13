@@ -15,6 +15,7 @@ import kr.co.samplepcb.xpse.pojo.SpEstimateDetailDTO;
 import kr.co.samplepcb.xpse.pojo.SpEstimateListDTO;
 import kr.co.samplepcb.xpse.pojo.SpEstimateSearchParam;
 import kr.co.samplepcb.xpse.pojo.SpItemCreateDTO;
+import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateDocListDTO;
 import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateItemCreateDTO;
 import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateItemDetailDTO;
 import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateItemListDTO;
@@ -318,6 +319,14 @@ public class SpEstimateService {
         long total = partnerEstimateItemRepository.countPartnerEstimateItemList(searchParam);
 
         Page<SpPartnerEstimateItemListDTO> dtoPage = new PageImpl<>(list, pageable, total);
+        return PagingAdapter.toCCPagingResult(searchParam.getQ(), pageable, dtoPage);
+    }
+
+    public CCResult searchPartnerEstimateDocs(Pageable pageable, SpPartnerEstimateItemSearchParam searchParam) {
+        List<SpPartnerEstimateDocListDTO> list = partnerEstimateItemRepository.findPartnerEstimateDocList(pageable, searchParam);
+        long total = partnerEstimateItemRepository.countPartnerEstimateDocList(searchParam);
+
+        Page<SpPartnerEstimateDocListDTO> dtoPage = new PageImpl<>(list, pageable, total);
         return PagingAdapter.toCCPagingResult(searchParam.getQ(), pageable, dtoPage);
     }
 

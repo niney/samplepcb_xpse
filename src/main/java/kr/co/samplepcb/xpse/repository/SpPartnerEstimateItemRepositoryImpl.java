@@ -2,10 +2,14 @@ package kr.co.samplepcb.xpse.repository;
 
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.Projections;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import kr.co.samplepcb.xpse.domain.entity.QG5Member;
+import kr.co.samplepcb.xpse.domain.entity.QG5ShopItem;
+import kr.co.samplepcb.xpse.domain.entity.QSpEstimateDocument;
 import kr.co.samplepcb.xpse.domain.entity.QSpEstimateItem;
 import kr.co.samplepcb.xpse.domain.entity.QSpPartnerEstimateItem;
+import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateDocListDTO;
 import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateItemDetailDTO;
 import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateItemListDTO;
 import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateItemSearchParam;
@@ -95,5 +99,77 @@ public class SpPartnerEstimateItemRepositoryImpl implements SpPartnerEstimateIte
         }
 
         return builder;
+    }
+
+    @Override
+    public List<SpPartnerEstimateDocListDTO> findPartnerEstimateDocList(Pageable pageable, SpPartnerEstimateItemSearchParam searchParam) {
+        QSpEstimateDocument doc = QSpEstimateDocument.spEstimateDocument;
+        QSpEstimateItem ei = QSpEstimateItem.spEstimateItem;
+        QSpPartnerEstimateItem pei = QSpPartnerEstimateItem.spPartnerEstimateItem;
+        QG5ShopItem shopItem = QG5ShopItem.g5ShopItem;
+
+        // 서브쿼리: 해당 파트너가 참여한 estimate_document ID 목록
+        BooleanBuilder subWhere = new BooleanBuilder();
+        if (searchParam.getMbNo() != null) {
+            subWhere.and(pei.mbNo.eq(searchParam.getMbNo()));
+        }
+        if (StringUtils.isNotBlank(searchParam.getStatus())) {
+            subWhere.and(doc.status.eq(searchParam.getStatus()));
+        }
+
+        // 항목 수 서브쿼리
+        QSpEstimateItem eiCount = new QSpEstimateItem("eiCount");
+
+        return queryFactory
+                .select(Projections.constructor(SpPartnerEstimateDocListDTO.class,
+                        doc.id, doc.itId, shopItem.itName,
+                        doc.status, doc.expectedDelivery,
+                        doc.totalAmount, doc.finalAmount,
+                        doc.memo, doc.globalMarginRate,
+                        JPAExpressions.select(eiCount.count())
+                                .from(eiCount)
+                                .where(eiCount.estimateDocument.id.eq(doc.id)),
+                        doc.writeDate, doc.modifyDate))
+                .from(doc)
+                .leftJoin(doc.shopItem, shopItem)
+                .where(doc.id.in(
+                        JPAExpressions.select(ei.estimateDocument.id)
+                                .from(pei)
+                                .join(pei.estimateItem, ei)
+                                .where(subWhere)
+                                .distinct()
+                ))
+                .orderBy(doc.writeDate.desc())
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .fetch();
+    }
+
+    @Override
+    public long countPartnerEstimateDocList(SpPartnerEstimateItemSearchParam searchParam) {
+        QSpEstimateDocument doc = QSpEstimateDocument.spEstimateDocument;
+        QSpEstimateItem ei = QSpEstimateItem.spEstimateItem;
+        QSpPartnerEstimateItem pei = QSpPartnerEstimateItem.spPartnerEstimateItem;
+
+        BooleanBuilder subWhere = new BooleanBuilder();
+        if (searchParam.getMbNo() != null) {
+            subWhere.and(pei.mbNo.eq(searchParam.getMbNo()));
+        }
+        if (StringUtils.isNotBlank(searchParam.getStatus())) {
+            subWhere.and(doc.status.eq(searchParam.getStatus()));
+        }
+
+        Long count = queryFactory
+                .select(doc.countDistinct())
+                .from(doc)
+                .where(doc.id.in(
+                        JPAExpressions.select(ei.estimateDocument.id)
+                                .from(pei)
+                                .join(pei.estimateItem, ei)
+                                .where(subWhere)
+                                .distinct()
+                ))
+                .fetchOne();
+        return count != null ? count : 0L;
     }
 }

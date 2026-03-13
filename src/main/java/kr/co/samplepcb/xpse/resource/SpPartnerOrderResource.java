@@ -41,6 +41,13 @@ public class SpPartnerOrderResource {
         return this.spEstimateService.searchPartnerEstimateItems(pageable, searchParam);
     }
 
+    @Operation(summary = "협력사 견적서 목록 검색", description = "협력사가 참여한 견적서(estimate document) 목록을 검색합니다")
+    @JwtAuth
+    @GetMapping("/estimates/_search")
+    public CCResult searchEstimateDocs(Pageable pageable, SpPartnerEstimateItemSearchParam searchParam) {
+        return this.spEstimateService.searchPartnerEstimateDocs(pageable, searchParam);
+    }
+
     @Operation(summary = "협력사 주문 단건 생성", description = "협력사 주문을 단건으로 생성합니다")
     @JwtAuth
     @PostMapping

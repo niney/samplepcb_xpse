@@ -56,6 +56,8 @@ public class SpEstimateDetailDTO {
         private Date writeDate;
         @Schema(description = "수정일")
         private Date modifyDate;
+        @Schema(description = "PCB 부품 정보")
+        private PcbPartDTO pcbPart;
 
         public Long getId() { return id; }
         public void setId(Long id) { this.id = id; }
@@ -71,6 +73,46 @@ public class SpEstimateDetailDTO {
         public void setWriteDate(Date writeDate) { this.writeDate = writeDate; }
         public Date getModifyDate() { return modifyDate; }
         public void setModifyDate(Date modifyDate) { this.modifyDate = modifyDate; }
+        public PcbPartDTO getPcbPart() { return pcbPart; }
+        public void setPcbPart(PcbPartDTO pcbPart) { this.pcbPart = pcbPart; }
+    }
+
+    @Schema(description = "PCB 부품 정보")
+    public static class PcbPartDTO {
+        private String docId;
+        private String partName;
+        private String description;
+        private String manufacturerName;
+        private String partsPackaging;
+        private Integer moq;
+        private Integer price;
+        private String offerName;
+        private String largeCategory;
+        private String mediumCategory;
+        private String smallCategory;
+
+        public String getDocId() { return docId; }
+        public void setDocId(String docId) { this.docId = docId; }
+        public String getPartName() { return partName; }
+        public void setPartName(String partName) { this.partName = partName; }
+        public String getDescription() { return description; }
+        public void setDescription(String description) { this.description = description; }
+        public String getManufacturerName() { return manufacturerName; }
+        public void setManufacturerName(String manufacturerName) { this.manufacturerName = manufacturerName; }
+        public String getPartsPackaging() { return partsPackaging; }
+        public void setPartsPackaging(String partsPackaging) { this.partsPackaging = partsPackaging; }
+        public Integer getMoq() { return moq; }
+        public void setMoq(Integer moq) { this.moq = moq; }
+        public Integer getPrice() { return price; }
+        public void setPrice(Integer price) { this.price = price; }
+        public String getOfferName() { return offerName; }
+        public void setOfferName(String offerName) { this.offerName = offerName; }
+        public String getLargeCategory() { return largeCategory; }
+        public void setLargeCategory(String largeCategory) { this.largeCategory = largeCategory; }
+        public String getMediumCategory() { return mediumCategory; }
+        public void setMediumCategory(String mediumCategory) { this.mediumCategory = mediumCategory; }
+        public String getSmallCategory() { return smallCategory; }
+        public void setSmallCategory(String smallCategory) { this.smallCategory = smallCategory; }
     }
 
     @Schema(description = "첨부파일")

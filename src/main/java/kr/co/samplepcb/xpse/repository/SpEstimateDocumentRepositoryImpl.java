@@ -9,12 +9,14 @@ import kr.co.samplepcb.xpse.domain.entity.QG5Member;
 import kr.co.samplepcb.xpse.domain.entity.QG5ShopCart;
 import kr.co.samplepcb.xpse.domain.entity.QSpEstimateDocument;
 import kr.co.samplepcb.xpse.domain.entity.QSpEstimateItem;
+import kr.co.samplepcb.xpse.domain.entity.SpEstimateDocument;
 import kr.co.samplepcb.xpse.pojo.SpEstimateListDTO;
 import kr.co.samplepcb.xpse.pojo.SpEstimateSearchParam;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
+import java.util.Optional;
 
 public class SpEstimateDocumentRepositoryImpl implements SpEstimateDocumentRepositoryCustom {
 
@@ -92,5 +94,35 @@ public class SpEstimateDocumentRepositoryImpl implements SpEstimateDocumentRepos
         }
 
         return builder;
+    }
+
+    @Override
+    public Optional<SpEstimateDocument> findDetailById(Long id) {
+        QSpEstimateDocument doc = QSpEstimateDocument.spEstimateDocument;
+        QSpEstimateItem item = QSpEstimateItem.spEstimateItem;
+
+        SpEstimateDocument result = queryFactory
+                .selectFrom(doc)
+                .leftJoin(doc.items, item).fetchJoin()
+                .leftJoin(item.pcbPart).fetchJoin()
+                .leftJoin(doc.shopItem).fetchJoin()
+                .where(doc.id.eq(id))
+                .fetchOne();
+        return Optional.ofNullable(result);
+    }
+
+    @Override
+    public Optional<SpEstimateDocument> findDetailByItId(String itId) {
+        QSpEstimateDocument doc = QSpEstimateDocument.spEstimateDocument;
+        QSpEstimateItem item = QSpEstimateItem.spEstimateItem;
+
+        SpEstimateDocument result = queryFactory
+                .selectFrom(doc)
+                .leftJoin(doc.items, item).fetchJoin()
+                .leftJoin(item.pcbPart).fetchJoin()
+                .leftJoin(doc.shopItem).fetchJoin()
+                .where(doc.itId.eq(itId))
+                .fetchOne();
+        return Optional.ofNullable(result);
     }
 }

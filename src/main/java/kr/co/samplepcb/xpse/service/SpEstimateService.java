@@ -157,7 +157,7 @@ public class SpEstimateService {
     @Transactional(readOnly = true)
     @SuppressWarnings("unchecked")
     public CCObjectResult<SpEstimateDetailDTO> getDetail(Long id) {
-        Optional<SpEstimateDocument> optDoc = estimateDocumentRepository.findById(id);
+        Optional<SpEstimateDocument> optDoc = estimateDocumentRepository.findDetailById(id);
         if (optDoc.isEmpty()) {
             return dataNotFound();
         }
@@ -172,7 +172,7 @@ public class SpEstimateService {
     @Transactional(readOnly = true)
     @SuppressWarnings("unchecked")
     public CCObjectResult<SpEstimateDetailDTO> getDetailByItId(String itId) {
-        Optional<SpEstimateDocument> optDoc = estimateDocumentRepository.findByItId(itId);
+        Optional<SpEstimateDocument> optDoc = estimateDocumentRepository.findDetailByItId(itId);
         if (optDoc.isEmpty()) {
             return dataNotFound();
         }

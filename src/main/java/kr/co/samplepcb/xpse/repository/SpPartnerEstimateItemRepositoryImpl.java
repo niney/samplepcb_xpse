@@ -92,6 +92,9 @@ public class SpPartnerEstimateItemRepositoryImpl implements SpPartnerEstimateIte
         if (searchParam.getEstimateItemId() != null) {
             builder.and(pei.estimateItem.id.eq(searchParam.getEstimateItemId()));
         }
+        if (searchParam.getPartnerEstimateDocumentId() != null) {
+            builder.and(pei.partnerEstimateDocument.id.eq(searchParam.getPartnerEstimateDocumentId()));
+        }
         if (searchParam.getMbNo() != null) {
             builder.and(pei.mbNo.eq(searchParam.getMbNo()));
         }

@@ -40,6 +40,12 @@ public class SpEstimateDocument {
     @Column(name = "final_amount")
     private Integer finalAmount;
 
+    @Column(name = "memo", columnDefinition = "TEXT")
+    private String memo;
+
+    @Column(name = "global_margin_rate")
+    private Integer globalMarginRate;
+
     @Column(name = "write_date")
     private Date writeDate;
 
@@ -77,6 +83,12 @@ public class SpEstimateDocument {
 
     public Integer getFinalAmount() { return finalAmount; }
     public void setFinalAmount(Integer finalAmount) { this.finalAmount = finalAmount; }
+
+    public String getMemo() { return memo; }
+    public void setMemo(String memo) { this.memo = memo; }
+
+    public Integer getGlobalMarginRate() { return globalMarginRate; }
+    public void setGlobalMarginRate(Integer globalMarginRate) { this.globalMarginRate = globalMarginRate; }
 
     public Date getWriteDate() { return writeDate; }
     public void setWriteDate(Date writeDate) { this.writeDate = writeDate; }

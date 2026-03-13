@@ -44,6 +44,12 @@ public class SpEstimateCreateDTO {
     @Schema(description = "최종 금액")
     private Integer finalAmount;
 
+    @Schema(description = "메모")
+    private String memo;
+
+    @Schema(description = "글로벌 마진율")
+    private Integer globalMarginRate;
+
     @Schema(description = "첨부파일 리스트")
     private List<FileDTO> files;
 
@@ -140,6 +146,10 @@ public class SpEstimateCreateDTO {
     public void setTotalAmount(Integer totalAmount) { this.totalAmount = totalAmount; }
     public Integer getFinalAmount() { return finalAmount; }
     public void setFinalAmount(Integer finalAmount) { this.finalAmount = finalAmount; }
+    public String getMemo() { return memo; }
+    public void setMemo(String memo) { this.memo = memo; }
+    public Integer getGlobalMarginRate() { return globalMarginRate; }
+    public void setGlobalMarginRate(Integer globalMarginRate) { this.globalMarginRate = globalMarginRate; }
     public List<FileDTO> getFiles() { return files; }
     public void setFiles(List<FileDTO> files) { this.files = files; }
     public List<EstimateItemDTO> getItems() { return items; }

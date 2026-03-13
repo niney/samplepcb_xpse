@@ -21,6 +21,10 @@ public class SpEstimateListDTO {
     private Integer totalAmount;
     @Schema(description = "최종 금액")
     private Integer finalAmount;
+    @Schema(description = "메모")
+    private String memo;
+    @Schema(description = "글로벌 마진율")
+    private Integer globalMarginRate;
     @Schema(description = "항목 수")
     private int itemCount;
     @Schema(description = "작성일")
@@ -55,6 +59,10 @@ public class SpEstimateListDTO {
     public void setTotalAmount(Integer totalAmount) { this.totalAmount = totalAmount; }
     public Integer getFinalAmount() { return finalAmount; }
     public void setFinalAmount(Integer finalAmount) { this.finalAmount = finalAmount; }
+    public String getMemo() { return memo; }
+    public void setMemo(String memo) { this.memo = memo; }
+    public Integer getGlobalMarginRate() { return globalMarginRate; }
+    public void setGlobalMarginRate(Integer globalMarginRate) { this.globalMarginRate = globalMarginRate; }
     public int getItemCount() { return itemCount; }
     public void setItemCount(int itemCount) { this.itemCount = itemCount; }
     public Date getWriteDate() { return writeDate; }

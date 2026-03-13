@@ -10,6 +10,8 @@ CREATE TABLE sp_estimate_document (
     management_fee        INT           DEFAULT NULL,
     total_amount          INT           DEFAULT NULL,
     final_amount          INT           DEFAULT NULL,
+    memo                  TEXT          DEFAULT NULL,
+    global_margin_rate    INT           DEFAULT NULL,
     write_date            DATETIME      DEFAULT NULL,
     modify_date           DATETIME      DEFAULT NULL,
     PRIMARY KEY (id),

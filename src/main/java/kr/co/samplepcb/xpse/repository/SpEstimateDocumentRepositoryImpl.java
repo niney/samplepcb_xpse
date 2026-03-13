@@ -42,6 +42,8 @@ public class SpEstimateDocumentRepositoryImpl implements SpEstimateDocumentRepos
                         doc.expectedDelivery,
                         doc.totalAmount,
                         doc.finalAmount,
+                        doc.memo,
+                        doc.globalMarginRate,
                         doc.writeDate,
                         doc.modifyDate,
                         member.mbId,

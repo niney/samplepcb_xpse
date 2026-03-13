@@ -21,6 +21,7 @@ public interface SpEstimateMapper {
     // ── Entity → Detail DTO ──
 
     @Mapping(target = "files", ignore = true)
+    @Mapping(target = "itName", source = "shopItem.itName")
     SpEstimateDetailDTO toDetailDTO(SpEstimateDocument doc);
 
     @Mapping(target = "analysisMeta", source = "analysisMeta", qualifiedByName = "parseJson")

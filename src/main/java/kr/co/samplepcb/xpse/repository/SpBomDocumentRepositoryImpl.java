@@ -66,7 +66,7 @@ public class SpBomDocumentRepositoryImpl implements SpBomDocumentRepositoryCusto
                 type = type.substring(1);
             }
             if (StringUtils.isNotBlank(type)) {
-                builder.and(doc.fileName.lower().endsWith("." + type.toLowerCase()));
+                builder.and(doc.fileInfo.isNotNull());
             }
         }
 

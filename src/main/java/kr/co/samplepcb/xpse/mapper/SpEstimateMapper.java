@@ -5,7 +5,6 @@ import kr.co.samplepcb.xpse.domain.entity.SpEstimateItem;
 import kr.co.samplepcb.xpse.domain.entity.SpFile;
 import kr.co.samplepcb.xpse.pojo.SpEstimateCreateDTO;
 import kr.co.samplepcb.xpse.pojo.SpEstimateDetailDTO;
-import kr.co.samplepcb.xpse.pojo.SpEstimateListDTO;
 import org.mapstruct.*;
 
 import tools.jackson.core.JacksonException;
@@ -37,11 +36,6 @@ public interface SpEstimateMapper {
         dto.setFiles(toFileDTOs(files));
         return dto;
     }
-
-    // ── Entity → List DTO ──
-
-    @Mapping(target = "itemCount", expression = "java(doc.getItems() != null ? doc.getItems().size() : 0)")
-    SpEstimateListDTO toListDTO(SpEstimateDocument doc);
 
     // ── DTO → Entity (create/update) ──
 

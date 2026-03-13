@@ -1,12 +1,17 @@
 package kr.co.samplepcb.xpse.resource;
 
+import coolib.common.CCObjectResult;
+import coolib.common.CCPagingResult;
 import coolib.common.CCResult;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
+import kr.co.samplepcb.xpse.domain.entity.SpPartnerEstimateItem;
 import kr.co.samplepcb.xpse.pojo.SpEstimateCreateDTO;
+import kr.co.samplepcb.xpse.pojo.SpEstimateDetailDTO;
+import kr.co.samplepcb.xpse.pojo.SpEstimateListDTO;
 import kr.co.samplepcb.xpse.pojo.SpEstimateSearchParam;
 import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateItemCreateDTO;
 import kr.co.samplepcb.xpse.security.JwtAuth;
@@ -33,7 +38,7 @@ public class SpEstimateResource {
     @Operation(summary = "견적서 생성/수정", description = "상품 + 장바구니 + 견적서 + 견적항목을 일괄 생성(또는 upsert)합니다")
     @JwtAuth
     @PostMapping
-    public CCResult create(@RequestBody SpEstimateCreateDTO createDTO,
+    public CCObjectResult<SpEstimateDetailDTO> create(@RequestBody SpEstimateCreateDTO createDTO,
                            @AuthenticationPrincipal JwtUserPrincipal principal,
                            HttpServletRequest request) {
         return this.spEstimateService.create(createDTO, principal.getSub(), request.getRemoteAddr());
@@ -42,21 +47,21 @@ public class SpEstimateResource {
     @Operation(summary = "견적서 상세 조회 (PK)", description = "견적서 ID로 상세 정보를 조회합니다")
     @JwtAuth
     @GetMapping("/{id}")
-    public CCResult getDetail(@Parameter(description = "견적서 ID") @PathVariable Long id) {
+    public CCObjectResult<SpEstimateDetailDTO> getDetail(@Parameter(description = "견적서 ID") @PathVariable Long id) {
         return this.spEstimateService.getDetail(id);
     }
 
     @Operation(summary = "견적서 상세 조회 (itId)", description = "아이템 ID로 견적서 상세 정보를 조회합니다")
     @JwtAuth
     @GetMapping("/byItId/{itId}")
-    public CCResult getDetailByItId(@Parameter(description = "아이템 ID") @PathVariable String itId) {
+    public CCObjectResult<SpEstimateDetailDTO> getDetailByItId(@Parameter(description = "아이템 ID") @PathVariable String itId) {
         return this.spEstimateService.getDetailByItId(itId);
     }
 
     @Operation(summary = "견적서 목록 검색", description = "견적서 목록을 상태/아이템ID 조건으로 검색합니다")
     @JwtAuth
     @GetMapping("/_search")
-    public CCResult search(Pageable pageable, SpEstimateSearchParam searchParam) {
+    public CCPagingResult<SpEstimateListDTO> search(Pageable pageable, SpEstimateSearchParam searchParam) {
         return this.spEstimateService.search(pageable, searchParam);
     }
 
@@ -78,7 +83,7 @@ public class SpEstimateResource {
     @Operation(summary = "협력사 견적 항목 등록/수정", description = "견적 항목에 대한 협력사 견적을 등록하거나 수정합니다")
     @JwtAuth
     @PostMapping("/{estimateItemId}/partnerEstimateItems")
-    public CCResult createPartnerEstimateItem(
+    public CCObjectResult<SpPartnerEstimateItem> createPartnerEstimateItem(
             @Parameter(description = "견적 항목 ID") @PathVariable Long estimateItemId,
             @RequestBody SpPartnerEstimateItemCreateDTO createDTO) {
         return this.spEstimateService.createPartnerEstimateItem(estimateItemId, createDTO);

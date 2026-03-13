@@ -11,6 +11,8 @@ public class SpEstimateListDTO {
     private Long id;
     @Schema(description = "아이템 ID")
     private String itId;
+    @Schema(description = "아이템 이름")
+    private String itName;
     @Schema(description = "상태")
     private String status;
     @Schema(description = "예상 납기")
@@ -26,12 +28,25 @@ public class SpEstimateListDTO {
     @Schema(description = "수정일")
     private Date modifyDate;
 
+    @Schema(description = "회원 아이디")
+    private String mbId;
+    @Schema(description = "회원 이름")
+    private String mbName;
+    @Schema(description = "회원 이메일")
+    private String mbEmail;
+    @Schema(description = "회원 연락처")
+    private String mbHp;
+    @Schema(description = "회원 전화번호")
+    private String mbTel;
+
     // === getter / setter ===
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public String getItId() { return itId; }
     public void setItId(String itId) { this.itId = itId; }
+    public String getItName() { return itName; }
+    public void setItName(String itName) { this.itName = itName; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
     public String getExpectedDelivery() { return expectedDelivery; }
@@ -46,4 +61,14 @@ public class SpEstimateListDTO {
     public void setWriteDate(Date writeDate) { this.writeDate = writeDate; }
     public Date getModifyDate() { return modifyDate; }
     public void setModifyDate(Date modifyDate) { this.modifyDate = modifyDate; }
+    public String getMbId() { return mbId; }
+    public void setMbId(String mbId) { this.mbId = mbId; }
+    public String getMbName() { return mbName; }
+    public void setMbName(String mbName) { this.mbName = mbName; }
+    public String getMbEmail() { return mbEmail; }
+    public void setMbEmail(String mbEmail) { this.mbEmail = mbEmail; }
+    public String getMbHp() { return mbHp; }
+    public void setMbHp(String mbHp) { this.mbHp = mbHp; }
+    public String getMbTel() { return mbTel; }
+    public void setMbTel(String mbTel) { this.mbTel = mbTel; }
 }

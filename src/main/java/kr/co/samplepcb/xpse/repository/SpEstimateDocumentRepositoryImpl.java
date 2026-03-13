@@ -1,9 +1,15 @@
 package kr.co.samplepcb.xpse.repository;
 
 import com.querydsl.core.BooleanBuilder;
+import com.querydsl.core.types.ExpressionUtils;
+import com.querydsl.core.types.Projections;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import kr.co.samplepcb.xpse.domain.entity.QG5Member;
+import kr.co.samplepcb.xpse.domain.entity.QG5ShopCart;
 import kr.co.samplepcb.xpse.domain.entity.QSpEstimateDocument;
-import kr.co.samplepcb.xpse.domain.entity.SpEstimateDocument;
+import kr.co.samplepcb.xpse.domain.entity.QSpEstimateItem;
+import kr.co.samplepcb.xpse.pojo.SpEstimateListDTO;
 import kr.co.samplepcb.xpse.pojo.SpEstimateSearchParam;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.Pageable;
@@ -19,13 +25,39 @@ public class SpEstimateDocumentRepositoryImpl implements SpEstimateDocumentRepos
     }
 
     @Override
-    public List<SpEstimateDocument> findEstimateList(Pageable pageable, SpEstimateSearchParam searchParam) {
+    public List<SpEstimateListDTO> findEstimateList(Pageable pageable, SpEstimateSearchParam searchParam) {
         QSpEstimateDocument doc = QSpEstimateDocument.spEstimateDocument;
+        QG5ShopCart cart = QG5ShopCart.g5ShopCart;
+        QG5Member member = QG5Member.g5Member;
+        QSpEstimateItem item = QSpEstimateItem.spEstimateItem;
 
         BooleanBuilder where = buildSearchCondition(searchParam, doc);
 
         return queryFactory
-                .selectFrom(doc)
+                .select(Projections.bean(SpEstimateListDTO.class,
+                        doc.id,
+                        doc.itId,
+                        cart.itName,
+                        doc.status,
+                        doc.expectedDelivery,
+                        doc.totalAmount,
+                        doc.finalAmount,
+                        doc.writeDate,
+                        doc.modifyDate,
+                        member.mbId,
+                        member.mbName,
+                        member.mbEmail,
+                        member.mbHp,
+                        member.mbTel,
+                        ExpressionUtils.as(
+                                JPAExpressions.select(item.id.count().intValue())
+                                        .from(item)
+                                        .where(item.estimateDocument.eq(doc)),
+                                "itemCount")
+                ))
+                .from(doc)
+                .leftJoin(cart).on(cart.itId.eq(doc.itId))
+                .leftJoin(cart.member, member)
                 .where(where)
                 .orderBy(doc.writeDate.desc())
                 .offset(pageable.getOffset())

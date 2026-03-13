@@ -1,6 +1,7 @@
 package kr.co.samplepcb.xpse.service;
 
 import coolib.common.CCObjectResult;
+import coolib.common.CCPagingResult;
 import coolib.common.CCResult;
 import kr.co.samplepcb.xpse.domain.entity.G5ShopCart;
 import kr.co.samplepcb.xpse.domain.entity.G5ShopItem;
@@ -10,6 +11,7 @@ import kr.co.samplepcb.xpse.domain.entity.SpEstimateItem;
 import kr.co.samplepcb.xpse.domain.entity.SpPartnerEstimateItem;
 import kr.co.samplepcb.xpse.mapper.SpEstimateMapper;
 import kr.co.samplepcb.xpse.pojo.SpEstimateCreateDTO;
+import kr.co.samplepcb.xpse.pojo.SpEstimateDetailDTO;
 import kr.co.samplepcb.xpse.pojo.SpEstimateListDTO;
 import kr.co.samplepcb.xpse.pojo.SpEstimateSearchParam;
 import kr.co.samplepcb.xpse.pojo.SpItemCreateDTO;
@@ -68,7 +70,8 @@ public class SpEstimateService {
      * 3) SpEstimateDocument + SpEstimateItem cascade save
      */
     @Transactional
-    public CCResult create(SpEstimateCreateDTO createDTO, String mbId, String ipAddress) {
+    @SuppressWarnings("unchecked")
+    public CCObjectResult<SpEstimateDetailDTO> create(SpEstimateCreateDTO createDTO, String mbId, String ipAddress) {
 
         // ── 1. 상품 upsert (SpItemCreateDTO 위임) ──
         SpItemCreateDTO itemDTO = createDTO.toItemCreateDTO();
@@ -152,10 +155,11 @@ public class SpEstimateService {
      * 견적서 상세 조회 (PK).
      */
     @Transactional(readOnly = true)
-    public CCResult getDetail(Long id) {
+    @SuppressWarnings("unchecked")
+    public CCObjectResult<SpEstimateDetailDTO> getDetail(Long id) {
         Optional<SpEstimateDocument> optDoc = estimateDocumentRepository.findById(id);
         if (optDoc.isEmpty()) {
-            return CCResult.dataNotFound();
+            return dataNotFound();
         }
         SpEstimateDocument doc = optDoc.get();
         List<SpFile> files = spFileRepository.findByRefTypeAndRefId("estimate_document", doc.getId());
@@ -166,10 +170,11 @@ public class SpEstimateService {
      * 견적서 상세 조회 (itId).
      */
     @Transactional(readOnly = true)
-    public CCResult getDetailByItId(String itId) {
+    @SuppressWarnings("unchecked")
+    public CCObjectResult<SpEstimateDetailDTO> getDetailByItId(String itId) {
         Optional<SpEstimateDocument> optDoc = estimateDocumentRepository.findByItId(itId);
         if (optDoc.isEmpty()) {
-            return CCResult.dataNotFound();
+            return dataNotFound();
         }
         SpEstimateDocument doc = optDoc.get();
         List<SpFile> files = spFileRepository.findByRefTypeAndRefId("estimate_document", doc.getId());
@@ -180,12 +185,9 @@ public class SpEstimateService {
      * 견적서 목록 검색 (페이징).
      */
     @Transactional(readOnly = true)
-    public CCResult search(Pageable pageable, SpEstimateSearchParam searchParam) {
-        List<SpEstimateDocument> docs = estimateDocumentRepository.findEstimateList(pageable, searchParam);
+    public CCPagingResult<SpEstimateListDTO> search(Pageable pageable, SpEstimateSearchParam searchParam) {
+        List<SpEstimateListDTO> dtoList = estimateDocumentRepository.findEstimateList(pageable, searchParam);
         long totalCount = estimateDocumentRepository.countEstimateList(searchParam);
-        List<SpEstimateListDTO> dtoList = docs.stream()
-                .map(spEstimateMapper::toListDTO)
-                .toList();
         return PagingAdapter.toCCPagingResult(searchParam.getQ(), pageable, dtoList, totalCount);
     }
 
@@ -223,10 +225,11 @@ public class SpEstimateService {
      * 협력사 견적 항목 등록/수정 (upsert by estimateItemId + mbNo).
      */
     @Transactional
-    public CCResult createPartnerEstimateItem(Long estimateItemId, SpPartnerEstimateItemCreateDTO createDTO) {
+    @SuppressWarnings("unchecked")
+    public CCObjectResult<SpPartnerEstimateItem> createPartnerEstimateItem(Long estimateItemId, SpPartnerEstimateItemCreateDTO createDTO) {
         Optional<SpEstimateItem> optItem = estimateItemRepository.findById(estimateItemId);
         if (optItem.isEmpty()) {
-            return CCResult.dataNotFound();
+            return dataNotFound();
         }
         SpEstimateItem estimateItem = optItem.get();
         Date now = new Date();
@@ -269,5 +272,14 @@ public class SpEstimateService {
         estimateItem.setModifyDate(new Date());
         estimateItemRepository.save(estimateItem);
         return CCResult.ok();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> CCObjectResult<T> dataNotFound() {
+        CCResult result = CCResult.dataNotFound();
+        CCObjectResult<T> objectResult = new CCObjectResult<>();
+        objectResult.setResult(result.isResult());
+        objectResult.setMessage(result.getMessage());
+        return objectResult;
     }
 }

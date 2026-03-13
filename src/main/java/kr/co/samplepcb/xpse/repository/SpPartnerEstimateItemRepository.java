@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 import java.util.Optional;
 
-public interface SpPartnerEstimateItemRepository extends JpaRepository<SpPartnerEstimateItem, Long> {
+public interface SpPartnerEstimateItemRepository extends JpaRepository<SpPartnerEstimateItem, Long>, SpPartnerEstimateItemRepositoryCustom {
 
     List<SpPartnerEstimateItem> findByEstimateItemId(Long estimateItemId);
 

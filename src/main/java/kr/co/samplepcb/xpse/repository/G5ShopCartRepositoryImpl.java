@@ -6,7 +6,6 @@ import kr.co.samplepcb.xpse.domain.entity.G5ShopCart;
 import kr.co.samplepcb.xpse.domain.entity.QG5Member;
 import kr.co.samplepcb.xpse.domain.entity.QG5ShopCart;
 import kr.co.samplepcb.xpse.domain.entity.QG5ShopItem;
-import kr.co.samplepcb.xpse.domain.entity.QSpPartnerOrder;
 import kr.co.samplepcb.xpse.pojo.SpOrderSearchParam;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.Pageable;
@@ -26,7 +25,6 @@ public class G5ShopCartRepositoryImpl implements G5ShopCartRepositoryCustom {
         QG5ShopCart ca = QG5ShopCart.g5ShopCart;
         QG5ShopItem a = QG5ShopItem.g5ShopItem;
         QG5Member c = QG5Member.g5Member;
-        QSpPartnerOrder po = QSpPartnerOrder.spPartnerOrder;
 
         BooleanBuilder where = buildSearchCondition(searchParam, ca, a, c);
 
@@ -48,7 +46,6 @@ public class G5ShopCartRepositoryImpl implements G5ShopCartRepositoryCustom {
         return queryFactory
                 .selectFrom(ca)
                 .leftJoin(ca.shopItem, a).fetchJoin()
-                .leftJoin(a.partnerOrders, po).fetchJoin()
                 .leftJoin(ca.member, c).fetchJoin()
                 .where(ca.ctId.in(ids))
                 .orderBy(ca.ctTime.desc())

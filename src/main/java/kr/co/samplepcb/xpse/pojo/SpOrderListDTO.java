@@ -3,11 +3,9 @@ package kr.co.samplepcb.xpse.pojo;
 import kr.co.samplepcb.xpse.domain.entity.G5Member;
 import kr.co.samplepcb.xpse.domain.entity.G5ShopCart;
 import kr.co.samplepcb.xpse.domain.entity.G5ShopItem;
-import kr.co.samplepcb.xpse.domain.entity.SpPartnerOrder;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -73,9 +71,6 @@ public class SpOrderListDTO {
     @Schema(description = "회원 휴대폰번호")
     private String memberHp;
 
-    @Schema(description = "파트너 주문 목록")
-    private List<PartnerOrderDTO> partnerOrders;
-
     public static SpOrderListDTO from(G5ShopCart cart) {
         SpOrderListDTO dto = new SpOrderListDTO();
         dto.setCtId(cart.getCtId());
@@ -103,15 +98,6 @@ public class SpOrderListDTO {
             dto.setItemMemberMail(item.getItMemberMail());
             dto.setItemEta(item.getItEta());
             dto.setItemEstimateStatus(item.getIt24());
-
-            List<SpPartnerOrder> poList = item.getPartnerOrders();
-            if (poList != null && !poList.isEmpty()) {
-                List<PartnerOrderDTO> poDtos = new ArrayList<>();
-                for (SpPartnerOrder po : poList) {
-                    poDtos.add(PartnerOrderDTO.from(po));
-                }
-                dto.setPartnerOrders(poDtos);
-            }
         }
 
         G5Member member = cart.getMember();
@@ -125,71 +111,6 @@ public class SpOrderListDTO {
         }
 
         return dto;
-    }
-
-    @Schema(description = "파트너 주문 정보")
-    public static class PartnerOrderDTO {
-        @Schema(description = "주문 ID")
-        private long id;
-        @Schema(description = "파트너 회원번호")
-        private int partnerMbNo;
-        @Schema(description = "주문 상태")
-        private String status;
-        @Schema(description = "파트너 선정 여부")
-        private int isSelectPartner;
-        @Schema(description = "가격")
-        private int price;
-        @Schema(description = "포워더")
-        private String forwarder;
-        @Schema(description = "배송일")
-        private Date shipping;
-        @Schema(description = "추적번호")
-        private String tracking;
-        @Schema(description = "메모")
-        private String memo;
-        @Schema(description = "작성일")
-        private Date writeDate;
-        @Schema(description = "수정일")
-        private Date modifyDate;
-
-        public static PartnerOrderDTO from(SpPartnerOrder po) {
-            PartnerOrderDTO dto = new PartnerOrderDTO();
-            dto.setId(po.getId());
-            dto.setPartnerMbNo(po.getPartnerMbNo());
-            dto.setStatus(po.getStatus());
-            dto.setIsSelectPartner(po.getIsSelectPartner());
-            dto.setPrice(po.getPrice() != null ? po.getPrice() : 0);
-            dto.setForwarder(po.getForwarder());
-            dto.setShipping(po.getShipping());
-            dto.setTracking(po.getTracking());
-            dto.setMemo(po.getMemo());
-            dto.setWriteDate(po.getWriteDate());
-            dto.setModifyDate(po.getModifyDate());
-            return dto;
-        }
-
-        public long getId() { return id; }
-        public void setId(long id) { this.id = id; }
-        public int getPartnerMbNo() { return partnerMbNo; }
-        public void setPartnerMbNo(int partnerMbNo) { this.partnerMbNo = partnerMbNo; }
-        public String getStatus() { return status; }
-        public void setStatus(String status) { this.status = status; }
-        public int getIsSelectPartner() { return isSelectPartner; }
-        public void setIsSelectPartner(int isSelectPartner) { this.isSelectPartner = isSelectPartner; }
-        public int getPrice() { return price; }
-        public void setPrice(int price) { this.price = price; }
-        public String getForwarder() { return forwarder; }
-        public void setForwarder(String forwarder) { this.forwarder = forwarder; }
-        public Date getShipping() { return shipping; }
-        public void setShipping(Date shipping) { this.shipping = shipping; }
-        public String getTracking() { return tracking; }
-        public void setTracking(String tracking) { this.tracking = tracking; }
-        public String getMemo() { return memo; }
-        public void setMemo(String memo) { this.memo = memo; }
-        public Date getWriteDate() { return writeDate; }
-        public void setWriteDate(Date writeDate) { this.writeDate = writeDate; }
-        public Date getModifyDate() { return modifyDate; }
-        public void setModifyDate(Date modifyDate) { this.modifyDate = modifyDate; }
     }
 
     public int getCtId() { return ctId; }
@@ -248,6 +169,4 @@ public class SpOrderListDTO {
     public void setMemberTel(String memberTel) { this.memberTel = memberTel; }
     public String getMemberHp() { return memberHp; }
     public void setMemberHp(String memberHp) { this.memberHp = memberHp; }
-    public List<PartnerOrderDTO> getPartnerOrders() { return partnerOrders; }
-    public void setPartnerOrders(List<PartnerOrderDTO> partnerOrders) { this.partnerOrders = partnerOrders; }
 }

@@ -5,10 +5,10 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import kr.co.samplepcb.xpse.pojo.SpPartnerOrderCreateDTO;
-import kr.co.samplepcb.xpse.pojo.SpPartnerOrderSearchParam;
+import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateItemCreateDTO;
+import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateItemSearchParam;
 import kr.co.samplepcb.xpse.security.JwtAuth;
-import kr.co.samplepcb.xpse.service.SpPartnerOrderService;
+import kr.co.samplepcb.xpse.service.SpEstimateService;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,38 +20,38 @@ import java.util.List;
 @RequestMapping("/api/spPartnerOrders")
 public class SpPartnerOrderResource {
 
-    private final SpPartnerOrderService spPartnerOrderService;
+    private final SpEstimateService spEstimateService;
 
-    public SpPartnerOrderResource(SpPartnerOrderService spPartnerOrderService) {
-        this.spPartnerOrderService = spPartnerOrderService;
+    public SpPartnerOrderResource(SpEstimateService spEstimateService) {
+        this.spEstimateService = spEstimateService;
     }
 
-    @Operation(summary = "협력사 주문 상세 조회", description = "아이템 ID와 파트너 회원번호로 상세 정보를 조회합니다")
+    @Operation(summary = "협력사 주문 상세 조회", description = "견적 항목 ID와 파트너 회원번호로 상세 정보를 조회합니다")
     @JwtAuth
-    @GetMapping("/{itId}/{partnerMbNo}")
-    public CCResult getDetail(@Parameter(description = "아이템 ID") @PathVariable String itId,
-                              @Parameter(description = "파트너 회원번호") @PathVariable int partnerMbNo) {
-        return this.spPartnerOrderService.getDetail(itId, partnerMbNo);
+    @GetMapping("/{estimateItemId}/{mbNo}")
+    public CCResult getDetail(@Parameter(description = "견적 항목 ID") @PathVariable Long estimateItemId,
+                              @Parameter(description = "파트너 회원번호") @PathVariable int mbNo) {
+        return this.spEstimateService.getPartnerEstimateItemDetail(estimateItemId, mbNo);
     }
 
-    @Operation(summary = "협력사 주문 검색", description = "협력사 주문 목록을 아이템/파트너/상태 조건으로 검색합니다")
+    @Operation(summary = "협력사 주문 검색", description = "협력사 주문 목록을 견적항목/파트너/상태 조건으로 검색합니다")
     @JwtAuth
     @GetMapping("/_search")
-    public CCResult search(Pageable pageable, SpPartnerOrderSearchParam searchParam) {
-        return this.spPartnerOrderService.search(pageable, searchParam);
+    public CCResult search(Pageable pageable, SpPartnerEstimateItemSearchParam searchParam) {
+        return this.spEstimateService.searchPartnerEstimateItems(pageable, searchParam);
     }
 
     @Operation(summary = "협력사 주문 단건 생성", description = "협력사 주문을 단건으로 생성합니다")
     @JwtAuth
     @PostMapping
-    public CCResult create(@RequestBody SpPartnerOrderCreateDTO createDTO) {
-        return this.spPartnerOrderService.create(createDTO);
+    public CCResult create(@RequestBody SpPartnerEstimateItemCreateDTO createDTO) {
+        return this.spEstimateService.createPartnerOrder(createDTO);
     }
 
     @Operation(summary = "협력사 주문 다중 생성", description = "협력사 주문을 다중으로 일괄 생성합니다")
     @JwtAuth
     @PostMapping("/_batch")
-    public CCResult createBatch(@RequestBody List<SpPartnerOrderCreateDTO> createDTOs) {
-        return this.spPartnerOrderService.createBatch(createDTOs);
+    public CCResult createBatch(@RequestBody List<SpPartnerEstimateItemCreateDTO> createDTOs) {
+        return this.spEstimateService.createPartnerOrderBatch(createDTOs);
     }
 }

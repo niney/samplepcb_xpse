@@ -16,6 +16,9 @@ import kr.co.samplepcb.xpse.pojo.SpEstimateListDTO;
 import kr.co.samplepcb.xpse.pojo.SpEstimateSearchParam;
 import kr.co.samplepcb.xpse.pojo.SpItemCreateDTO;
 import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateItemCreateDTO;
+import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateItemDetailDTO;
+import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateItemListDTO;
+import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateItemSearchParam;
 import kr.co.samplepcb.xpse.pojo.adapter.PagingAdapter;
 import kr.co.samplepcb.xpse.repository.G5ShopCartRepository;
 import kr.co.samplepcb.xpse.repository.G5ShopItemRepository;
@@ -25,6 +28,8 @@ import kr.co.samplepcb.xpse.repository.SpFileRepository;
 import kr.co.samplepcb.xpse.repository.SpPartnerEstimateItemRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,11 +38,14 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class SpEstimateService {
 
     private static final Logger log = LoggerFactory.getLogger(SpEstimateService.class);
+    private static final String DEFAULT_STATUS = "협력사 견적요청";
+    private static final String PARTNER_ESTIMATE_ITEM_REF_TYPE = "partner_estimate_item";
 
     private final G5ShopItemRepository shopItemRepository;
     private final G5ShopCartRepository shopCartRepository;
@@ -248,8 +256,69 @@ public class SpEstimateService {
             partner.setModifyDate(now);
         }
         partner.setSelectedPrice(createDTO.getSelectedPrice());
+        String status = createDTO.getStatus();
+        partner.setStatus(status == null || status.isBlank() ? DEFAULT_STATUS : status);
+        partner.setMemo(createDTO.getMemo());
         partnerEstimateItemRepository.save(partner);
         return CCObjectResult.setSimpleData(partner);
+    }
+
+    /**
+     * 협력사 주문 단건 생성 (estimateItemId를 DTO에서 추출).
+     */
+    @Transactional
+    public CCResult createPartnerOrder(SpPartnerEstimateItemCreateDTO createDTO) {
+        return createPartnerEstimateItem(createDTO.getEstimateItemId(), createDTO);
+    }
+
+    /**
+     * 협력사 주문 다중 생성.
+     */
+    @Transactional
+    public CCResult createPartnerOrderBatch(List<SpPartnerEstimateItemCreateDTO> createDTOs) {
+        for (SpPartnerEstimateItemCreateDTO dto : createDTOs) {
+            createPartnerEstimateItem(dto.getEstimateItemId(), dto);
+        }
+        return CCObjectResult.setSimpleData(createDTOs);
+    }
+
+    /**
+     * 협력사 견적 항목 상세 조회.
+     */
+    @Transactional(readOnly = true)
+    public CCResult getPartnerEstimateItemDetail(Long estimateItemId, int mbNo) {
+        SpPartnerEstimateItemDetailDTO dto = partnerEstimateItemRepository.findPartnerEstimateItemDetail(estimateItemId, mbNo);
+        if (dto == null) {
+            return CCResult.dataNotFound();
+        }
+        // 첨부파일 조회
+        Optional<SpPartnerEstimateItem> optPartner = partnerEstimateItemRepository.findByEstimateItemIdAndMbNo(estimateItemId, mbNo);
+        if (optPartner.isPresent()) {
+            List<SpFile> files = spFileRepository.findByRefTypeAndRefId(PARTNER_ESTIMATE_ITEM_REF_TYPE, optPartner.get().getId());
+            dto.setFiles(files.stream().map(f -> {
+                SpPartnerEstimateItemDetailDTO.FileDTO fileDTO = new SpPartnerEstimateItemDetailDTO.FileDTO();
+                fileDTO.setId(f.getId());
+                fileDTO.setUploadFileName(f.getUploadFileName());
+                fileDTO.setOriginFileName(f.getOriginFileName());
+                fileDTO.setPathToken(f.getPathToken());
+                fileDTO.setSize(f.getSize());
+                fileDTO.setWriteDate(f.getWriteDate());
+                return fileDTO;
+            }).collect(Collectors.toList()));
+        }
+        return CCObjectResult.setSimpleData(dto);
+    }
+
+    /**
+     * 협력사 견적 항목 검색 (페이징).
+     */
+    @Transactional(readOnly = true)
+    public CCResult searchPartnerEstimateItems(Pageable pageable, SpPartnerEstimateItemSearchParam searchParam) {
+        List<SpPartnerEstimateItemListDTO> list = partnerEstimateItemRepository.findPartnerEstimateItemList(pageable, searchParam);
+        long total = partnerEstimateItemRepository.countPartnerEstimateItemList(searchParam);
+
+        Page<SpPartnerEstimateItemListDTO> dtoPage = new PageImpl<>(list, pageable, total);
+        return PagingAdapter.toCCPagingResult(searchParam.getQ(), pageable, dtoPage);
     }
 
     /**

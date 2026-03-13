@@ -13,10 +13,6 @@ public class G5ShopItem {
     @Column(name = "it_id", length = 20)
     private String itId;
 
-    @OneToMany(fetch = FetchType.LAZY)
-    @JoinColumn(name = "it_id", referencedColumnName = "it_id", insertable = false, updatable = false)
-    private List<SpPartnerOrder> partnerOrders;
-
     @Column(name = "ca_id", length = 10)
     private String caId;
 
@@ -1039,6 +1035,4 @@ public class G5ShopItem {
     public void setIt50Subj(String it50Subj) { this.it50Subj = it50Subj; }
     public String getIt50() { return it50; }
     public void setIt50(String it50) { this.it50 = it50; }
-    public List<SpPartnerOrder> getPartnerOrders() { return partnerOrders; }
-    public void setPartnerOrders(List<SpPartnerOrder> partnerOrders) { this.partnerOrders = partnerOrders; }
 }

@@ -30,6 +30,13 @@ public class SpPartnerEstimateItem {
     @Column(name = "selected_price", columnDefinition = "text")
     private String selectedPrice;
 
+    @Column(name = "status", length = 30)
+    private String status;
+
+    @Lob
+    @Column(name = "memo", columnDefinition = "text")
+    private String memo;
+
     @Column(name = "write_date", nullable = false)
     private Date writeDate;
 
@@ -52,6 +59,12 @@ public class SpPartnerEstimateItem {
 
     public String getSelectedPrice() { return selectedPrice; }
     public void setSelectedPrice(String selectedPrice) { this.selectedPrice = selectedPrice; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+
+    public String getMemo() { return memo; }
+    public void setMemo(String memo) { this.memo = memo; }
 
     public Date getWriteDate() { return writeDate; }
     public void setWriteDate(Date writeDate) { this.writeDate = writeDate; }

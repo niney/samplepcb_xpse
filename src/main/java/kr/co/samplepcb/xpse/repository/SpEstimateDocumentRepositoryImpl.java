@@ -203,7 +203,7 @@ public class SpEstimateDocumentRepositoryImpl implements SpEstimateDocumentRepos
         return queryFactory
                 .select(Projections.constructor(SpPartnerEstimateDocDetailDTO.ItemDTO.class,
                         ei.id, ei.pcbPartDocId, ei.qty, ei.analysisMeta, ei.selectedPrice,
-                        pp.partName, pp.description, pp.manufacturerName, pp.partsPackaging,
+                        pp.partName, pp.description, pp.manufacturerName, pp.partsPackaging, pp.size,
                         pp.moq, pp.price, pp.offerName,
                         pei.id, pei.selectedPrice, pei.status,
                         pei.memo, pei.writeDate, pei.modifyDate))

@@ -31,6 +31,8 @@ public class SpPartnerEstimateDocDetailDTO {
     private String memo;
     @Schema(description = "협력사 이름")
     private String partnerName;
+    @Schema(description = "협력사 회원번호")
+    private int mbNo;
     @Schema(description = "작성일")
     private Date writeDate;
     @Schema(description = "수정일")
@@ -64,6 +66,8 @@ public class SpPartnerEstimateDocDetailDTO {
         private String manufacturerName;
         @Schema(description = "포장 형태")
         private String partsPackaging;
+        @Schema(description = "부품 크기")
+        private String size;
         @Schema(description = "최소 주문 수량")
         private Integer moq;
         @Schema(description = "가격")
@@ -91,7 +95,7 @@ public class SpPartnerEstimateDocDetailDTO {
         public ItemDTO() {}
 
         public ItemDTO(Long estimateItemId, String pcbPartDocId, int qty, String analysisMeta, String selectedPrice,
-                       String partName, String description, String manufacturerName, String partsPackaging,
+                       String partName, String description, String manufacturerName, String partsPackaging, String size,
                        Integer moq, Integer price, String offerName,
                        Long partnerEstimateItemId, String partnerSelectedPrice, String partnerStatus,
                        String partnerMemo, Date partnerWriteDate, Date partnerModifyDate) {
@@ -104,6 +108,7 @@ public class SpPartnerEstimateDocDetailDTO {
             this.description = description;
             this.manufacturerName = manufacturerName;
             this.partsPackaging = partsPackaging;
+            this.size = size;
             this.moq = moq;
             this.price = price;
             this.offerName = offerName;
@@ -133,6 +138,8 @@ public class SpPartnerEstimateDocDetailDTO {
         public void setManufacturerName(String manufacturerName) { this.manufacturerName = manufacturerName; }
         public String getPartsPackaging() { return partsPackaging; }
         public void setPartsPackaging(String partsPackaging) { this.partsPackaging = partsPackaging; }
+        public String getSize() { return size; }
+        public void setSize(String size) { this.size = size; }
         public Integer getMoq() { return moq; }
         public void setMoq(Integer moq) { this.moq = moq; }
         public Integer getPrice() { return price; }
@@ -200,6 +207,8 @@ public class SpPartnerEstimateDocDetailDTO {
     public void setMemo(String memo) { this.memo = memo; }
     public String getPartnerName() { return partnerName; }
     public void setPartnerName(String partnerName) { this.partnerName = partnerName; }
+    public int getMbNo() { return mbNo; }
+    public void setMbNo(int mbNo) { this.mbNo = mbNo; }
     public Date getWriteDate() { return writeDate; }
     public void setWriteDate(Date writeDate) { this.writeDate = writeDate; }
     public Date getModifyDate() { return modifyDate; }

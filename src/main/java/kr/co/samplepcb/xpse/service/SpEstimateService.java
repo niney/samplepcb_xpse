@@ -377,8 +377,24 @@ public class SpEstimateService {
         if (optPed.isEmpty()) {
             return dataNotFound();
         }
-        SpPartnerEstimateDocument ped = optPed.get();
-        Optional<SpEstimateDocument> optDoc = estimateDocumentRepository.findById(id);
+        return buildEstimateDocDetail(optPed.get());
+    }
+
+    /**
+     * 협력사 견적서 상세 조회 (partnerEstimateDocument ID 기준).
+     */
+    @Transactional(readOnly = true)
+    public CCObjectResult<SpPartnerEstimateDocDetailDTO> getEstimateDocDetailByPartnerDoc(Long pedId) {
+        Optional<SpPartnerEstimateDocument> optPed = partnerEstimateDocumentRepository.findById(pedId);
+        if (optPed.isEmpty()) {
+            return dataNotFound();
+        }
+        return buildEstimateDocDetail(optPed.get());
+    }
+
+    @SuppressWarnings("unchecked")
+    private CCObjectResult<SpPartnerEstimateDocDetailDTO> buildEstimateDocDetail(SpPartnerEstimateDocument ped) {
+        Optional<SpEstimateDocument> optDoc = estimateDocumentRepository.findById(ped.getEstimateDocument().getId());
         if (optDoc.isEmpty()) {
             return dataNotFound();
         }
@@ -395,20 +411,13 @@ public class SpEstimateService {
         dto.setFinalAmount(doc.getFinalAmount());
         dto.setMemo(doc.getMemo());
         dto.setPartnerName(ped.getMember() != null ? ped.getMember().getMbName() : null);
+        dto.setMbNo(ped.getMbNo());
         dto.setWriteDate(doc.getWriteDate());
         dto.setModifyDate(doc.getModifyDate());
 
         // 견적서 첨부파일
         List<SpFile> docFiles = spFileRepository.findByRefTypeAndRefId("estimate_document", doc.getId());
-        dto.setFiles(docFiles.stream().map(f -> {
-            SpPartnerEstimateDocDetailDTO.FileDTO fileDTO = new SpPartnerEstimateDocDetailDTO.FileDTO();
-            fileDTO.setId(f.getId());
-            fileDTO.setUploadFileName(f.getUploadFileName());
-            fileDTO.setOriginFileName(f.getOriginFileName());
-            fileDTO.setPathToken(f.getPathToken());
-            fileDTO.setSize(f.getSize());
-            return fileDTO;
-        }).collect(Collectors.toList()));
+        dto.setFiles(docFiles.stream().map(this::toFileDTO).collect(Collectors.toList()));
 
         // flat 조인: estimate_item + pcb_parts + partner_estimate_item
         List<SpPartnerEstimateDocDetailDTO.ItemDTO> items =
@@ -425,21 +434,23 @@ public class SpEstimateService {
             for (SpPartnerEstimateDocDetailDTO.ItemDTO item : items) {
                 if (item.getPartnerEstimateItemId() != null) {
                     List<SpFile> files = fileMap.getOrDefault(item.getPartnerEstimateItemId(), Collections.emptyList());
-                    item.setPartnerFiles(files.stream().map(f -> {
-                        SpPartnerEstimateDocDetailDTO.FileDTO fileDTO = new SpPartnerEstimateDocDetailDTO.FileDTO();
-                        fileDTO.setId(f.getId());
-                        fileDTO.setUploadFileName(f.getUploadFileName());
-                        fileDTO.setOriginFileName(f.getOriginFileName());
-                        fileDTO.setPathToken(f.getPathToken());
-                        fileDTO.setSize(f.getSize());
-                        return fileDTO;
-                    }).collect(Collectors.toList()));
+                    item.setPartnerFiles(files.stream().map(this::toFileDTO).collect(Collectors.toList()));
                 }
             }
         }
 
         dto.setItems(items);
         return CCObjectResult.setSimpleData(dto);
+    }
+
+    private SpPartnerEstimateDocDetailDTO.FileDTO toFileDTO(SpFile file) {
+        SpPartnerEstimateDocDetailDTO.FileDTO fileDTO = new SpPartnerEstimateDocDetailDTO.FileDTO();
+        fileDTO.setId(file.getId());
+        fileDTO.setUploadFileName(file.getUploadFileName());
+        fileDTO.setOriginFileName(file.getOriginFileName());
+        fileDTO.setPathToken(file.getPathToken());
+        fileDTO.setSize(file.getSize());
+        return fileDTO;
     }
 
     /**
@@ -452,7 +463,22 @@ public class SpEstimateService {
         if (optPed.isEmpty()) {
             return dataNotFound();
         }
-        SpPartnerEstimateDocument ped = optPed.get();
+        return doUpdateEstimateDoc(optPed.get(), updateDTO);
+    }
+
+    /**
+     * 협력사 견적서 상세 수정 (partnerEstimateDocument ID 기준).
+     */
+    @Transactional
+    public CCObjectResult<SpPartnerEstimateDocDetailDTO> updateEstimateDocByPartnerDoc(Long pedId, SpPartnerEstimateDocUpdateDTO updateDTO) {
+        Optional<SpPartnerEstimateDocument> optPed = partnerEstimateDocumentRepository.findById(pedId);
+        if (optPed.isEmpty()) {
+            return dataNotFound();
+        }
+        return doUpdateEstimateDoc(optPed.get(), updateDTO);
+    }
+
+    private CCObjectResult<SpPartnerEstimateDocDetailDTO> doUpdateEstimateDoc(SpPartnerEstimateDocument ped, SpPartnerEstimateDocUpdateDTO updateDTO) {
 
         // 문서 레벨 수정
         Date now = new Date();
@@ -496,7 +522,7 @@ public class SpEstimateService {
         }
 
         // 수정 후 상세 재조회하여 반환
-        return getEstimateDocDetailForPartner(id, mbNo);
+        return buildEstimateDocDetail(ped);
     }
 
     /**

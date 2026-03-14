@@ -17,6 +17,7 @@ import kr.co.samplepcb.xpse.pojo.SpEstimateListDTO;
 import kr.co.samplepcb.xpse.pojo.SpEstimateSearchParam;
 import kr.co.samplepcb.xpse.pojo.SpItemCreateDTO;
 import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateDocDetailDTO;
+import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateDocUpdateDTO;
 import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateDocListDTO;
 import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateItemCreateDTO;
 import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateItemDetailDTO;
@@ -439,6 +440,63 @@ public class SpEstimateService {
 
         dto.setItems(items);
         return CCObjectResult.setSimpleData(dto);
+    }
+
+    /**
+     * 협력사용 견적서 상세 수정.
+     */
+    @Transactional
+    public CCObjectResult<SpPartnerEstimateDocDetailDTO> updateEstimateDocForPartner(Long id, SpPartnerEstimateDocUpdateDTO updateDTO) {
+        int mbNo = updateDTO.getMbNo();
+        Optional<SpPartnerEstimateDocument> optPed = partnerEstimateDocumentRepository.findByEstimateDocumentIdAndMbNo(id, mbNo);
+        if (optPed.isEmpty()) {
+            return dataNotFound();
+        }
+        SpPartnerEstimateDocument ped = optPed.get();
+
+        // 문서 레벨 수정
+        Date now = new Date();
+        if (updateDTO.getEstimatePrice() != null) {
+            ped.setEstimatePrice(updateDTO.getEstimatePrice());
+        }
+        if (updateDTO.getStatus() != null) {
+            ped.setStatus(updateDTO.getStatus());
+        }
+        if (updateDTO.getMemo() != null) {
+            ped.setMemo(updateDTO.getMemo());
+        }
+        ped.setModifyDate(now);
+        partnerEstimateDocumentRepository.save(ped);
+
+        // 항목 레벨 수정
+        if (updateDTO.getItems() != null) {
+            for (SpPartnerEstimateDocUpdateDTO.ItemUpdateDTO itemUpdate : updateDTO.getItems()) {
+                if (itemUpdate.getEstimateItemId() == null) {
+                    continue;
+                }
+                Optional<SpPartnerEstimateItem> optPei =
+                        partnerEstimateItemRepository.findByEstimateItemIdAndPartnerEstimateDocumentId(
+                                itemUpdate.getEstimateItemId(), ped.getId());
+                if (optPei.isEmpty()) {
+                    continue;
+                }
+                SpPartnerEstimateItem pei = optPei.get();
+                if (itemUpdate.getSelectedPrice() != null) {
+                    pei.setSelectedPrice(itemUpdate.getSelectedPrice());
+                }
+                if (itemUpdate.getStatus() != null) {
+                    pei.setStatus(itemUpdate.getStatus());
+                }
+                if (itemUpdate.getMemo() != null) {
+                    pei.setMemo(itemUpdate.getMemo());
+                }
+                pei.setModifyDate(now);
+                partnerEstimateItemRepository.save(pei);
+            }
+        }
+
+        // 수정 후 상세 재조회하여 반환
+        return getEstimateDocDetailForPartner(id, mbNo);
     }
 
     /**

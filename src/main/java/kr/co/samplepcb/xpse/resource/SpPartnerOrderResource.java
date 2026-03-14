@@ -16,6 +16,7 @@ import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateItemSearchParam;
 import kr.co.samplepcb.xpse.pojo.SpEstimateListDTO;
 import kr.co.samplepcb.xpse.pojo.SpEstimateSearchParam;
 import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateDocDetailDTO;
+import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateDocUpdateDTO;
 import kr.co.samplepcb.xpse.security.JwtAuth;
 import kr.co.samplepcb.xpse.service.SpEstimateService;
 import org.springframework.data.domain.Pageable;
@@ -71,6 +72,14 @@ public class SpPartnerOrderResource {
     public CCObjectResult<SpPartnerEstimateDocDetailDTO> getEstimateDocumentDetail(@Parameter(description = "견적서 ID") @PathVariable Long id,
                                                                          @Parameter(description = "파트너 회원번호") @RequestParam int mbNo) {
         return this.spEstimateService.getEstimateDocDetailForPartner(id, mbNo);
+    }
+
+    @Operation(summary = "협력사용 견적서 상세 수정", description = "협력사 견적서 상세를 수정합니다 (문서 레벨 + 항목 레벨)")
+    @JwtAuth
+    @PostMapping("/estimateDocuments/{id}")
+    public CCObjectResult<SpPartnerEstimateDocDetailDTO> updateEstimateDocumentDetail(@Parameter(description = "견적서 ID") @PathVariable Long id,
+                                                                            @RequestBody SpPartnerEstimateDocUpdateDTO updateDTO) {
+        return this.spEstimateService.updateEstimateDocForPartner(id, updateDTO);
     }
 
     @Operation(summary = "협력사 주문 단건 생성", description = "협력사 주문을 단건으로 생성합니다")

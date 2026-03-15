@@ -27,6 +27,7 @@ public interface SpEstimateMapper {
 
     @Mapping(target = "analysisMeta", source = "analysisMeta", qualifiedByName = "parseJson")
     @Mapping(target = "selectedPrice", source = "selectedPrice", qualifiedByName = "parseJson")
+    @Mapping(target = "selectedPartnerEstimateItemId", source = "selectedPartnerEstimateItem.id")
     SpEstimateDetailDTO.EstimateItemDTO toEstimateItemDTO(SpEstimateItem item);
 
     SpEstimateDetailDTO.PcbPartDTO toPcbPartDTO(PcbParts pcbParts);

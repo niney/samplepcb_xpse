@@ -12,6 +12,7 @@ import kr.co.samplepcb.xpse.domain.entity.SpPartnerEstimateItem;
 import kr.co.samplepcb.xpse.pojo.SpEstimateCreateDTO;
 import kr.co.samplepcb.xpse.pojo.SpEstimateDetailDTO;
 import kr.co.samplepcb.xpse.pojo.SpEstimateListDTO;
+import kr.co.samplepcb.xpse.pojo.SpEstimatePartnerSelectionDTO;
 import kr.co.samplepcb.xpse.pojo.SpEstimateSearchParam;
 import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateItemCreateDTO;
 import kr.co.samplepcb.xpse.security.JwtAuth;
@@ -21,6 +22,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @Tag(name = "SP 견적", description = "SP 견적서 API")
@@ -44,7 +46,8 @@ public class SpEstimateResource {
         return this.spEstimateService.create(createDTO, principal.getSub(), request.getRemoteAddr());
     }
 
-    @Operation(summary = "견적서 상세 조회 (PK)", description = "견적서 ID로 상세 정보를 조회합니다")
+    @Operation(summary = "견적서 상세 조회 (PK)",
+            description = "견적서 ID로 상세 정보를 조회합니다. 각 견적 항목에 selected_partner_estimate_item_id가 함께 반환됩니다.")
     @JwtAuth
     @GetMapping("/{id}")
     public CCObjectResult<SpEstimateDetailDTO> getDetail(@Parameter(description = "견적서 ID") @PathVariable Long id) {
@@ -96,5 +99,12 @@ public class SpEstimateResource {
             @Parameter(description = "견적 항목 ID") @PathVariable Long estimateItemId,
             @RequestBody Map<String, Long> body) {
         return this.spEstimateService.selectPartnerEstimateItem(estimateItemId, body.get("partnerEstimateItemId"));
+    }
+
+    @Operation(summary = "협력사 견적 다중 선택", description = "여러 견적 항목의 협력사 견적을 일괄 선택합니다")
+    @JwtAuth
+    @PostMapping("/items/_batch/selectPartner")
+    public CCResult selectPartnerEstimateItems(@RequestBody List<SpEstimatePartnerSelectionDTO> selections) {
+        return this.spEstimateService.selectPartnerEstimateItems(selections);
     }
 }

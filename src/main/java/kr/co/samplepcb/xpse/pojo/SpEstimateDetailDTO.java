@@ -52,6 +52,8 @@ public class SpEstimateDetailDTO {
         private Object analysisMeta;
         @Schema(description = "선택된 가격 (JSON)")
         private Object selectedPrice;
+        @Schema(description = "선택된 협력사 견적 항목 ID")
+        private Long selectedPartnerEstimateItemId;
         @Schema(description = "작성일")
         private Date writeDate;
         @Schema(description = "수정일")
@@ -69,6 +71,8 @@ public class SpEstimateDetailDTO {
         public void setAnalysisMeta(Object analysisMeta) { this.analysisMeta = analysisMeta; }
         public Object getSelectedPrice() { return selectedPrice; }
         public void setSelectedPrice(Object selectedPrice) { this.selectedPrice = selectedPrice; }
+        public Long getSelectedPartnerEstimateItemId() { return selectedPartnerEstimateItemId; }
+        public void setSelectedPartnerEstimateItemId(Long selectedPartnerEstimateItemId) { this.selectedPartnerEstimateItemId = selectedPartnerEstimateItemId; }
         public Date getWriteDate() { return writeDate; }
         public void setWriteDate(Date writeDate) { this.writeDate = writeDate; }
         public Date getModifyDate() { return modifyDate; }

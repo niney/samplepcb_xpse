@@ -27,8 +27,8 @@ public class SpEstimateItem {
             foreignKey = @ForeignKey(name = "fk_sp_estimate_item_pcb_part"))
     private PcbParts pcbPart;
 
-    @Column(name = "qty", nullable = false)
-    private int qty;
+    @Column(name = "qty")
+    private Integer qty;
 
     @Lob
     @Column(name = "analysis_meta", columnDefinition = "text")
@@ -66,8 +66,8 @@ public class SpEstimateItem {
     public PcbParts getPcbPart() { return pcbPart; }
     public void setPcbPart(PcbParts pcbPart) { this.pcbPart = pcbPart; }
 
-    public int getQty() { return qty; }
-    public void setQty(int qty) { this.qty = qty; }
+    public Integer getQty() { return qty; }
+    public void setQty(Integer qty) { this.qty = qty; }
 
     public String getAnalysisMeta() { return analysisMeta; }
     public void setAnalysisMeta(String analysisMeta) { this.analysisMeta = analysisMeta; }

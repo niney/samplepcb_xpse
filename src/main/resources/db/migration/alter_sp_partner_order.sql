@@ -8,6 +8,9 @@ ALTER TABLE sp_partner_order
   MODIFY estimate_file1 varchar(150) NULL,
   MODIFY memo text NULL;
 
+ALTER TABLE sp_estimate_item
+  MODIFY qty INT NULL;
+
 ALTER TABLE sp_partner_order
   ADD UNIQUE INDEX uk_sp_partner_order_it_partner (it_id, partner_mb_no);
 

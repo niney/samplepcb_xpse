@@ -65,7 +65,7 @@ public class SpEstimateCreateDTO {
         private String pcbPartDocId;
 
         @Schema(description = "수량")
-        private int qty;
+        private Integer qty;
 
         @Schema(description = "분석 메타 (JSON text)")
         private String analysisMeta;
@@ -75,8 +75,8 @@ public class SpEstimateCreateDTO {
 
         public String getPcbPartDocId() { return pcbPartDocId; }
         public void setPcbPartDocId(String pcbPartDocId) { this.pcbPartDocId = pcbPartDocId; }
-        public int getQty() { return qty; }
-        public void setQty(int qty) { this.qty = qty; }
+        public Integer getQty() { return qty; }
+        public void setQty(Integer qty) { this.qty = qty; }
         public String getAnalysisMeta() { return analysisMeta; }
         public void setAnalysisMeta(String analysisMeta) { this.analysisMeta = analysisMeta; }
         public String getSelectedPrice() { return selectedPrice; }

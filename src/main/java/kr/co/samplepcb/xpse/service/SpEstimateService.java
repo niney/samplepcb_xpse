@@ -14,6 +14,7 @@ import kr.co.samplepcb.xpse.mapper.SpEstimateMapper;
 import kr.co.samplepcb.xpse.pojo.SpEstimateCreateDTO;
 import kr.co.samplepcb.xpse.pojo.SpEstimateDetailDTO;
 import kr.co.samplepcb.xpse.pojo.SpEstimateListDTO;
+import kr.co.samplepcb.xpse.pojo.SpEstimatePartnerSelectionDTO;
 import kr.co.samplepcb.xpse.pojo.SpEstimateSearchParam;
 import kr.co.samplepcb.xpse.pojo.SpItemCreateDTO;
 import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateDocDetailDTO;
@@ -381,6 +382,31 @@ public class SpEstimateService {
     }
 
     /**
+     * 협력사용 견적서 상세 조회 (estimateDocument 기준 전체 조회).
+     */
+    @SuppressWarnings("unchecked")
+    @Transactional(readOnly = true)
+    public CCObjectResult<List<SpPartnerEstimateDocDetailDTO>> getEstimateDocDetailForAllPartners(Long id) {
+        List<SpPartnerEstimateDocument> pedList = partnerEstimateDocumentRepository.findByEstimateDocumentId(id);
+        if (pedList.isEmpty()) {
+            return dataNotFound();
+        }
+
+        List<SpPartnerEstimateDocDetailDTO> resultList = new ArrayList<>();
+        for (SpPartnerEstimateDocument ped : pedList) {
+            CCObjectResult<SpPartnerEstimateDocDetailDTO> result = buildEstimateDocDetail(ped);
+            if (result.isResult() && result.getData() != null) {
+                resultList.add(result.getData());
+            }
+        }
+
+        if (resultList.isEmpty()) {
+            return dataNotFound();
+        }
+        return CCObjectResult.setSimpleData(resultList);
+    }
+
+    /**
      * 협력사 견적서 상세 조회 (partnerEstimateDocument ID 기준).
      */
     @Transactional(readOnly = true)
@@ -530,6 +556,80 @@ public class SpEstimateService {
      */
     @Transactional
     public CCResult selectPartnerEstimateItem(Long estimateItemId, Long partnerEstimateItemId) {
+        return selectPartnerEstimateItemInternal(estimateItemId, partnerEstimateItemId);
+    }
+
+    /**
+     * 협력사 견적 다중 선택 (SpEstimateItem.selectedPartnerEstimateItem 설정).
+     */
+    @Transactional
+    public CCResult selectPartnerEstimateItems(List<SpEstimatePartnerSelectionDTO> selections) {
+        if (selections == null || selections.isEmpty()) {
+            return CCResult.requireParam();
+        }
+
+        Date now = new Date();
+
+        Map<Long, SpEstimateItem> estimateItemMap = estimateItemRepository.findAllById(
+                        selections.stream()
+                                .map(SpEstimatePartnerSelectionDTO::getEstimateItemId)
+                                .filter(Objects::nonNull)
+                                .collect(Collectors.toList())
+                )
+                .stream()
+                .collect(Collectors.toMap(SpEstimateItem::getId, item -> item));
+
+        Map<Long, SpPartnerEstimateItem> partnerItemMap = partnerEstimateItemRepository.findAllById(
+                        selections.stream()
+                                .map(SpEstimatePartnerSelectionDTO::getPartnerEstimateItemId)
+                                .filter(Objects::nonNull)
+                                .collect(Collectors.toList())
+                )
+                .stream()
+                .collect(Collectors.toMap(SpPartnerEstimateItem::getId, item -> item));
+
+        List<SpEstimateItem> targetEstimateItems = selections.stream()
+                .filter(Objects::nonNull)
+                .filter(selection -> selection.getEstimateItemId() != null)
+                .map(selection -> {
+                    SpEstimateItem estimateItem = estimateItemMap.get(selection.getEstimateItemId());
+                    if (estimateItem == null) {
+                        return null;
+                    }
+
+                    if (selection.getPartnerEstimateItemId() == null) {
+                        estimateItem.setSelectedPartnerEstimateItem(null);
+                        estimateItem.setModifyDate(now);
+                        return estimateItem;
+                    }
+
+                    SpPartnerEstimateItem partnerEstimateItem = partnerItemMap.get(selection.getPartnerEstimateItemId());
+                    if (partnerEstimateItem == null
+                            || !Objects.equals(partnerEstimateItem.getEstimateItem().getId(), selection.getEstimateItemId())) {
+                        return null;
+                    }
+
+                    estimateItem.setSelectedPartnerEstimateItem(partnerEstimateItem);
+                    estimateItem.setModifyDate(now);
+                    return estimateItem;
+                })
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+
+        if (targetEstimateItems.isEmpty()) {
+            return CCResult.ok();
+        }
+
+        estimateItemRepository.saveAll(targetEstimateItems);
+        return CCResult.ok();
+    }
+
+    private CCResult selectPartnerEstimateItemInternal(Long estimateItemId, Long partnerEstimateItemId) {
+        if (estimateItemId == null || partnerEstimateItemId == null) {
+            return CCResult.requireParam();
+        }
+
         Optional<SpEstimateItem> optItem = estimateItemRepository.findById(estimateItemId);
         if (optItem.isEmpty()) {
             return CCResult.dataNotFound();
@@ -540,8 +640,12 @@ public class SpEstimateService {
         if (optPartner.isEmpty()) {
             return CCResult.dataNotFound();
         }
+        SpPartnerEstimateItem partnerEstimateItem = optPartner.get();
+        if (!Objects.equals(partnerEstimateItem.getEstimateItem().getId(), estimateItemId)) {
+            return CCResult.requireParam();
+        }
 
-        estimateItem.setSelectedPartnerEstimateItem(optPartner.get());
+        estimateItem.setSelectedPartnerEstimateItem(partnerEstimateItem);
         estimateItem.setModifyDate(new Date());
         estimateItemRepository.save(estimateItem);
         return CCResult.ok();

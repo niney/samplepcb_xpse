@@ -66,12 +66,11 @@ public class SpPartnerOrderResource {
         return this.spEstimateService.searchEstimateDocsForPartner(pageable, searchParam, mbNo);
     }
 
-    @Operation(summary = "협력사용 견적서 상세 조회", description = "견적서 상세를 조회합니다 (마진율 미노출, 협력사 견적항목 포함, 파트너 접근 검증)")
+    @Operation(summary = "협력사용 견적서 상세 조회", description = "견적서 상세를 조회합니다 (마진율 미노출, 협력사 견적항목 포함, 협력사별 전체 조회)")
     @JwtAuth
     @GetMapping("/estimateDocuments/{id}")
-    public CCObjectResult<SpPartnerEstimateDocDetailDTO> getEstimateDocumentDetail(@Parameter(description = "견적서 ID") @PathVariable Long id,
-                                                                         @Parameter(description = "파트너 회원번호") @RequestParam int mbNo) {
-        return this.spEstimateService.getEstimateDocDetailForPartner(id, mbNo);
+    public CCObjectResult<List<SpPartnerEstimateDocDetailDTO>> getEstimateDocumentDetail(@Parameter(description = "견적서 ID") @PathVariable Long id) {
+        return this.spEstimateService.getEstimateDocDetailForAllPartners(id);
     }
 
     @Operation(summary = "협력사용 견적서 상세 수정", description = "협력사 견적서 상세를 수정합니다 (문서 레벨 + 항목 레벨)")

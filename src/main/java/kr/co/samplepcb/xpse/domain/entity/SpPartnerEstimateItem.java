@@ -45,6 +45,12 @@ public class SpPartnerEstimateItem {
     @Column(name = "write_date", nullable = false)
     private Date writeDate;
 
+    @Column(name = "date_code", length = 100)
+    private String dateCode;
+
+    @Column(name = "delivery_date")
+    private Date deliveryDate;
+
     @Column(name = "modify_date", nullable = false)
     private Date modifyDate;
 
@@ -76,6 +82,12 @@ public class SpPartnerEstimateItem {
 
     public Date getWriteDate() { return writeDate; }
     public void setWriteDate(Date writeDate) { this.writeDate = writeDate; }
+
+    public String getDateCode() { return dateCode; }
+    public void setDateCode(String dateCode) { this.dateCode = dateCode; }
+
+    public Date getDeliveryDate() { return deliveryDate; }
+    public void setDeliveryDate(Date deliveryDate) { this.deliveryDate = deliveryDate; }
 
     public Date getModifyDate() { return modifyDate; }
     public void setModifyDate(Date modifyDate) { this.modifyDate = modifyDate; }

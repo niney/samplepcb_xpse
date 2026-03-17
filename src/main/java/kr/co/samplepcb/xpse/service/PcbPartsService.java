@@ -640,6 +640,7 @@ public class PcbPartsService {
         String parsedKeywordsStr = parsedKeywords.values().stream()
                 .flatMap(List::stream)
                 .collect(Collectors.joining(" "));
+
         Mono<CCObjectResult<Map<String, Object>>> resultMono = this.digikeySubService.searchByKeyword(safeReferencePrefix, parsedKeywordsStr, 2, 0);
         CCObjectResult<Map<String, Object>> response = resultMono.block();
         if (response != null) {
@@ -648,9 +649,34 @@ public class PcbPartsService {
                 return CCResult.dataNotFound();
             }
             CCObjectResult<PcbPartsSearch> resultObj = (CCObjectResult<PcbPartsSearch>) result;
-            return PagingAdapter.toCCPagingResult(parsedKeywordsStr, Pageable.ofSize(1), Collections.singletonList(resultObj.getData()), 1);
+            PcbPartsSearch pcbPartsSearch = resultObj.getData();
+            indexDigikeySearchResult(pcbPartsSearch);
+            return PagingAdapter.toCCPagingResult(parsedKeywordsStr, Pageable.ofSize(1), Collections.singletonList(pcbPartsSearch), 1);
         }
         return CCResult.dataNotFound();
+    }
+
+    private void indexDigikeySearchResult(PcbPartsSearch pcbPartsSearch) {
+        if (pcbPartsSearch == null || StringUtils.isEmpty(pcbPartsSearch.getPartName())) {
+            return;
+        }
+        PcbPartsSearch existing = this.pcbPartsSearchRepository.findByPartNameKeyword(pcbPartsSearch.getPartName());
+        if (existing != null) {
+            pcbPartsSearch.setId(existing.getId());
+            this.pcbPartsRepository.findByDocId(existing.getId())
+                    .ifPresent(existingEntity -> {
+                        kr.co.samplepcb.xpse.domain.entity.PcbParts updated = this.pcbPartsConvertSubService.toEntity(pcbPartsSearch);
+                        updated.setId(existingEntity.getId());
+                        updated.setDocId(existingEntity.getDocId());
+                        this.pcbPartsRepository.save(updated);
+                    });
+            this.pcbPartsSearchRepository.save(pcbPartsSearch);
+        } else {
+            kr.co.samplepcb.xpse.domain.entity.PcbParts newEntity = this.pcbPartsConvertSubService.toEntity(pcbPartsSearch);
+            this.pcbPartsRepository.save(newEntity);
+            pcbPartsSearch.setId(newEntity.getDocId());
+            this.pcbPartsSearchRepository.save(pcbPartsSearch);
+        }
     }
 
     /**

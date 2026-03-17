@@ -35,6 +35,15 @@ public class SpEstimateDetailDTO {
     @Schema(description = "수정일")
     private Date modifyDate;
 
+    @Schema(description = "회원 이름")
+    private String mbName;
+    @Schema(description = "회원 이메일")
+    private String mbEmail;
+    @Schema(description = "회원 전화번호")
+    private String mbTel;
+    @Schema(description = "회원 휴대폰번호")
+    private String mbHp;
+
     @Schema(description = "견적 항목 리스트")
     private List<EstimateItemDTO> items;
     @Schema(description = "첨부파일 리스트")
@@ -172,6 +181,14 @@ public class SpEstimateDetailDTO {
     public void setWriteDate(Date writeDate) { this.writeDate = writeDate; }
     public Date getModifyDate() { return modifyDate; }
     public void setModifyDate(Date modifyDate) { this.modifyDate = modifyDate; }
+    public String getMbName() { return mbName; }
+    public void setMbName(String mbName) { this.mbName = mbName; }
+    public String getMbEmail() { return mbEmail; }
+    public void setMbEmail(String mbEmail) { this.mbEmail = mbEmail; }
+    public String getMbTel() { return mbTel; }
+    public void setMbTel(String mbTel) { this.mbTel = mbTel; }
+    public String getMbHp() { return mbHp; }
+    public void setMbHp(String mbHp) { this.mbHp = mbHp; }
     public List<EstimateItemDTO> getItems() { return items; }
     public void setItems(List<EstimateItemDTO> items) { this.items = items; }
     public List<FileDTO> getFiles() { return files; }

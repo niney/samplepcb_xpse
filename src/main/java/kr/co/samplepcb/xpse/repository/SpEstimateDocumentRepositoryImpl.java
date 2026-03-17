@@ -110,6 +110,8 @@ public class SpEstimateDocumentRepositoryImpl implements SpEstimateDocumentRepos
                 .leftJoin(doc.items, item).fetchJoin()
                 .leftJoin(item.pcbPart).fetchJoin()
                 .leftJoin(doc.shopItem).fetchJoin()
+                .leftJoin(doc.shopCart).fetchJoin()
+                .leftJoin(doc.shopCart.member).fetchJoin()
                 .where(doc.id.eq(id))
                 .orderBy(item.id.asc())
                 .fetchOne();
@@ -126,6 +128,8 @@ public class SpEstimateDocumentRepositoryImpl implements SpEstimateDocumentRepos
                 .leftJoin(doc.items, item).fetchJoin()
                 .leftJoin(item.pcbPart).fetchJoin()
                 .leftJoin(doc.shopItem).fetchJoin()
+                .leftJoin(doc.shopCart).fetchJoin()
+                .leftJoin(doc.shopCart.member).fetchJoin()
                 .where(doc.itId.eq(itId))
                 .orderBy(item.id.asc())
                 .fetchOne();

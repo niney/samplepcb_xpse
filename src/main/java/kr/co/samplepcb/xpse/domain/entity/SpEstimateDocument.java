@@ -22,6 +22,11 @@ public class SpEstimateDocument {
             foreignKey = @ForeignKey(name = "fk_sp_estimate_document_it_id"))
     private G5ShopItem shopItem;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "it_id", referencedColumnName = "it_id", insertable = false, updatable = false,
+            foreignKey = @ForeignKey(value = ConstraintMode.NO_CONSTRAINT))
+    private G5ShopCart shopCart;
+
     @Column(name = "status", length = 30)
     private String status;
 
@@ -65,6 +70,9 @@ public class SpEstimateDocument {
 
     public G5ShopItem getShopItem() { return shopItem; }
     public void setShopItem(G5ShopItem shopItem) { this.shopItem = shopItem; }
+
+    public G5ShopCart getShopCart() { return shopCart; }
+    public void setShopCart(G5ShopCart shopCart) { this.shopCart = shopCart; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }

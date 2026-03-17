@@ -23,6 +23,10 @@ public interface SpEstimateMapper {
 
     @Mapping(target = "files", ignore = true)
     @Mapping(target = "itName", source = "shopItem.itName")
+    @Mapping(target = "mbName", source = "shopCart.member.mbName")
+    @Mapping(target = "mbEmail", source = "shopCart.member.mbEmail")
+    @Mapping(target = "mbTel", source = "shopCart.member.mbTel")
+    @Mapping(target = "mbHp", source = "shopCart.member.mbHp")
     SpEstimateDetailDTO toDetailDTO(SpEstimateDocument doc);
 
     @Mapping(target = "analysisMeta", source = "analysisMeta", qualifiedByName = "parseJson")
@@ -47,6 +51,7 @@ public interface SpEstimateMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "itId", ignore = true)
     @Mapping(target = "shopItem", ignore = true)
+    @Mapping(target = "shopCart", ignore = true)
     @Mapping(target = "items", ignore = true)
     @Mapping(target = "writeDate", ignore = true)
     @Mapping(target = "modifyDate", ignore = true)

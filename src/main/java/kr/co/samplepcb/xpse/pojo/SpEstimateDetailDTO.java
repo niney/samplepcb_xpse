@@ -63,6 +63,8 @@ public class SpEstimateDetailDTO {
         private Object selectedPrice;
         @Schema(description = "선택된 협력사 견적 항목 ID")
         private Long selectedPartnerEstimateItemId;
+        @Schema(description = "선택된 협력사 견적 항목 상세")
+        private SelectedPartnerEstimateItemDTO selectedPartnerEstimateItemDetail;
         @Schema(description = "작성일")
         private Date writeDate;
         @Schema(description = "수정일")
@@ -82,12 +84,55 @@ public class SpEstimateDetailDTO {
         public void setSelectedPrice(Object selectedPrice) { this.selectedPrice = selectedPrice; }
         public Long getSelectedPartnerEstimateItemId() { return selectedPartnerEstimateItemId; }
         public void setSelectedPartnerEstimateItemId(Long selectedPartnerEstimateItemId) { this.selectedPartnerEstimateItemId = selectedPartnerEstimateItemId; }
+        public SelectedPartnerEstimateItemDTO getSelectedPartnerEstimateItemDetail() { return selectedPartnerEstimateItemDetail; }
+        public void setSelectedPartnerEstimateItemDetail(SelectedPartnerEstimateItemDTO selectedPartnerEstimateItemDetail) { this.selectedPartnerEstimateItemDetail = selectedPartnerEstimateItemDetail; }
         public Date getWriteDate() { return writeDate; }
         public void setWriteDate(Date writeDate) { this.writeDate = writeDate; }
         public Date getModifyDate() { return modifyDate; }
         public void setModifyDate(Date modifyDate) { this.modifyDate = modifyDate; }
         public PcbPartDTO getPcbPart() { return pcbPart; }
         public void setPcbPart(PcbPartDTO pcbPart) { this.pcbPart = pcbPart; }
+    }
+
+    @Schema(description = "선택된 협력사 견적 항목 상세")
+    public static class SelectedPartnerEstimateItemDTO {
+        @Schema(description = "항목 ID")
+        private Long id;
+        @Schema(description = "협력사 회원번호")
+        private int mbNo;
+        @Schema(description = "협력사 선택 가격 (JSON)")
+        private Object selectedPrice;
+        @Schema(description = "상태")
+        private String status;
+        @Schema(description = "메모")
+        private String memo;
+        @Schema(description = "Date Code")
+        private String dateCode;
+        @Schema(description = "납기일")
+        private Date deliveryDate;
+        @Schema(description = "작성일")
+        private Date writeDate;
+        @Schema(description = "수정일")
+        private Date modifyDate;
+
+        public Long getId() { return id; }
+        public void setId(Long id) { this.id = id; }
+        public int getMbNo() { return mbNo; }
+        public void setMbNo(int mbNo) { this.mbNo = mbNo; }
+        public Object getSelectedPrice() { return selectedPrice; }
+        public void setSelectedPrice(Object selectedPrice) { this.selectedPrice = selectedPrice; }
+        public String getStatus() { return status; }
+        public void setStatus(String status) { this.status = status; }
+        public String getMemo() { return memo; }
+        public void setMemo(String memo) { this.memo = memo; }
+        public String getDateCode() { return dateCode; }
+        public void setDateCode(String dateCode) { this.dateCode = dateCode; }
+        public Date getDeliveryDate() { return deliveryDate; }
+        public void setDeliveryDate(Date deliveryDate) { this.deliveryDate = deliveryDate; }
+        public Date getWriteDate() { return writeDate; }
+        public void setWriteDate(Date writeDate) { this.writeDate = writeDate; }
+        public Date getModifyDate() { return modifyDate; }
+        public void setModifyDate(Date modifyDate) { this.modifyDate = modifyDate; }
     }
 
     @Schema(description = "PCB 부품 정보")

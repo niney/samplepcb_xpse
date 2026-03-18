@@ -4,6 +4,7 @@ import kr.co.samplepcb.xpse.domain.entity.PcbParts;
 import kr.co.samplepcb.xpse.domain.entity.SpEstimateDocument;
 import kr.co.samplepcb.xpse.domain.entity.SpEstimateItem;
 import kr.co.samplepcb.xpse.domain.entity.SpFile;
+import kr.co.samplepcb.xpse.domain.entity.SpPartnerEstimateItem;
 import kr.co.samplepcb.xpse.pojo.SpEstimateCreateDTO;
 import kr.co.samplepcb.xpse.pojo.SpEstimateDetailDTO;
 import org.mapstruct.*;
@@ -32,7 +33,11 @@ public interface SpEstimateMapper {
     @Mapping(target = "analysisMeta", source = "analysisMeta", qualifiedByName = "parseJson")
     @Mapping(target = "selectedPrice", source = "selectedPrice", qualifiedByName = "parseJson")
     @Mapping(target = "selectedPartnerEstimateItemId", source = "selectedPartnerEstimateItem.id")
+    @Mapping(target = "selectedPartnerEstimateItemDetail", source = "selectedPartnerEstimateItem")
     SpEstimateDetailDTO.EstimateItemDTO toEstimateItemDTO(SpEstimateItem item);
+
+    @Mapping(target = "selectedPrice", source = "selectedPrice", qualifiedByName = "parseJson")
+    SpEstimateDetailDTO.SelectedPartnerEstimateItemDTO toSelectedPartnerEstimateItemDTO(SpPartnerEstimateItem item);
 
     SpEstimateDetailDTO.PcbPartDTO toPcbPartDTO(PcbParts pcbParts);
 

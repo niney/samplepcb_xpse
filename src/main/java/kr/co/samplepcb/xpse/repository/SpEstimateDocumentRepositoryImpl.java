@@ -127,6 +127,7 @@ public class SpEstimateDocumentRepositoryImpl implements SpEstimateDocumentRepos
                 .selectFrom(doc)
                 .leftJoin(doc.items, item).fetchJoin()
                 .leftJoin(item.pcbPart).fetchJoin()
+                .leftJoin(item.selectedPartnerEstimateItem).fetchJoin()
                 .leftJoin(doc.shopItem).fetchJoin()
                 .leftJoin(doc.shopCart).fetchJoin()
                 .leftJoin(doc.shopCart.member).fetchJoin()

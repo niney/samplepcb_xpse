@@ -33,6 +33,8 @@ public class SpPartnerEstimateDocListDTO {
     private Date partnerDeliveryDate;
     @Schema(description = "항목 수")
     private long itemCount;
+    @Schema(description = "협력사 견적 항목 수")
+    private long partnerItemCount;
     @Schema(description = "파트너 회원번호")
     private int mbNo;
     @Schema(description = "파트너 이름")
@@ -55,7 +57,7 @@ public class SpPartnerEstimateDocListDTO {
                                         Integer totalAmount, Integer finalAmount,
                                         String memo, Integer globalMarginRate,
                                         Integer estimatePrice, Date partnerDeliveryDate,
-                                        long itemCount,
+                                        long itemCount, long partnerItemCount,
                                         int mbNo, String partnerName, String partnerTel,
                                         String partnerHp, String partnerEmail,
                                         Date writeDate, Date modifyDate) {
@@ -72,6 +74,7 @@ public class SpPartnerEstimateDocListDTO {
         this.estimatePrice = estimatePrice;
         this.partnerDeliveryDate = partnerDeliveryDate;
         this.itemCount = itemCount;
+        this.partnerItemCount = partnerItemCount;
         this.mbNo = mbNo;
         this.partnerName = partnerName;
         this.partnerTel = partnerTel;
@@ -107,6 +110,8 @@ public class SpPartnerEstimateDocListDTO {
     public void setPartnerDeliveryDate(Date partnerDeliveryDate) { this.partnerDeliveryDate = partnerDeliveryDate; }
     public long getItemCount() { return itemCount; }
     public void setItemCount(long itemCount) { this.itemCount = itemCount; }
+    public long getPartnerItemCount() { return partnerItemCount; }
+    public void setPartnerItemCount(long partnerItemCount) { this.partnerItemCount = partnerItemCount; }
     public int getMbNo() { return mbNo; }
     public void setMbNo(int mbNo) { this.mbNo = mbNo; }
     public String getPartnerName() { return partnerName; }

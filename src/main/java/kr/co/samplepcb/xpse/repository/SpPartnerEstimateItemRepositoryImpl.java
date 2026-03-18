@@ -112,6 +112,7 @@ public class SpPartnerEstimateItemRepositoryImpl implements SpPartnerEstimateIte
         QG5ShopItem shopItem = QG5ShopItem.g5ShopItem;
         QG5Member member = QG5Member.g5Member;
         QSpEstimateItem eiCount = new QSpEstimateItem("eiCount");
+        QSpPartnerEstimateItem peiCount = new QSpPartnerEstimateItem("peiCount");
 
         BooleanBuilder where = new BooleanBuilder();
         if (searchParam.getMbNo() != null) {
@@ -131,6 +132,9 @@ public class SpPartnerEstimateItemRepositoryImpl implements SpPartnerEstimateIte
                         JPAExpressions.select(eiCount.count())
                                 .from(eiCount)
                                 .where(eiCount.estimateDocument.id.eq(doc.id)),
+                        JPAExpressions.select(peiCount.count())
+                                .from(peiCount)
+                                .where(peiCount.partnerEstimateDocument.id.eq(ped.id)),
                         ped.mbNo, member.mbName, member.mbTel,
                         member.mbHp, member.mbEmail,
                         ped.writeDate, ped.modifyDate))

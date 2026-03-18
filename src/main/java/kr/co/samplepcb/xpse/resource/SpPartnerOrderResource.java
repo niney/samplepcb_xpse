@@ -96,6 +96,14 @@ public class SpPartnerOrderResource {
         return this.spEstimateService.updateEstimateDocByPartnerDoc(pedId, updateDTO);
     }
 
+    @Operation(summary = "협력사 견적서 상태 수정", description = "partnerEstimateDocument의 status를 수정합니다")
+    @JwtAuth
+    @PostMapping("/partnerEstimateDocuments/{pedId}/status")
+    public CCResult updatePartnerEstimateDocStatus(@Parameter(description = "협력사 견적서 ID") @PathVariable Long pedId,
+                                                   @Parameter(description = "변경할 상태값") @RequestParam String status) {
+        return this.spEstimateService.updatePartnerEstimateDocStatus(pedId, status);
+    }
+
     @Operation(summary = "협력사 주문 단건 생성", description = "협력사 주문을 단건으로 생성합니다")
     @JwtAuth
     @PostMapping

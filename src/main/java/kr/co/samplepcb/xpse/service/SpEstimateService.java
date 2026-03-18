@@ -241,6 +241,19 @@ public class SpEstimateService {
         return CCResult.ok();
     }
 
+    @Transactional
+    public CCResult updatePartnerEstimateDocStatus(Long pedId, String status) {
+        Optional<SpPartnerEstimateDocument> optPed = partnerEstimateDocumentRepository.findById(pedId);
+        if (optPed.isEmpty()) {
+            return CCResult.dataNotFound();
+        }
+        SpPartnerEstimateDocument ped = optPed.get();
+        ped.setStatus(status);
+        ped.setModifyDate(new Date());
+        partnerEstimateDocumentRepository.save(ped);
+        return CCResult.ok();
+    }
+
     /**
      * 협력사 견적 항목 등록/수정 (upsert by estimateItemId + mbNo).
      */

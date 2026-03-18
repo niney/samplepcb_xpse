@@ -38,6 +38,9 @@ public class SpPartnerEstimateDocument {
     @Column(name = "memo", columnDefinition = "text")
     private String memo;
 
+    @Column(name = "delivery_date")
+    private Date deliveryDate;
+
     @Column(name = "write_date", nullable = false)
     private Date writeDate;
 
@@ -69,6 +72,9 @@ public class SpPartnerEstimateDocument {
 
     public String getMemo() { return memo; }
     public void setMemo(String memo) { this.memo = memo; }
+
+    public Date getDeliveryDate() { return deliveryDate; }
+    public void setDeliveryDate(Date deliveryDate) { this.deliveryDate = deliveryDate; }
 
     public Date getWriteDate() { return writeDate; }
     public void setWriteDate(Date writeDate) { this.writeDate = writeDate; }

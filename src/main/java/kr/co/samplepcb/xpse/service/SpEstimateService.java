@@ -517,6 +517,9 @@ public class SpEstimateService {
         if (updateDTO.getMemo() != null) {
             ped.setMemo(updateDTO.getMemo());
         }
+        if (updateDTO.getDeliveryDate() != null) {
+            ped.setDeliveryDate(updateDTO.getDeliveryDate());
+        }
         ped.setModifyDate(now);
         partnerEstimateDocumentRepository.save(ped);
 

@@ -29,6 +29,8 @@ public class SpPartnerEstimateDocListDTO {
     private Integer globalMarginRate;
     @Schema(description = "협력사 견적가")
     private Integer estimatePrice;
+    @Schema(description = "협력사 납기일")
+    private Date partnerDeliveryDate;
     @Schema(description = "항목 수")
     private long itemCount;
     @Schema(description = "파트너 회원번호")
@@ -52,7 +54,7 @@ public class SpPartnerEstimateDocListDTO {
                                         String status, String expectedDelivery,
                                         Integer totalAmount, Integer finalAmount,
                                         String memo, Integer globalMarginRate,
-                                        Integer estimatePrice,
+                                        Integer estimatePrice, Date partnerDeliveryDate,
                                         long itemCount,
                                         int mbNo, String partnerName, String partnerTel,
                                         String partnerHp, String partnerEmail,
@@ -68,6 +70,7 @@ public class SpPartnerEstimateDocListDTO {
         this.memo = memo;
         this.globalMarginRate = globalMarginRate;
         this.estimatePrice = estimatePrice;
+        this.partnerDeliveryDate = partnerDeliveryDate;
         this.itemCount = itemCount;
         this.mbNo = mbNo;
         this.partnerName = partnerName;
@@ -100,6 +103,8 @@ public class SpPartnerEstimateDocListDTO {
     public void setGlobalMarginRate(Integer globalMarginRate) { this.globalMarginRate = globalMarginRate; }
     public Integer getEstimatePrice() { return estimatePrice; }
     public void setEstimatePrice(Integer estimatePrice) { this.estimatePrice = estimatePrice; }
+    public Date getPartnerDeliveryDate() { return partnerDeliveryDate; }
+    public void setPartnerDeliveryDate(Date partnerDeliveryDate) { this.partnerDeliveryDate = partnerDeliveryDate; }
     public long getItemCount() { return itemCount; }
     public void setItemCount(long itemCount) { this.itemCount = itemCount; }
     public int getMbNo() { return mbNo; }

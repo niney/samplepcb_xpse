@@ -20,6 +20,9 @@ public class SpPartnerEstimateDocUpdateDTO {
     @Schema(description = "협력사 메모")
     private String memo;
 
+    @Schema(description = "납기일")
+    private Date deliveryDate;
+
     @Schema(description = "항목별 수정 내역")
     private List<ItemUpdateDTO> items;
 
@@ -65,6 +68,8 @@ public class SpPartnerEstimateDocUpdateDTO {
     public void setStatus(String status) { this.status = status; }
     public String getMemo() { return memo; }
     public void setMemo(String memo) { this.memo = memo; }
+    public Date getDeliveryDate() { return deliveryDate; }
+    public void setDeliveryDate(Date deliveryDate) { this.deliveryDate = deliveryDate; }
     public List<ItemUpdateDTO> getItems() { return items; }
     public void setItems(List<ItemUpdateDTO> items) { this.items = items; }
 }

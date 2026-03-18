@@ -19,8 +19,13 @@ import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateDocDetailDTO;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.Pageable;
 
+import kr.co.samplepcb.xpse.domain.entity.SpPartnerEstimateDocument;
+
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class SpEstimateDocumentRepositoryImpl implements SpEstimateDocumentRepositoryCustom {
 
@@ -197,6 +202,53 @@ public class SpEstimateDocumentRepositoryImpl implements SpEstimateDocumentRepos
                 .where(where)
                 .fetchOne();
         return count != null ? count : 0L;
+    }
+
+    @Override
+    public List<SpEstimateListDTO> findEstimateListWithPartners(Pageable pageable, SpEstimateSearchParam searchParam) {
+        List<SpEstimateListDTO> dtoList = findEstimateList(pageable, searchParam);
+        if (dtoList.isEmpty()) {
+            return dtoList;
+        }
+
+        List<Long> docIds = dtoList.stream()
+                .map(SpEstimateListDTO::getId)
+                .collect(Collectors.toList());
+
+        QSpPartnerEstimateDocument ped = QSpPartnerEstimateDocument.spPartnerEstimateDocument;
+        QG5Member partnerMember = new QG5Member("partnerMember");
+
+        List<SpPartnerEstimateDocument> peds = queryFactory
+                .selectFrom(ped)
+                .leftJoin(ped.member, partnerMember).fetchJoin()
+                .where(ped.estimateDocument.id.in(docIds))
+                .fetch();
+
+        Map<Long, List<SpEstimateListDTO.PartnerEstimateDTO>> partnerMap = peds.stream()
+                .collect(Collectors.groupingBy(
+                        p -> p.getEstimateDocument().getId(),
+                        Collectors.mapping(this::toPartnerEstimateDTO, Collectors.toList())
+                ));
+
+        dtoList.forEach(dto ->
+                dto.setPartnerEstimates(partnerMap.getOrDefault(dto.getId(), Collections.emptyList()))
+        );
+
+        return dtoList;
+    }
+
+    private SpEstimateListDTO.PartnerEstimateDTO toPartnerEstimateDTO(SpPartnerEstimateDocument ped) {
+        SpEstimateListDTO.PartnerEstimateDTO dto = new SpEstimateListDTO.PartnerEstimateDTO();
+        dto.setId(ped.getId());
+        dto.setMbNo(ped.getMbNo());
+        dto.setPartnerName(ped.getMember() != null ? ped.getMember().getMbName() : null);
+        dto.setStatus(ped.getStatus());
+        dto.setEstimatePrice(ped.getEstimatePrice());
+        dto.setMemo(ped.getMemo());
+        dto.setDeliveryDate(ped.getDeliveryDate());
+        dto.setWriteDate(ped.getWriteDate());
+        dto.setModifyDate(ped.getModifyDate());
+        return dto;
     }
 
     @Override

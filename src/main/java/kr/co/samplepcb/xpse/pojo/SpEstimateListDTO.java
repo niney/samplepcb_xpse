@@ -3,6 +3,7 @@ package kr.co.samplepcb.xpse.pojo;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.Date;
+import java.util.List;
 
 @Schema(description = "견적서 목록 응답")
 public class SpEstimateListDTO {
@@ -43,6 +44,9 @@ public class SpEstimateListDTO {
     @Schema(description = "회원 전화번호")
     private String mbTel;
 
+    @Schema(description = "협력사 견적서 목록")
+    private List<PartnerEstimateDTO> partnerEstimates;
+
     // === getter / setter ===
 
     public Long getId() { return id; }
@@ -79,4 +83,48 @@ public class SpEstimateListDTO {
     public void setMbHp(String mbHp) { this.mbHp = mbHp; }
     public String getMbTel() { return mbTel; }
     public void setMbTel(String mbTel) { this.mbTel = mbTel; }
+    public List<PartnerEstimateDTO> getPartnerEstimates() { return partnerEstimates; }
+    public void setPartnerEstimates(List<PartnerEstimateDTO> partnerEstimates) { this.partnerEstimates = partnerEstimates; }
+
+    @Schema(description = "협력사 견적서")
+    public static class PartnerEstimateDTO {
+
+        @Schema(description = "협력사 견적서 ID")
+        private Long id;
+        @Schema(description = "협력사 회원 번호")
+        private int mbNo;
+        @Schema(description = "협력사명")
+        private String partnerName;
+        @Schema(description = "상태")
+        private String status;
+        @Schema(description = "견적 가격")
+        private Integer estimatePrice;
+        @Schema(description = "메모")
+        private String memo;
+        @Schema(description = "납기일")
+        private Date deliveryDate;
+        @Schema(description = "작성일")
+        private Date writeDate;
+        @Schema(description = "수정일")
+        private Date modifyDate;
+
+        public Long getId() { return id; }
+        public void setId(Long id) { this.id = id; }
+        public int getMbNo() { return mbNo; }
+        public void setMbNo(int mbNo) { this.mbNo = mbNo; }
+        public String getPartnerName() { return partnerName; }
+        public void setPartnerName(String partnerName) { this.partnerName = partnerName; }
+        public String getStatus() { return status; }
+        public void setStatus(String status) { this.status = status; }
+        public Integer getEstimatePrice() { return estimatePrice; }
+        public void setEstimatePrice(Integer estimatePrice) { this.estimatePrice = estimatePrice; }
+        public String getMemo() { return memo; }
+        public void setMemo(String memo) { this.memo = memo; }
+        public Date getDeliveryDate() { return deliveryDate; }
+        public void setDeliveryDate(Date deliveryDate) { this.deliveryDate = deliveryDate; }
+        public Date getWriteDate() { return writeDate; }
+        public void setWriteDate(Date writeDate) { this.writeDate = writeDate; }
+        public Date getModifyDate() { return modifyDate; }
+        public void setModifyDate(Date modifyDate) { this.modifyDate = modifyDate; }
+    }
 }

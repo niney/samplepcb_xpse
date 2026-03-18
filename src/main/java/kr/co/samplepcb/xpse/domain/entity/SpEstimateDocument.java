@@ -60,6 +60,9 @@ public class SpEstimateDocument {
     @OneToMany(mappedBy = "estimateDocument", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SpEstimateItem> items = new ArrayList<>();
 
+    @OneToMany(mappedBy = "estimateDocument")
+    private List<SpPartnerEstimateDocument> partnerEstimateDocuments = new ArrayList<>();
+
     // === getter / setter ===
 
     public Long getId() { return id; }
@@ -106,4 +109,7 @@ public class SpEstimateDocument {
 
     public List<SpEstimateItem> getItems() { return items; }
     public void setItems(List<SpEstimateItem> items) { this.items = items; }
+
+    public List<SpPartnerEstimateDocument> getPartnerEstimateDocuments() { return partnerEstimateDocuments; }
+    public void setPartnerEstimateDocuments(List<SpPartnerEstimateDocument> partnerEstimateDocuments) { this.partnerEstimateDocuments = partnerEstimateDocuments; }
 }

@@ -24,4 +24,6 @@ public interface SpEstimateDocumentRepositoryCustom {
     long countEstimateListForPartner(SpEstimateSearchParam searchParam, int mbNo);
 
     List<SpPartnerEstimateDocDetailDTO.ItemDTO> findDetailItemsForPartner(Long docId, Long pedId);
+
+    List<SpEstimateListDTO> findEstimateListWithPartners(Pageable pageable, SpEstimateSearchParam searchParam);
 }

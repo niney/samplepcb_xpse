@@ -2,6 +2,7 @@ package kr.co.samplepcb.xpse.pojo;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import java.util.Date;
 import java.util.List;
 
 @Schema(description = "협력사용 견적서 수정 요청 DTO")
@@ -36,6 +37,12 @@ public class SpPartnerEstimateDocUpdateDTO {
         @Schema(description = "협력사 메모")
         private String memo;
 
+        @Schema(description = "Date Code")
+        private String dateCode;
+
+        @Schema(description = "납기일")
+        private Date deliveryDate;
+
         public Long getEstimateItemId() { return estimateItemId; }
         public void setEstimateItemId(Long estimateItemId) { this.estimateItemId = estimateItemId; }
         public String getSelectedPrice() { return selectedPrice; }
@@ -44,6 +51,10 @@ public class SpPartnerEstimateDocUpdateDTO {
         public void setStatus(String status) { this.status = status; }
         public String getMemo() { return memo; }
         public void setMemo(String memo) { this.memo = memo; }
+        public String getDateCode() { return dateCode; }
+        public void setDateCode(String dateCode) { this.dateCode = dateCode; }
+        public Date getDeliveryDate() { return deliveryDate; }
+        public void setDeliveryDate(Date deliveryDate) { this.deliveryDate = deliveryDate; }
     }
 
     public int getMbNo() { return mbNo; }

@@ -542,6 +542,12 @@ public class SpEstimateService {
                 if (itemUpdate.getMemo() != null) {
                     pei.setMemo(itemUpdate.getMemo());
                 }
+                if (itemUpdate.getDateCode() != null) {
+                    pei.setDateCode(itemUpdate.getDateCode());
+                }
+                if (itemUpdate.getDeliveryDate() != null) {
+                    pei.setDeliveryDate(itemUpdate.getDeliveryDate());
+                }
                 pei.setModifyDate(now);
                 partnerEstimateItemRepository.save(pei);
             }

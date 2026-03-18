@@ -210,7 +210,8 @@ public class SpEstimateDocumentRepositoryImpl implements SpEstimateDocumentRepos
                         pp.partName, pp.description, pp.manufacturerName, pp.partsPackaging, pp.size,
                         pp.moq, pp.price, pp.offerName,
                         pei.id, pei.selectedPrice, pei.status,
-                        pei.memo, pei.writeDate, pei.modifyDate))
+                        pei.memo, pei.dateCode, pei.deliveryDate,
+                        pei.writeDate, pei.modifyDate))
                 .from(ei)
                 .leftJoin(ei.pcbPart, pp)
                 .join(pei).on(pei.estimateItem.eq(ei).and(pei.partnerEstimateDocument.id.eq(pedId)))

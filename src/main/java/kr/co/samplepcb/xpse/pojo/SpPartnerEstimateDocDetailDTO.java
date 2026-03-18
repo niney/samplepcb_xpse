@@ -84,6 +84,10 @@ public class SpPartnerEstimateDocDetailDTO {
         private String partnerStatus;
         @Schema(description = "협력사 메모")
         private String partnerMemo;
+        @Schema(description = "협력사 Date Code")
+        private String partnerDateCode;
+        @Schema(description = "협력사 납기일")
+        private Date partnerDeliveryDate;
         @Schema(description = "협력사 작성일")
         private Date partnerWriteDate;
         @Schema(description = "협력사 수정일")
@@ -98,7 +102,8 @@ public class SpPartnerEstimateDocDetailDTO {
                        String partName, String description, String manufacturerName, String partsPackaging, String size,
                        Integer moq, Integer price, String offerName,
                        Long partnerEstimateItemId, String partnerSelectedPrice, String partnerStatus,
-                       String partnerMemo, Date partnerWriteDate, Date partnerModifyDate) {
+                       String partnerMemo, String partnerDateCode, Date partnerDeliveryDate,
+                       Date partnerWriteDate, Date partnerModifyDate) {
             this.estimateItemId = estimateItemId;
             this.pcbPartDocId = pcbPartDocId;
             this.qty = qty;
@@ -116,6 +121,8 @@ public class SpPartnerEstimateDocDetailDTO {
             this.partnerSelectedPrice = parseJson(partnerSelectedPrice);
             this.partnerStatus = partnerStatus;
             this.partnerMemo = partnerMemo;
+            this.partnerDateCode = partnerDateCode;
+            this.partnerDeliveryDate = partnerDeliveryDate;
             this.partnerWriteDate = partnerWriteDate;
             this.partnerModifyDate = partnerModifyDate;
         }
@@ -154,6 +161,10 @@ public class SpPartnerEstimateDocDetailDTO {
         public void setPartnerStatus(String partnerStatus) { this.partnerStatus = partnerStatus; }
         public String getPartnerMemo() { return partnerMemo; }
         public void setPartnerMemo(String partnerMemo) { this.partnerMemo = partnerMemo; }
+        public String getPartnerDateCode() { return partnerDateCode; }
+        public void setPartnerDateCode(String partnerDateCode) { this.partnerDateCode = partnerDateCode; }
+        public Date getPartnerDeliveryDate() { return partnerDeliveryDate; }
+        public void setPartnerDeliveryDate(Date partnerDeliveryDate) { this.partnerDeliveryDate = partnerDeliveryDate; }
         public Date getPartnerWriteDate() { return partnerWriteDate; }
         public void setPartnerWriteDate(Date partnerWriteDate) { this.partnerWriteDate = partnerWriteDate; }
         public Date getPartnerModifyDate() { return partnerModifyDate; }

@@ -55,7 +55,7 @@ import java.util.stream.Collectors;
 public class SpEstimateService {
 
     private static final Logger log = LoggerFactory.getLogger(SpEstimateService.class);
-    private static final String DEFAULT_STATUS = "협력사 견적요청";
+    private static final String DEFAULT_STATUS = "협력사 견적접수";
     private static final String PARTNER_ESTIMATE_ITEM_REF_TYPE = "partner_estimate_item";
 
     private final G5ShopItemRepository shopItemRepository;

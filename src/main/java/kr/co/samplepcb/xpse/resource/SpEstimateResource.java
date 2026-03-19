@@ -15,6 +15,8 @@ import kr.co.samplepcb.xpse.pojo.SpEstimateListDTO;
 import kr.co.samplepcb.xpse.pojo.SpEstimatePartnerSelectionDTO;
 import kr.co.samplepcb.xpse.pojo.SpEstimateSearchParam;
 import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateItemCreateDTO;
+import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateItemListDTO;
+import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateItemSearchParam;
 import kr.co.samplepcb.xpse.security.JwtAuth;
 import kr.co.samplepcb.xpse.security.JwtUserPrincipal;
 import kr.co.samplepcb.xpse.service.SpEstimateService;
@@ -81,6 +83,17 @@ public class SpEstimateResource {
     public CCResult updateStatus(@Parameter(description = "견적서 ID") @PathVariable Long id,
                                  @RequestBody Map<String, String> body) {
         return this.spEstimateService.updateStatus(id, body.get("status"));
+    }
+
+    @Operation(summary = "협력사 견적 항목 목록 조회", description = "견적 항목 ID로 협력사 견적 항목 목록을 조회합니다")
+    @JwtAuth
+    @GetMapping("/{estimateItemId}/partnerEstimateItems")
+    public CCPagingResult<SpPartnerEstimateItemListDTO> getPartnerEstimateItems(
+            @Parameter(description = "견적 항목 ID") @PathVariable Long estimateItemId,
+            Pageable pageable) {
+        SpPartnerEstimateItemSearchParam searchParam = new SpPartnerEstimateItemSearchParam();
+        searchParam.setEstimateItemId(estimateItemId);
+        return this.spEstimateService.searchPartnerEstimateItems(pageable, searchParam);
     }
 
     @Operation(summary = "협력사 견적 항목 등록/수정", description = "견적 항목에 대한 협력사 견적을 등록하거나 수정합니다")

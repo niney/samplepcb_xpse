@@ -1,11 +1,16 @@
 package kr.co.samplepcb.xpse.pojo;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.util.Date;
 
 @Schema(description = "협력사 견적 항목 목록")
 public class SpPartnerEstimateItemListDTO {
+
+    private static final ObjectMapper objectMapper = JsonMapper.builder().build();
 
     @Schema(description = "ID")
     private long id;
@@ -17,8 +22,8 @@ public class SpPartnerEstimateItemListDTO {
     private String status;
     @Schema(description = "메모")
     private String memo;
-    @Schema(description = "선택된 가격 (JSON text)")
-    private String selectedPrice;
+    @Schema(description = "선택된 가격 (JSON)")
+    private Object selectedPrice;
     @Schema(description = "작성일")
     private Date writeDate;
     @Schema(description = "수정일")
@@ -47,7 +52,7 @@ public class SpPartnerEstimateItemListDTO {
         this.mbNo = mbNo;
         this.status = status;
         this.memo = memo;
-        this.selectedPrice = selectedPrice;
+        this.selectedPrice = parseJson(selectedPrice);
         this.writeDate = writeDate;
         this.modifyDate = modifyDate;
         this.partnerMbId = partnerMbId;
@@ -67,8 +72,19 @@ public class SpPartnerEstimateItemListDTO {
     public void setStatus(String status) { this.status = status; }
     public String getMemo() { return memo; }
     public void setMemo(String memo) { this.memo = memo; }
-    public String getSelectedPrice() { return selectedPrice; }
-    public void setSelectedPrice(String selectedPrice) { this.selectedPrice = selectedPrice; }
+    public Object getSelectedPrice() { return selectedPrice; }
+    public void setSelectedPrice(Object selectedPrice) { this.selectedPrice = selectedPrice; }
+
+    private static Object parseJson(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return objectMapper.readValue(value, Object.class);
+        } catch (JacksonException e) {
+            return value;
+        }
+    }
     public Date getWriteDate() { return writeDate; }
     public void setWriteDate(Date writeDate) { this.writeDate = writeDate; }
     public Date getModifyDate() { return modifyDate; }

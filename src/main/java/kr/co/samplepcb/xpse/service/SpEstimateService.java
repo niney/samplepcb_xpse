@@ -477,7 +477,7 @@ public class SpEstimateService {
         dto.setId(doc.getId());
         dto.setItId(doc.getItId());
         dto.setItName(doc.getShopItem() != null ? doc.getShopItem().getItName() : null);
-        dto.setStatus(doc.getStatus());
+        dto.setStatus(ped.getStatus());
         dto.setExpectedDelivery(doc.getExpectedDelivery());
         dto.setTotalAmount(doc.getTotalAmount());
         dto.setFinalAmount(doc.getFinalAmount());

@@ -43,10 +43,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -137,17 +139,38 @@ public class SpEstimateService {
         }
         spEstimateMapper.updateDocument(createDTO, doc);
 
-        // ── 4. 견적 항목 upsert (기존 항목 교체) ──
-        doc.getItems().clear();
+        // ── 4. 견적 항목 upsert (id 기반) ──
         List<SpEstimateCreateDTO.EstimateItemDTO> itemDTOs = createDTO.getItems();
         if (itemDTOs != null) {
+            Map<Long, SpEstimateItem> existingMap = doc.getItems().stream()
+                    .filter(ei -> ei.getId() != null)
+                    .collect(Collectors.toMap(SpEstimateItem::getId, ei -> ei));
+
+            Set<Long> keepIds = new HashSet<>();
+            List<SpEstimateItem> newItems = new ArrayList<>();
+
             for (SpEstimateCreateDTO.EstimateItemDTO eiDTO : itemDTOs) {
-                SpEstimateItem ei = spEstimateMapper.toEstimateItemEntity(eiDTO);
-                ei.setEstimateDocument(doc);
-                ei.setWriteDate(now);
-                ei.setModifyDate(now);
-                doc.getItems().add(ei);
+                if (eiDTO.getId() != null && existingMap.containsKey(eiDTO.getId())) {
+                    // 기존 항목 업데이트 (selectedPartnerEstimateItem 보존)
+                    SpEstimateItem existing = existingMap.get(eiDTO.getId());
+                    spEstimateMapper.updateEstimateItemEntity(eiDTO, existing);
+                    existing.setModifyDate(now);
+                    keepIds.add(eiDTO.getId());
+                } else {
+                    // 신규 항목 생성
+                    SpEstimateItem ei = spEstimateMapper.toEstimateItemEntity(eiDTO);
+                    ei.setEstimateDocument(doc);
+                    ei.setWriteDate(now);
+                    ei.setModifyDate(now);
+                    newItems.add(ei);
+                }
             }
+
+            // 전달되지 않은 기존 항목 삭제
+            doc.getItems().removeIf(ei -> ei.getId() != null && !keepIds.contains(ei.getId()));
+            doc.getItems().addAll(newItems);
+        } else {
+            doc.getItems().clear();
         }
 
         SpEstimateDocument savedDoc = estimateDocumentRepository.save(doc);

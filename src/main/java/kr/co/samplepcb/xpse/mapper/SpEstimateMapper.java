@@ -58,6 +58,7 @@ public interface SpEstimateMapper {
     @Mapping(target = "shopItem", ignore = true)
     @Mapping(target = "shopCart", ignore = true)
     @Mapping(target = "items", ignore = true)
+    @Mapping(target = "partnerEstimateDocuments", ignore = true)
     @Mapping(target = "writeDate", ignore = true)
     @Mapping(target = "modifyDate", ignore = true)
     void updateDocument(SpEstimateCreateDTO dto, @MappingTarget SpEstimateDocument doc);
@@ -70,6 +71,15 @@ public interface SpEstimateMapper {
     @Mapping(target = "writeDate", ignore = true)
     @Mapping(target = "modifyDate", ignore = true)
     SpEstimateItem toEstimateItemEntity(SpEstimateCreateDTO.EstimateItemDTO dto);
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "estimateDocument", ignore = true)
+    @Mapping(target = "pcbPart", ignore = true)
+    @Mapping(target = "selectedPartnerEstimateItem", ignore = true)
+    @Mapping(target = "partnerEstimateItems", ignore = true)
+    @Mapping(target = "writeDate", ignore = true)
+    @Mapping(target = "modifyDate", ignore = true)
+    void updateEstimateItemEntity(SpEstimateCreateDTO.EstimateItemDTO dto, @MappingTarget SpEstimateItem entity);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "refType", ignore = true)

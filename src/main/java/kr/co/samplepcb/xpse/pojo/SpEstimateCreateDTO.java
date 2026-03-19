@@ -59,13 +59,7 @@ public class SpEstimateCreateDTO {
     private List<EstimateItemDTO> items;
 
     @Schema(description = "견적 부품 항목")
-    public static class EstimateItemDTO {
-
-        @Schema(description = "PCB 부품 doc_id", requiredMode = Schema.RequiredMode.REQUIRED)
-        private String pcbPartDocId;
-
-        @Schema(description = "수량")
-        private Integer qty;
+    public static class EstimateItemDTO extends SpEstimateItemBaseDTO {
 
         @Schema(description = "분석 메타 (JSON text)")
         private String analysisMeta;
@@ -73,10 +67,6 @@ public class SpEstimateCreateDTO {
         @Schema(description = "선택된 가격 (JSON text)")
         private String selectedPrice;
 
-        public String getPcbPartDocId() { return pcbPartDocId; }
-        public void setPcbPartDocId(String pcbPartDocId) { this.pcbPartDocId = pcbPartDocId; }
-        public Integer getQty() { return qty; }
-        public void setQty(Integer qty) { this.qty = qty; }
         public String getAnalysisMeta() { return analysisMeta; }
         public void setAnalysisMeta(String analysisMeta) { this.analysisMeta = analysisMeta; }
         public String getSelectedPrice() { return selectedPrice; }

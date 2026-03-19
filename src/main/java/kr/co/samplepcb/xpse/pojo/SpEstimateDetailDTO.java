@@ -50,19 +50,11 @@ public class SpEstimateDetailDTO {
     private List<FileDTO> files;
 
     @Schema(description = "견적 항목")
-    public static class EstimateItemDTO {
-        @Schema(description = "항목 ID")
-        private Long id;
-        @Schema(description = "PCB 부품 doc_id")
-        private String pcbPartDocId;
-        @Schema(description = "수량")
-        private int qty;
+    public static class EstimateItemDTO extends SpEstimateItemBaseDTO {
         @Schema(description = "분석 메타 (JSON)")
         private Object analysisMeta;
         @Schema(description = "선택된 가격 (JSON)")
         private Object selectedPrice;
-        @Schema(description = "선택된 협력사 견적 항목 ID")
-        private Long selectedPartnerEstimateItemId;
         @Schema(description = "선택된 협력사 견적 항목 상세")
         private SelectedPartnerEstimateItemDTO selectedPartnerEstimateItemDetail;
         @Schema(description = "작성일")
@@ -72,18 +64,10 @@ public class SpEstimateDetailDTO {
         @Schema(description = "PCB 부품 정보")
         private PcbPartDTO pcbPart;
 
-        public Long getId() { return id; }
-        public void setId(Long id) { this.id = id; }
-        public String getPcbPartDocId() { return pcbPartDocId; }
-        public void setPcbPartDocId(String pcbPartDocId) { this.pcbPartDocId = pcbPartDocId; }
-        public int getQty() { return qty; }
-        public void setQty(int qty) { this.qty = qty; }
         public Object getAnalysisMeta() { return analysisMeta; }
         public void setAnalysisMeta(Object analysisMeta) { this.analysisMeta = analysisMeta; }
         public Object getSelectedPrice() { return selectedPrice; }
         public void setSelectedPrice(Object selectedPrice) { this.selectedPrice = selectedPrice; }
-        public Long getSelectedPartnerEstimateItemId() { return selectedPartnerEstimateItemId; }
-        public void setSelectedPartnerEstimateItemId(Long selectedPartnerEstimateItemId) { this.selectedPartnerEstimateItemId = selectedPartnerEstimateItemId; }
         public SelectedPartnerEstimateItemDTO getSelectedPartnerEstimateItemDetail() { return selectedPartnerEstimateItemDetail; }
         public void setSelectedPartnerEstimateItemDetail(SelectedPartnerEstimateItemDTO selectedPartnerEstimateItemDetail) { this.selectedPartnerEstimateItemDetail = selectedPartnerEstimateItemDetail; }
         public Date getWriteDate() { return writeDate; }
@@ -137,18 +121,83 @@ public class SpEstimateDetailDTO {
 
     @Schema(description = "PCB 부품 정보")
     public static class PcbPartDTO {
+        @Schema(description = "부품 PK")
+        private Long id;
+        @Schema(description = "문서 ID")
         private String docId;
+        @Schema(description = "부품명")
         private String partName;
+        @Schema(description = "설명")
         private String description;
+        @Schema(description = "제조사명")
         private String manufacturerName;
+        @Schema(description = "부품 패키징")
         private String partsPackaging;
+        @Schema(description = "패키징 상세")
+        private String packaging;
+        @Schema(description = "최소주문수량")
         private Integer moq;
+        @Schema(description = "가격")
         private Integer price;
+        @Schema(description = "공급업체명")
         private String offerName;
+        @Schema(description = "대분류")
         private String largeCategory;
+        @Schema(description = "중분류")
         private String mediumCategory;
+        @Schema(description = "소분류")
         private String smallCategory;
+        @Schema(description = "서비스 타입")
+        private String serviceType;
+        @Schema(description = "서브 서비스 타입")
+        private String subServiceType;
+        @Schema(description = "메모")
+        private String memo;
+        @Schema(description = "Date Code")
+        private String dateCode;
+        @Schema(description = "회원 ID")
+        private String memberId;
+        @Schema(description = "담당자 전화번호")
+        private String managerPhoneNumber;
+        @Schema(description = "담당자명")
+        private String managerName;
+        @Schema(description = "담당자 이메일")
+        private String managerEmail;
+        @Schema(description = "내용")
+        private String contents;
+        @Schema(description = "상태")
+        private Integer status;
+        @Schema(description = "와트")
+        private String watt;
+        @Schema(description = "허용오차")
+        private String tolerance;
+        @Schema(description = "저항")
+        private String ohm;
+        @Schema(description = "콘덴서")
+        private String condenser;
+        @Schema(description = "전압")
+        private String voltage;
+        @Schema(description = "온도")
+        private String temperature;
+        @Schema(description = "사이즈")
+        private String size;
+        @Schema(description = "전류")
+        private String currentVal;
+        @Schema(description = "인덕터")
+        private String inductor;
+        @Schema(description = "제품명")
+        private String productName;
+        @Schema(description = "사진 URL")
+        private String photoUrl;
+        @Schema(description = "데이터시트 URL")
+        private String datasheetUrl;
+        @Schema(description = "작성일")
+        private Date writeDate;
+        @Schema(description = "최종 수정일")
+        private Date lastModifiedDate;
 
+        public Long getId() { return id; }
+        public void setId(Long id) { this.id = id; }
         public String getDocId() { return docId; }
         public void setDocId(String docId) { this.docId = docId; }
         public String getPartName() { return partName; }
@@ -159,6 +208,8 @@ public class SpEstimateDetailDTO {
         public void setManufacturerName(String manufacturerName) { this.manufacturerName = manufacturerName; }
         public String getPartsPackaging() { return partsPackaging; }
         public void setPartsPackaging(String partsPackaging) { this.partsPackaging = partsPackaging; }
+        public String getPackaging() { return packaging; }
+        public void setPackaging(String packaging) { this.packaging = packaging; }
         public Integer getMoq() { return moq; }
         public void setMoq(Integer moq) { this.moq = moq; }
         public Integer getPrice() { return price; }
@@ -171,6 +222,54 @@ public class SpEstimateDetailDTO {
         public void setMediumCategory(String mediumCategory) { this.mediumCategory = mediumCategory; }
         public String getSmallCategory() { return smallCategory; }
         public void setSmallCategory(String smallCategory) { this.smallCategory = smallCategory; }
+        public String getServiceType() { return serviceType; }
+        public void setServiceType(String serviceType) { this.serviceType = serviceType; }
+        public String getSubServiceType() { return subServiceType; }
+        public void setSubServiceType(String subServiceType) { this.subServiceType = subServiceType; }
+        public String getMemo() { return memo; }
+        public void setMemo(String memo) { this.memo = memo; }
+        public String getDateCode() { return dateCode; }
+        public void setDateCode(String dateCode) { this.dateCode = dateCode; }
+        public String getMemberId() { return memberId; }
+        public void setMemberId(String memberId) { this.memberId = memberId; }
+        public String getManagerPhoneNumber() { return managerPhoneNumber; }
+        public void setManagerPhoneNumber(String managerPhoneNumber) { this.managerPhoneNumber = managerPhoneNumber; }
+        public String getManagerName() { return managerName; }
+        public void setManagerName(String managerName) { this.managerName = managerName; }
+        public String getManagerEmail() { return managerEmail; }
+        public void setManagerEmail(String managerEmail) { this.managerEmail = managerEmail; }
+        public String getContents() { return contents; }
+        public void setContents(String contents) { this.contents = contents; }
+        public Integer getStatus() { return status; }
+        public void setStatus(Integer status) { this.status = status; }
+        public String getWatt() { return watt; }
+        public void setWatt(String watt) { this.watt = watt; }
+        public String getTolerance() { return tolerance; }
+        public void setTolerance(String tolerance) { this.tolerance = tolerance; }
+        public String getOhm() { return ohm; }
+        public void setOhm(String ohm) { this.ohm = ohm; }
+        public String getCondenser() { return condenser; }
+        public void setCondenser(String condenser) { this.condenser = condenser; }
+        public String getVoltage() { return voltage; }
+        public void setVoltage(String voltage) { this.voltage = voltage; }
+        public String getTemperature() { return temperature; }
+        public void setTemperature(String temperature) { this.temperature = temperature; }
+        public String getSize() { return size; }
+        public void setSize(String size) { this.size = size; }
+        public String getCurrentVal() { return currentVal; }
+        public void setCurrentVal(String currentVal) { this.currentVal = currentVal; }
+        public String getInductor() { return inductor; }
+        public void setInductor(String inductor) { this.inductor = inductor; }
+        public String getProductName() { return productName; }
+        public void setProductName(String productName) { this.productName = productName; }
+        public String getPhotoUrl() { return photoUrl; }
+        public void setPhotoUrl(String photoUrl) { this.photoUrl = photoUrl; }
+        public String getDatasheetUrl() { return datasheetUrl; }
+        public void setDatasheetUrl(String datasheetUrl) { this.datasheetUrl = datasheetUrl; }
+        public Date getWriteDate() { return writeDate; }
+        public void setWriteDate(Date writeDate) { this.writeDate = writeDate; }
+        public Date getLastModifiedDate() { return lastModifiedDate; }
+        public void setLastModifiedDate(Date lastModifiedDate) { this.lastModifiedDate = lastModifiedDate; }
     }
 
     @Schema(description = "첨부파일")

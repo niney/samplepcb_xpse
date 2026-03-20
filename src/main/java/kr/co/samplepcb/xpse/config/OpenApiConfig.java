@@ -36,7 +36,16 @@ public class OpenApiConfig {
         return GroupedOpenApi.builder()
                 .group("sp-api")
                 .displayName("SP 주문/아이템/견적 API")
-                .pathsToMatch("/api/spOrders/**", "/api/spItems/**", "/api/spPartnerOrders/**", "/api/spEstimates/**", "/api/spBomDocuments/**")
+                .pathsToMatch("/api/spOrders/**", "/api/spItems/**", "/api/spPartnerOrders/**", "/api/spEstimates/**", "/api/spBomDocuments/**", "/api/g5ShopOrders/**")
+                .build();
+    }
+
+    @Bean
+    public GroupedOpenApi g5ShopOrderApi() {
+        return GroupedOpenApi.builder()
+                .group("g5-shop-order-api")
+                .displayName("G5 주문 API")
+                .pathsToMatch("/api/g5ShopOrders/**")
                 .build();
     }
 

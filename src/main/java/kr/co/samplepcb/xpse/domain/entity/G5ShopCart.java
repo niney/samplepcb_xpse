@@ -15,6 +15,10 @@ public class G5ShopCart {
     @Column(name = "od_id", nullable = false)
     private long odId;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "od_id", referencedColumnName = "od_id", insertable = false, updatable = false)
+    private G5ShopOrder shopOrder;
+
     @Column(name = "mb_id")
     private String mbId;
 
@@ -163,6 +167,8 @@ public class G5ShopCart {
     public void setCtSelect(int ctSelect) { this.ctSelect = ctSelect; }
     public Date getCtSelectTime() { return ctSelectTime; }
     public void setCtSelectTime(Date ctSelectTime) { this.ctSelectTime = ctSelectTime; }
+    public G5ShopOrder getShopOrder() { return shopOrder; }
+    public void setShopOrder(G5ShopOrder shopOrder) { this.shopOrder = shopOrder; }
     public G5ShopItem getShopItem() { return shopItem; }
     public void setShopItem(G5ShopItem shopItem) { this.shopItem = shopItem; }
     public G5Member getMember() { return member; }

@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import kr.co.samplepcb.xpse.domain.entity.SpPartnerEstimateItem;
 import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateDocListDTO;
 import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateItemCreateDTO;
+import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateItemDeleteKeyDTO;
 import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateItemDetailDTO;
 import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateItemListDTO;
 import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateItemSearchParam;
@@ -116,5 +117,12 @@ public class SpPartnerOrderResource {
     @PostMapping("/_batch")
     public CCObjectResult<List<SpPartnerEstimateItemCreateDTO>> createBatch(@RequestBody List<SpPartnerEstimateItemCreateDTO> createDTOs) {
         return this.spEstimateService.createPartnerOrderBatch(createDTOs);
+    }
+
+    @Operation(summary = "협력사 주문 다중 삭제", description = "견적 항목/파트너 조합으로 협력사 주문을 다중으로 삭제합니다")
+    @JwtAuth
+    @PostMapping("/_batch/delete")
+    public CCResult deleteBatch(@RequestBody List<SpPartnerEstimateItemDeleteKeyDTO> deleteDTOs) {
+        return this.spEstimateService.deletePartnerOrderBatch(deleteDTOs);
     }
 }

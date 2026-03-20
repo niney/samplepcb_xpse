@@ -21,6 +21,7 @@ import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateDocDetailDTO;
 import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateDocUpdateDTO;
 import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateDocListDTO;
 import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateItemCreateDTO;
+import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateItemDeleteKeyDTO;
 import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateItemDetailDTO;
 import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateItemListDTO;
 import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateItemSearchParam;
@@ -361,6 +362,65 @@ public class SpEstimateService {
             createPartnerEstimateItem(dto.getEstimateItemId(), dto);
         }
         return CCObjectResult.setSimpleData(createDTOs);
+    }
+
+    /**
+     * 협력사 주문 다중 삭제.
+     */
+    @Transactional
+    public CCResult deletePartnerOrderBatch(List<SpPartnerEstimateItemDeleteKeyDTO> deleteDTOs) {
+        if (deleteDTOs == null || deleteDTOs.isEmpty()) {
+            return CCResult.requireParam();
+        }
+
+        List<Long> partnerEstimateItemIds = deleteDTOs.stream()
+                .filter(Objects::nonNull)
+                .filter(dto -> dto.getEstimateItemId() != null)
+                .map(dto -> partnerEstimateItemRepository.findByEstimateItemIdAndMbNo(dto.getEstimateItemId(), dto.getMbNo()))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .map(SpPartnerEstimateItem::getId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        if (partnerEstimateItemIds.isEmpty()) {
+            return CCResult.dataNotFound();
+        }
+
+        Date now = new Date();
+
+        List<SpEstimateItem> selectedItems =
+                estimateItemRepository.findAllBySelectedPartnerEstimateItemIdIn(partnerEstimateItemIds);
+        for (SpEstimateItem item : selectedItems) {
+            item.setSelectedPartnerEstimateItem(null);
+            item.setModifyDate(now);
+        }
+        if (!selectedItems.isEmpty()) {
+            estimateItemRepository.saveAll(selectedItems);
+        }
+
+        List<SpPartnerEstimateItem> deleteTargets = partnerEstimateItemRepository.findAllById(partnerEstimateItemIds);
+        Set<Long> partnerDocIds = deleteTargets.stream()
+                .map(SpPartnerEstimateItem::getPartnerEstimateDocument)
+                .filter(Objects::nonNull)
+                .map(document -> document.getId())
+                .collect(Collectors.toSet());
+
+        for (SpPartnerEstimateItem item : deleteTargets) {
+            spFileRepository.deleteByRefTypeAndRefId(PARTNER_ESTIMATE_ITEM_REF_TYPE, item.getId());
+        }
+        if (!deleteTargets.isEmpty()) {
+            partnerEstimateItemRepository.deleteAll(deleteTargets);
+        }
+
+        for (Long partnerDocId : partnerDocIds) {
+            long remainingCount = partnerEstimateItemRepository.countByPartnerEstimateDocumentId(partnerDocId);
+            if (remainingCount == 0L) {
+                partnerEstimateDocumentRepository.deleteById(partnerDocId);
+            }
+        }
+
+        return CCResult.ok();
     }
 
     /**

@@ -24,7 +24,10 @@ public class SpEstimateCreateDTO {
     @Schema(description = "카테고리 ID")
     private String caId;
 
-    @Schema(description = "상태 (order 또는 rfq, 기본값: order)")
+    @Schema(description = "견적유형")
+    private String statusType;
+
+    @Schema(description = "견적상태")
     private String status;
 
     // ── 견적서(SpEstimateDocument) 필드 ──
@@ -108,6 +111,7 @@ public class SpEstimateCreateDTO {
         dto.setItPrice(itPrice);
         dto.setItStockQty(itStockQty);
         dto.setCaId(caId);
+        dto.setStatusType(statusType);
         dto.setStatus(status);
         return dto;
     }
@@ -124,6 +128,8 @@ public class SpEstimateCreateDTO {
     public void setItStockQty(int itStockQty) { this.itStockQty = itStockQty; }
     public String getCaId() { return caId; }
     public void setCaId(String caId) { this.caId = caId; }
+    public String getStatusType() { return statusType; }
+    public void setStatusType(String statusType) { this.statusType = statusType; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
     public String getExpectedDelivery() { return expectedDelivery; }

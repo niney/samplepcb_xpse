@@ -271,6 +271,12 @@ public class SpEstimateService {
         doc.setStatus(status);
         doc.setModifyDate(new Date());
         estimateDocumentRepository.save(doc);
+        Optional<G5ShopItem> itemOptional = shopItemRepository.findById(doc.getItId());
+        if (itemOptional.isPresent()) {
+            G5ShopItem g5ShopItem = itemOptional.get();
+            g5ShopItem.setIt24(status);
+            shopItemRepository.save(g5ShopItem);
+        }
         return CCResult.ok();
     }
 

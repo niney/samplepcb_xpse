@@ -28,6 +28,9 @@ public class SpItemCreateDTO {
     private String caId;
 
     @Schema(description = "상태 (order 또는 rfq, 기본값: order) → it_23 컬럼에 저장")
+    private String statusType;
+
+    @Schema(description = "견적상태 → it_24 컬럼에 저장")
     private String status;
 
     /**
@@ -142,8 +145,14 @@ public class SpItemCreateDTO {
         item.setItUseAvg(BigDecimal.ZERO);
 
         // status → it_23 (기본값: order), it_23_subj = "status" 고정
-        item.setIt23Subj("status");
-        item.setIt23(status != null && !status.isBlank() ? status : "order");
+        item.setIt23Subj("statusType");
+        item.setIt23(statusType != null && !statusType.isBlank() ? statusType : "order");
+
+        // 견적상태 → it_24, it_24_subj = "견적상태" 고정
+        item.setIt24Subj("견적상태");
+        if (status != null && !status.isBlank()) {
+            item.setIt24(status);
+        }
 
         return item;
     }
@@ -158,8 +167,11 @@ public class SpItemCreateDTO {
         if (caId != null) {
             item.setCaId(caId);
         }
+        if (statusType != null && !statusType.isBlank()) {
+            item.setIt23(statusType);
+        }
         if (status != null && !status.isBlank()) {
-            item.setIt23(status);
+            item.setIt24(status);
         }
         item.setItUpdateTime(new Date());
     }
@@ -238,6 +250,8 @@ public class SpItemCreateDTO {
     public void setItStockQty(int itStockQty) { this.itStockQty = itStockQty; }
     public String getCaId() { return caId; }
     public void setCaId(String caId) { this.caId = caId; }
+    public String getStatusType() { return statusType; }
+    public void setStatusType(String statusType) { this.statusType = statusType; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
 }

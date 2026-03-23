@@ -1,7 +1,10 @@
 package kr.co.samplepcb.xpse.service;
 
+import coolib.common.CCObjectResult;
 import coolib.common.CCPagingResult;
+import coolib.common.CCResult;
 import kr.co.samplepcb.xpse.domain.entity.G5ShopOrder;
+import kr.co.samplepcb.xpse.pojo.G5ShopOrderDetailDTO;
 import kr.co.samplepcb.xpse.pojo.G5ShopOrderListDTO;
 import kr.co.samplepcb.xpse.pojo.G5ShopOrderSearchParam;
 import kr.co.samplepcb.xpse.pojo.adapter.PagingAdapter;
@@ -13,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class G5ShopOrderService {
@@ -33,5 +37,25 @@ public class G5ShopOrderService {
                 .map(G5ShopOrderListDTO::from)
                 .toList();
         return PagingAdapter.toCCPagingResult(searchParam.getQ(), pageable, dtoList, totalCount);
+    }
+
+    @Transactional(readOnly = true)
+    @SuppressWarnings("unchecked")
+    public CCObjectResult<G5ShopOrderDetailDTO> getDetail(Long odId) {
+        Optional<G5ShopOrder> optOrder = shopOrderRepository.findById(odId);
+        if (optOrder.isEmpty()) {
+            return (CCObjectResult<G5ShopOrderDetailDTO>) CCResult.dataNotFound();
+        }
+        return CCObjectResult.setSimpleData(G5ShopOrderDetailDTO.from(optOrder.get()));
+    }
+
+    @Transactional(readOnly = true)
+    @SuppressWarnings("unchecked")
+    public CCObjectResult<G5ShopOrderDetailDTO> getDetailByItId(String itId) {
+        Optional<G5ShopOrder> optOrder = shopOrderRepository.findOrderByItId(itId);
+        if (optOrder.isEmpty()) {
+            return (CCObjectResult<G5ShopOrderDetailDTO>) CCResult.dataNotFound();
+        }
+        return CCObjectResult.setSimpleData(G5ShopOrderDetailDTO.from(optOrder.get()));
     }
 }

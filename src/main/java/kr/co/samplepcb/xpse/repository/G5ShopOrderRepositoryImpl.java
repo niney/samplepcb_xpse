@@ -13,6 +13,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
+import java.util.Optional;
 
 public class G5ShopOrderRepositoryImpl implements G5ShopOrderRepositoryCustom {
 
@@ -66,6 +67,32 @@ public class G5ShopOrderRepositoryImpl implements G5ShopOrderRepositoryCustom {
                 .where(where)
                 .fetchOne();
         return count != null ? count : 0L;
+    }
+
+    @Override
+    public Optional<G5ShopOrder> findOrderByItId(String itId) {
+        QG5ShopOrder od = QG5ShopOrder.g5ShopOrder;
+        QG5ShopCart cart = QG5ShopCart.g5ShopCart;
+        QG5Member mb = QG5Member.g5Member;
+
+        Long odId = queryFactory
+                .select(cart.odId)
+                .from(cart)
+                .where(cart.itId.eq(itId))
+                .fetchFirst();
+
+        if (odId == null) {
+            return Optional.empty();
+        }
+
+        G5ShopOrder order = queryFactory
+                .selectFrom(od)
+                .leftJoin(od.member, mb).fetchJoin()
+                .leftJoin(od.carts).fetchJoin()
+                .where(od.odId.eq(odId))
+                .fetchOne();
+
+        return Optional.ofNullable(order);
     }
 
     private BooleanBuilder buildSearchCondition(G5ShopOrderSearchParam searchParam,

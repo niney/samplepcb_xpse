@@ -22,7 +22,7 @@ public class SpItemCreateDTO {
     private int itPrice;
 
     @Schema(description = "재고수량")
-    private int itStockQty;
+    private int itStockQty = 1;
 
     @Schema(description = "카테고리 ID")
     private String caId;
@@ -247,7 +247,7 @@ public class SpItemCreateDTO {
     public int getItPrice() { return itPrice; }
     public void setItPrice(int itPrice) { this.itPrice = itPrice; }
     public int getItStockQty() { return itStockQty; }
-    public void setItStockQty(int itStockQty) { this.itStockQty = itStockQty; }
+    public void setItStockQty(int itStockQty) { this.itStockQty = itStockQty <= 0 ? 1 : itStockQty; }
     public String getCaId() { return caId; }
     public void setCaId(String caId) { this.caId = caId; }
     public String getStatusType() { return statusType; }

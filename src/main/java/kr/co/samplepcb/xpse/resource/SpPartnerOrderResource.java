@@ -53,7 +53,7 @@ public class SpPartnerOrderResource {
     @Operation(summary = "협력사 발주 다중 생성", description = "협력사 발주를 다중으로 일괄 생성합니다")
     @JwtAuth
     @PostMapping("/_batch")
-    public CCObjectResult<List<SpPartnerOrderItemCreateDTO>> createBatch(@RequestBody List<SpPartnerOrderItemCreateDTO> createDTOs) {
+    public CCResult createBatch(@RequestBody List<SpPartnerOrderItemCreateDTO> createDTOs) {
         return this.spPartnerOrderService.createPartnerOrderBatch(createDTOs);
     }
 }

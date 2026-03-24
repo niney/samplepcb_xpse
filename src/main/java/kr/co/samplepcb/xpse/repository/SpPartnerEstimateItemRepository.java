@@ -15,4 +15,6 @@ public interface SpPartnerEstimateItemRepository extends JpaRepository<SpPartner
     Optional<SpPartnerEstimateItem> findByEstimateItemIdAndPartnerEstimateDocumentId(Long estimateItemId, Long partnerEstimateDocumentId);
 
     long countByPartnerEstimateDocumentId(Long partnerEstimateDocumentId);
+
+    List<SpPartnerEstimateItem> findByPartnerEstimateDocumentId(Long partnerEstimateDocumentId);
 }

@@ -13,10 +13,12 @@ import kr.co.samplepcb.xpse.domain.entity.QSpEstimateItem;
 import kr.co.samplepcb.xpse.domain.entity.QPcbParts;
 import kr.co.samplepcb.xpse.domain.entity.QSpPartnerEstimateDocument;
 import kr.co.samplepcb.xpse.domain.entity.QSpPartnerEstimateItem;
+import kr.co.samplepcb.xpse.domain.entity.QSpPartnerOrderItem;
 import kr.co.samplepcb.xpse.domain.entity.SpEstimateDocument;
 import kr.co.samplepcb.xpse.pojo.SpEstimateListDTO;
 import kr.co.samplepcb.xpse.pojo.SpEstimateSearchParam;
 import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateDocDetailDTO;
+import kr.co.samplepcb.xpse.pojo.SpPartnerOrderDetailDTO;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.domain.Pageable;
@@ -369,6 +371,28 @@ public class SpEstimateDocumentRepositoryImpl implements SpEstimateDocumentRepos
                 .leftJoin(ei.pcbPart, pp)
                 .join(pei).on(pei.estimateItem.eq(ei).and(pei.partnerEstimateDocument.id.eq(pedId)))
                 .where(ei.estimateDocument.id.eq(docId))
+                .orderBy(ei.id.asc())
+                .fetch();
+    }
+
+    @Override
+    public List<SpPartnerOrderDetailDTO.ItemDTO> findDetailItemsForOrder(Long estimateDocId, Long orderDocId) {
+        QSpEstimateItem ei = QSpEstimateItem.spEstimateItem;
+        QPcbParts pp = QPcbParts.pcbParts;
+        QSpPartnerOrderItem poi = QSpPartnerOrderItem.spPartnerOrderItem;
+
+        return queryFactory
+                .select(Projections.constructor(SpPartnerOrderDetailDTO.ItemDTO.class,
+                        ei.id, ei.pcbPartDocId, ei.qty, ei.analysisMeta, ei.selectedPrice,
+                        pp.partName, pp.description, pp.manufacturerName, pp.partsPackaging, pp.size,
+                        pp.offerName,
+                        poi.id, poi.selectedPrice, poi.status,
+                        poi.memo, poi.dateCode, poi.deliveryDate,
+                        poi.writeDate, poi.modifyDate))
+                .from(ei)
+                .leftJoin(ei.pcbPart, pp)
+                .leftJoin(poi).on(poi.estimateItem.eq(ei).and(poi.partnerOrderDocument.id.eq(orderDocId)))
+                .where(ei.estimateDocument.id.eq(estimateDocId))
                 .orderBy(ei.id.asc())
                 .fetch();
     }

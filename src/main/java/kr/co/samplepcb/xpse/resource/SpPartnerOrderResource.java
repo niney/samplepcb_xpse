@@ -6,9 +6,11 @@ import coolib.common.CCResult;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Parameter;
 import kr.co.samplepcb.xpse.pojo.SpEstimateListDTO;
 import kr.co.samplepcb.xpse.pojo.SpEstimateSearchParam;
 import kr.co.samplepcb.xpse.pojo.SpOrderSearchParam;
+import kr.co.samplepcb.xpse.pojo.SpPartnerOrderDetailDTO;
 import kr.co.samplepcb.xpse.pojo.SpPartnerOrderItemCreateDTO;
 import kr.co.samplepcb.xpse.security.JwtAuth;
 import kr.co.samplepcb.xpse.service.SpEstimateService;
@@ -48,6 +50,20 @@ public class SpPartnerOrderResource {
     @GetMapping("/_searchWithPartnerOrders")
     public CCPagingResult<SpEstimateListDTO> searchWithPartnerOrders(Pageable pageable, SpEstimateSearchParam searchParam) {
         return this.spEstimateService.searchWithPartnerOrders(pageable, searchParam);
+    }
+
+    @Operation(summary = "협력사 발주서 상세 조회 (발주서 ID)", description = "발주서 ID로 견적 기본정보 + BOM 항목별 발주 상태를 조회합니다")
+    @JwtAuth
+    @GetMapping("/{orderDocId}")
+    public CCObjectResult<SpPartnerOrderDetailDTO> getOrderDetail(@Parameter(description = "발주서 ID") @PathVariable Long orderDocId) {
+        return this.spPartnerOrderService.getOrderDetail(orderDocId);
+    }
+
+    @Operation(summary = "협력사 발주서 상세 조회 (아이템 ID)", description = "아이템 ID로 해당 견적의 모든 협력사 발주서 상세를 조회합니다")
+    @JwtAuth
+    @GetMapping("/byItId/{itId}")
+    public CCObjectResult<List<SpPartnerOrderDetailDTO>> getOrderDetailByItId(@Parameter(description = "아이템 ID") @PathVariable String itId) {
+        return this.spPartnerOrderService.getOrderDetailByItId(itId);
     }
 
     @Operation(summary = "협력사 발주 다중 생성", description = "협력사 발주를 다중으로 일괄 생성합니다")

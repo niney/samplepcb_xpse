@@ -9,7 +9,9 @@ import kr.co.samplepcb.xpse.domain.entity.SpPartnerEstimateItem;
 import kr.co.samplepcb.xpse.domain.entity.SpPartnerOrderDocument;
 import kr.co.samplepcb.xpse.domain.entity.SpPartnerOrderItem;
 import kr.co.samplepcb.xpse.exception.BusinessException;
+import kr.co.samplepcb.xpse.pojo.SpPartnerOrderDetailDTO;
 import kr.co.samplepcb.xpse.pojo.SpPartnerOrderItemCreateDTO;
+import kr.co.samplepcb.xpse.repository.SpEstimateDocumentRepository;
 import kr.co.samplepcb.xpse.repository.SpEstimateItemRepository;
 import kr.co.samplepcb.xpse.repository.SpPartnerEstimateDocumentRepository;
 import kr.co.samplepcb.xpse.repository.SpPartnerEstimateItemRepository;
@@ -37,22 +39,77 @@ public class SpPartnerOrderService {
     private static final String DEFAULT_STATUS = "발주접수";
     private static final JsonMapper JSON_MAPPER = JsonMapper.builder().build();
 
+    private final SpEstimateDocumentRepository estimateDocumentRepository;
     private final SpEstimateItemRepository estimateItemRepository;
     private final SpPartnerEstimateDocumentRepository partnerEstimateDocumentRepository;
     private final SpPartnerEstimateItemRepository partnerEstimateItemRepository;
     private final SpPartnerOrderDocumentRepository partnerOrderDocumentRepository;
     private final SpPartnerOrderItemRepository partnerOrderItemRepository;
 
-    public SpPartnerOrderService(SpEstimateItemRepository estimateItemRepository,
+    public SpPartnerOrderService(SpEstimateDocumentRepository estimateDocumentRepository,
+                                 SpEstimateItemRepository estimateItemRepository,
                                  SpPartnerEstimateDocumentRepository partnerEstimateDocumentRepository,
                                  SpPartnerEstimateItemRepository partnerEstimateItemRepository,
                                  SpPartnerOrderDocumentRepository partnerOrderDocumentRepository,
                                  SpPartnerOrderItemRepository partnerOrderItemRepository) {
+        this.estimateDocumentRepository = estimateDocumentRepository;
         this.estimateItemRepository = estimateItemRepository;
         this.partnerEstimateDocumentRepository = partnerEstimateDocumentRepository;
         this.partnerEstimateItemRepository = partnerEstimateItemRepository;
         this.partnerOrderDocumentRepository = partnerOrderDocumentRepository;
         this.partnerOrderItemRepository = partnerOrderItemRepository;
+    }
+
+    /**
+     * 협력사 발주서 상세 조회 (발주서 ID).
+     */
+    @SuppressWarnings("unchecked")
+    @Transactional(readOnly = true)
+    public CCObjectResult<SpPartnerOrderDetailDTO> getOrderDetail(Long orderDocId) {
+        SpPartnerOrderDocument orderDoc = partnerOrderDocumentRepository.findById(orderDocId)
+                .orElse(null);
+        if (orderDoc == null) {
+            return (CCObjectResult<SpPartnerOrderDetailDTO>) CCResult.dataNotFound();
+        }
+        return CCObjectResult.setSimpleData(buildOrderDetailDTO(orderDoc));
+    }
+
+    /**
+     * 협력사 발주서 상세 조회 (itId).
+     * 하나의 itId에 여러 협력사 발주서가 있을 수 있으므로 List 반환.
+     */
+    @Transactional(readOnly = true)
+    public CCObjectResult<List<SpPartnerOrderDetailDTO>> getOrderDetailByItId(String itId) {
+        List<SpPartnerOrderDocument> orderDocs = partnerOrderDocumentRepository.findByEstimateDocumentItId(itId);
+        List<SpPartnerOrderDetailDTO> dtoList = orderDocs.stream()
+                .map(this::buildOrderDetailDTO)
+                .toList();
+        return CCObjectResult.setSimpleData(dtoList);
+    }
+
+    private SpPartnerOrderDetailDTO buildOrderDetailDTO(SpPartnerOrderDocument orderDoc) {
+        SpEstimateDocument estimateDoc = orderDoc.getEstimateDocument();
+
+        SpPartnerOrderDetailDTO dto = new SpPartnerOrderDetailDTO();
+        dto.setEstimateDocumentId(estimateDoc.getId());
+        dto.setItId(estimateDoc.getItId());
+        dto.setItName(estimateDoc.getShopItem() != null ? estimateDoc.getShopItem().getItName() : null);
+        dto.setEstimateStatus(estimateDoc.getStatus());
+        dto.setId(orderDoc.getId());
+        dto.setMbNo(orderDoc.getMbNo());
+        dto.setPartnerName(orderDoc.getMember() != null ? orderDoc.getMember().getMbName() : null);
+        dto.setStatus(orderDoc.getStatus());
+        dto.setOrderPrice(orderDoc.getOrderPrice());
+        dto.setMemo(orderDoc.getMemo());
+        dto.setDeliveryDate(orderDoc.getDeliveryDate());
+        dto.setWriteDate(orderDoc.getWriteDate());
+        dto.setModifyDate(orderDoc.getModifyDate());
+
+        List<SpPartnerOrderDetailDTO.ItemDTO> items = estimateDocumentRepository
+                .findDetailItemsForOrder(estimateDoc.getId(), orderDoc.getId());
+        dto.setItems(items);
+
+        return dto;
     }
 
     /**

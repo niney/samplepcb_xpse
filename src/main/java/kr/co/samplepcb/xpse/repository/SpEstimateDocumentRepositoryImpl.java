@@ -7,6 +7,7 @@ import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import kr.co.samplepcb.xpse.domain.entity.QG5Member;
 import kr.co.samplepcb.xpse.domain.entity.QG5ShopCart;
+import kr.co.samplepcb.xpse.domain.entity.QG5ShopOrder;
 import kr.co.samplepcb.xpse.domain.entity.QSpEstimateDocument;
 import kr.co.samplepcb.xpse.domain.entity.QSpEstimateItem;
 import kr.co.samplepcb.xpse.domain.entity.QPcbParts;
@@ -249,7 +250,7 @@ public class SpEstimateDocumentRepositoryImpl implements SpEstimateDocumentRepos
 
     @Override
     public List<SpEstimateListDTO> findEstimateListWithPartnerOrders(Pageable pageable, SpEstimateSearchParam searchParam) {
-        List<SpEstimateListDTO> dtoList = findEstimateList(pageable, searchParam);
+        List<SpEstimateListDTO> dtoList = findEstimateListWithOrder(pageable, searchParam);
         if (dtoList.isEmpty()) {
             return dtoList;
         }
@@ -285,6 +286,69 @@ public class SpEstimateDocumentRepositoryImpl implements SpEstimateDocumentRepos
         BeanUtils.copyProperties(pod, dto);
         dto.setPartnerName(pod.getMember() != null ? pod.getMember().getMbName() : null);
         return dto;
+    }
+
+    @Override
+    public List<SpEstimateListDTO> findEstimateListWithOrder(Pageable pageable, SpEstimateSearchParam searchParam) {
+        QSpEstimateDocument doc = QSpEstimateDocument.spEstimateDocument;
+        QG5ShopCart cart = QG5ShopCart.g5ShopCart;
+        QG5ShopOrder order = QG5ShopOrder.g5ShopOrder;
+        QG5Member member = QG5Member.g5Member;
+        QSpEstimateItem item = QSpEstimateItem.spEstimateItem;
+
+        BooleanBuilder where = buildSearchCondition(searchParam, doc);
+
+        return queryFactory
+                .select(Projections.bean(SpEstimateListDTO.class,
+                        doc.id,
+                        doc.itId,
+                        cart.itName,
+                        doc.status,
+                        doc.expectedDelivery,
+                        doc.totalAmount,
+                        doc.finalAmount,
+                        doc.memo,
+                        doc.globalMarginRate,
+                        doc.writeDate,
+                        doc.modifyDate,
+                        member.mbId,
+                        member.mbName,
+                        member.mbEmail,
+                        member.mbHp,
+                        member.mbTel,
+                        ExpressionUtils.as(
+                                JPAExpressions.select(item.id.count().intValue())
+                                        .from(item)
+                                        .where(item.estimateDocument.eq(doc)),
+                                "itemCount")
+                ))
+                .from(doc)
+                .innerJoin(cart).on(cart.itId.eq(doc.itId))
+                .innerJoin(cart.shopOrder, order)
+                .leftJoin(cart.member, member)
+                .where(where)
+                .orderBy(doc.writeDate.desc())
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .fetch();
+    }
+
+    @Override
+    public long countEstimateListWithOrder(SpEstimateSearchParam searchParam) {
+        QSpEstimateDocument doc = QSpEstimateDocument.spEstimateDocument;
+        QG5ShopCart cart = QG5ShopCart.g5ShopCart;
+        QG5ShopOrder order = QG5ShopOrder.g5ShopOrder;
+
+        BooleanBuilder where = buildSearchCondition(searchParam, doc);
+
+        Long count = queryFactory
+                .select(doc.count())
+                .from(doc)
+                .innerJoin(cart).on(cart.itId.eq(doc.itId))
+                .innerJoin(cart.shopOrder, order)
+                .where(where)
+                .fetchOne();
+        return count != null ? count : 0L;
     }
 
     @Override

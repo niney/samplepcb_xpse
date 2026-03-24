@@ -28,4 +28,8 @@ public interface SpEstimateDocumentRepositoryCustom {
     List<SpEstimateListDTO> findEstimateListWithPartners(Pageable pageable, SpEstimateSearchParam searchParam);
 
     List<SpEstimateListDTO> findEstimateListWithPartnerOrders(Pageable pageable, SpEstimateSearchParam searchParam);
+
+    List<SpEstimateListDTO> findEstimateListWithOrder(Pageable pageable, SpEstimateSearchParam searchParam);
+
+    long countEstimateListWithOrder(SpEstimateSearchParam searchParam);
 }

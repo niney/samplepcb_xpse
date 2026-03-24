@@ -251,7 +251,7 @@ public class SpEstimateService {
     @Transactional(readOnly = true)
     public CCPagingResult<SpEstimateListDTO> searchWithPartnerOrders(Pageable pageable, SpEstimateSearchParam searchParam) {
         List<SpEstimateListDTO> dtoList = estimateDocumentRepository.findEstimateListWithPartnerOrders(pageable, searchParam);
-        long totalCount = estimateDocumentRepository.countEstimateList(searchParam);
+        long totalCount = estimateDocumentRepository.countEstimateListWithOrder(searchParam);
         return PagingAdapter.toCCPagingResult(searchParam.getQ(), pageable, dtoList, totalCount);
     }
 

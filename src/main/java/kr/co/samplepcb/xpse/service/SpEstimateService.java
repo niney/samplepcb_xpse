@@ -246,6 +246,16 @@ public class SpEstimateService {
     }
 
     /**
+     * 견적서 목록 + 협력사 발주서 통합 검색 (페이징).
+     */
+    @Transactional(readOnly = true)
+    public CCPagingResult<SpEstimateListDTO> searchWithPartnerOrders(Pageable pageable, SpEstimateSearchParam searchParam) {
+        List<SpEstimateListDTO> dtoList = estimateDocumentRepository.findEstimateListWithPartnerOrders(pageable, searchParam);
+        long totalCount = estimateDocumentRepository.countEstimateList(searchParam);
+        return PagingAdapter.toCCPagingResult(searchParam.getQ(), pageable, dtoList, totalCount);
+    }
+
+    /**
      * 견적서 삭제 (문서 + 항목 cascade + 파일).
      */
     @Transactional

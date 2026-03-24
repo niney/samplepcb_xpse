@@ -47,6 +47,9 @@ public class SpEstimateListDTO {
     @Schema(description = "협력사 견적서 목록")
     private List<PartnerEstimateDTO> partnerEstimates;
 
+    @Schema(description = "협력사 발주서 목록")
+    private List<PartnerOrderDTO> partnerOrders;
+
     // === getter / setter ===
 
     public Long getId() { return id; }
@@ -85,6 +88,8 @@ public class SpEstimateListDTO {
     public void setMbTel(String mbTel) { this.mbTel = mbTel; }
     public List<PartnerEstimateDTO> getPartnerEstimates() { return partnerEstimates; }
     public void setPartnerEstimates(List<PartnerEstimateDTO> partnerEstimates) { this.partnerEstimates = partnerEstimates; }
+    public List<PartnerOrderDTO> getPartnerOrders() { return partnerOrders; }
+    public void setPartnerOrders(List<PartnerOrderDTO> partnerOrders) { this.partnerOrders = partnerOrders; }
 
     @Schema(description = "협력사 견적서")
     public static class PartnerEstimateDTO {
@@ -118,6 +123,48 @@ public class SpEstimateListDTO {
         public void setStatus(String status) { this.status = status; }
         public Integer getEstimatePrice() { return estimatePrice; }
         public void setEstimatePrice(Integer estimatePrice) { this.estimatePrice = estimatePrice; }
+        public String getMemo() { return memo; }
+        public void setMemo(String memo) { this.memo = memo; }
+        public Date getDeliveryDate() { return deliveryDate; }
+        public void setDeliveryDate(Date deliveryDate) { this.deliveryDate = deliveryDate; }
+        public Date getWriteDate() { return writeDate; }
+        public void setWriteDate(Date writeDate) { this.writeDate = writeDate; }
+        public Date getModifyDate() { return modifyDate; }
+        public void setModifyDate(Date modifyDate) { this.modifyDate = modifyDate; }
+    }
+
+    @Schema(description = "협력사 발주서")
+    public static class PartnerOrderDTO {
+
+        @Schema(description = "협력사 발주서 ID")
+        private Long id;
+        @Schema(description = "협력사 회원 번호")
+        private int mbNo;
+        @Schema(description = "협력사명")
+        private String partnerName;
+        @Schema(description = "상태")
+        private String status;
+        @Schema(description = "발주 가격")
+        private Integer orderPrice;
+        @Schema(description = "메모")
+        private String memo;
+        @Schema(description = "납기일")
+        private Date deliveryDate;
+        @Schema(description = "작성일")
+        private Date writeDate;
+        @Schema(description = "수정일")
+        private Date modifyDate;
+
+        public Long getId() { return id; }
+        public void setId(Long id) { this.id = id; }
+        public int getMbNo() { return mbNo; }
+        public void setMbNo(int mbNo) { this.mbNo = mbNo; }
+        public String getPartnerName() { return partnerName; }
+        public void setPartnerName(String partnerName) { this.partnerName = partnerName; }
+        public String getStatus() { return status; }
+        public void setStatus(String status) { this.status = status; }
+        public Integer getOrderPrice() { return orderPrice; }
+        public void setOrderPrice(Integer orderPrice) { this.orderPrice = orderPrice; }
         public String getMemo() { return memo; }
         public void setMemo(String memo) { this.memo = memo; }
         public Date getDeliveryDate() { return deliveryDate; }

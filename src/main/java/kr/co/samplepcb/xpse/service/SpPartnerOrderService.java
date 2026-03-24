@@ -44,6 +44,7 @@ public class SpPartnerOrderService {
      * 협력사 발주 다중 생성 (최적화).
      * EstimateItem+Document JOIN FETCH 일괄 조회 → Document 캐싱 upsert → Item 일괄 저장.
      */
+    @SuppressWarnings("unchecked")
     @Transactional
     public CCObjectResult<List<SpPartnerOrderItemCreateDTO>> createPartnerOrderBatch(List<SpPartnerOrderItemCreateDTO> createDTOs) {
         if (createDTOs == null || createDTOs.isEmpty()) {

@@ -17,9 +17,12 @@ import kr.co.samplepcb.xpse.pojo.SpEstimateListDTO;
 import kr.co.samplepcb.xpse.pojo.SpEstimateSearchParam;
 import kr.co.samplepcb.xpse.pojo.SpPartnerEstimateDocDetailDTO;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.data.domain.Pageable;
 
 import kr.co.samplepcb.xpse.domain.entity.SpPartnerEstimateDocument;
+import kr.co.samplepcb.xpse.domain.entity.QSpPartnerOrderDocument;
+import kr.co.samplepcb.xpse.domain.entity.SpPartnerOrderDocument;
 
 import java.util.Collections;
 import java.util.List;
@@ -239,15 +242,48 @@ public class SpEstimateDocumentRepositoryImpl implements SpEstimateDocumentRepos
 
     private SpEstimateListDTO.PartnerEstimateDTO toPartnerEstimateDTO(SpPartnerEstimateDocument ped) {
         SpEstimateListDTO.PartnerEstimateDTO dto = new SpEstimateListDTO.PartnerEstimateDTO();
-        dto.setId(ped.getId());
-        dto.setMbNo(ped.getMbNo());
+        BeanUtils.copyProperties(ped, dto);
         dto.setPartnerName(ped.getMember() != null ? ped.getMember().getMbName() : null);
-        dto.setStatus(ped.getStatus());
-        dto.setEstimatePrice(ped.getEstimatePrice());
-        dto.setMemo(ped.getMemo());
-        dto.setDeliveryDate(ped.getDeliveryDate());
-        dto.setWriteDate(ped.getWriteDate());
-        dto.setModifyDate(ped.getModifyDate());
+        return dto;
+    }
+
+    @Override
+    public List<SpEstimateListDTO> findEstimateListWithPartnerOrders(Pageable pageable, SpEstimateSearchParam searchParam) {
+        List<SpEstimateListDTO> dtoList = findEstimateList(pageable, searchParam);
+        if (dtoList.isEmpty()) {
+            return dtoList;
+        }
+
+        List<Long> docIds = dtoList.stream()
+                .map(SpEstimateListDTO::getId)
+                .collect(Collectors.toList());
+
+        QSpPartnerOrderDocument pod = QSpPartnerOrderDocument.spPartnerOrderDocument;
+        QG5Member partnerMember = new QG5Member("partnerMember");
+
+        List<SpPartnerOrderDocument> pods = queryFactory
+                .selectFrom(pod)
+                .leftJoin(pod.member, partnerMember).fetchJoin()
+                .where(pod.estimateDocument.id.in(docIds))
+                .fetch();
+
+        Map<Long, List<SpEstimateListDTO.PartnerOrderDTO>> orderMap = pods.stream()
+                .collect(Collectors.groupingBy(
+                        p -> p.getEstimateDocument().getId(),
+                        Collectors.mapping(this::toPartnerOrderDTO, Collectors.toList())
+                ));
+
+        dtoList.forEach(dto ->
+                dto.setPartnerOrders(orderMap.getOrDefault(dto.getId(), Collections.emptyList()))
+        );
+
+        return dtoList;
+    }
+
+    private SpEstimateListDTO.PartnerOrderDTO toPartnerOrderDTO(SpPartnerOrderDocument pod) {
+        SpEstimateListDTO.PartnerOrderDTO dto = new SpEstimateListDTO.PartnerOrderDTO();
+        BeanUtils.copyProperties(pod, dto);
+        dto.setPartnerName(pod.getMember() != null ? pod.getMember().getMbName() : null);
         return dto;
     }
 

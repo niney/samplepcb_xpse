@@ -47,6 +47,9 @@ public class SpEstimateItem {
     @Column(name = "confirmed_price", columnDefinition = "text")
     private String confirmedPrice;
 
+    @Column(name = "item_margin_rate")
+    private Integer itemMarginRate;
+
     @Column(name = "write_date", nullable = false)
     private Date writeDate;
 
@@ -84,6 +87,9 @@ public class SpEstimateItem {
 
     public String getConfirmedPrice() { return confirmedPrice; }
     public void setConfirmedPrice(String confirmedPrice) { this.confirmedPrice = confirmedPrice; }
+
+    public Integer getItemMarginRate() { return itemMarginRate; }
+    public void setItemMarginRate(Integer itemMarginRate) { this.itemMarginRate = itemMarginRate; }
 
     public Date getWriteDate() { return writeDate; }
     public void setWriteDate(Date writeDate) { this.writeDate = writeDate; }

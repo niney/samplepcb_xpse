@@ -43,6 +43,10 @@ public class SpEstimateItem {
             foreignKey = @ForeignKey(name = "fk_sp_estimate_item_selected_partner"))
     private SpPartnerEstimateItem selectedPartnerEstimateItem;
 
+    @Lob
+    @Column(name = "confirmed_price", columnDefinition = "text")
+    private String confirmedPrice;
+
     @Column(name = "write_date", nullable = false)
     private Date writeDate;
 
@@ -77,6 +81,9 @@ public class SpEstimateItem {
 
     public SpPartnerEstimateItem getSelectedPartnerEstimateItem() { return selectedPartnerEstimateItem; }
     public void setSelectedPartnerEstimateItem(SpPartnerEstimateItem selectedPartnerEstimateItem) { this.selectedPartnerEstimateItem = selectedPartnerEstimateItem; }
+
+    public String getConfirmedPrice() { return confirmedPrice; }
+    public void setConfirmedPrice(String confirmedPrice) { this.confirmedPrice = confirmedPrice; }
 
     public Date getWriteDate() { return writeDate; }
     public void setWriteDate(Date writeDate) { this.writeDate = writeDate; }

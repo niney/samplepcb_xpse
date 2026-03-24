@@ -198,7 +198,7 @@ public class SpEstimateService {
     /**
      * 견적서 상세 조회 (PK).
      */
-    @Transactional(readOnly = true)
+    @Transactional
     @SuppressWarnings("unchecked")
     public CCObjectResult<SpEstimateDetailDTO> getDetail(Long id) {
         Optional<SpEstimateDocument> optDoc = estimateDocumentRepository.findDetailById(id);
@@ -206,14 +206,18 @@ public class SpEstimateService {
             return dataNotFound();
         }
         SpEstimateDocument doc = optDoc.get();
+        boolean ordered = isOrdered(doc);
+        if (ordered) fillConfirmedPriceIfNeeded(doc);
         List<SpFile> files = spFileRepository.findByRefTypeAndRefId("estimate_document", doc.getId());
-        return CCObjectResult.setSimpleData(spEstimateMapper.toDetailDTO(doc, files));
+        SpEstimateDetailDTO dto = spEstimateMapper.toDetailDTO(doc, files);
+        dto.setOrdered(ordered);
+        return CCObjectResult.setSimpleData(dto);
     }
 
     /**
      * 견적서 상세 조회 (itId).
      */
-    @Transactional(readOnly = true)
+    @Transactional
     @SuppressWarnings("unchecked")
     public CCObjectResult<SpEstimateDetailDTO> getDetailByItId(String itId) {
         Optional<SpEstimateDocument> optDoc = estimateDocumentRepository.findDetailByItId(itId);
@@ -221,8 +225,43 @@ public class SpEstimateService {
             return dataNotFound();
         }
         SpEstimateDocument doc = optDoc.get();
+        boolean ordered = isOrdered(doc);
+        if (ordered) fillConfirmedPriceIfNeeded(doc);
         List<SpFile> files = spFileRepository.findByRefTypeAndRefId("estimate_document", doc.getId());
-        return CCObjectResult.setSimpleData(spEstimateMapper.toDetailDTO(doc, files));
+        SpEstimateDetailDTO dto = spEstimateMapper.toDetailDTO(doc, files);
+        dto.setOrdered(ordered);
+        return CCObjectResult.setSimpleData(dto);
+    }
+
+    private boolean isOrdered(SpEstimateDocument doc) {
+        return doc.getShopCart() != null && doc.getShopCart().getOdId() > 0;
+    }
+
+    /**
+     * confirmedPrice가 비어있는 항목에 협력사 견적 가격 또는 selectedPrice를 복사.
+     * 우선순위: selectedPartnerEstimateItem.selectedPrice > item.selectedPrice
+     */
+    private void fillConfirmedPriceIfNeeded(SpEstimateDocument doc) {
+        boolean changed = false;
+        for (SpEstimateItem item : doc.getItems()) {
+            if (item.getConfirmedPrice() != null) {
+                continue;
+            }
+            String price = null;
+            if (item.getSelectedPartnerEstimateItem() != null
+                    && item.getSelectedPartnerEstimateItem().getSelectedPrice() != null) {
+                price = item.getSelectedPartnerEstimateItem().getSelectedPrice();
+            } else if (item.getSelectedPrice() != null) {
+                price = item.getSelectedPrice();
+            }
+            if (price != null) {
+                item.setConfirmedPrice(price);
+                changed = true;
+            }
+        }
+        if (changed) {
+            estimateItemRepository.saveAll(doc.getItems());
+        }
     }
 
     /**

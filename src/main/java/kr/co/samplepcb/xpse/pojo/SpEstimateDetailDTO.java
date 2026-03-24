@@ -44,6 +44,9 @@ public class SpEstimateDetailDTO {
     @Schema(description = "회원 휴대폰번호")
     private String mbHp;
 
+    @Schema(description = "주문 여부")
+    private boolean ordered;
+
     @Schema(description = "견적 항목 리스트")
     private List<EstimateItemDTO> items;
     @Schema(description = "첨부파일 리스트")
@@ -55,6 +58,8 @@ public class SpEstimateDetailDTO {
         private Object analysisMeta;
         @Schema(description = "선택된 가격 (JSON)")
         private Object selectedPrice;
+        @Schema(description = "주문 확정 가격 (JSON)")
+        private Object confirmedPrice;
         @Schema(description = "선택된 협력사 견적 항목 상세")
         private SelectedPartnerEstimateItemDTO selectedPartnerEstimateItemDetail;
         @Schema(description = "작성일")
@@ -68,6 +73,8 @@ public class SpEstimateDetailDTO {
         public void setAnalysisMeta(Object analysisMeta) { this.analysisMeta = analysisMeta; }
         public Object getSelectedPrice() { return selectedPrice; }
         public void setSelectedPrice(Object selectedPrice) { this.selectedPrice = selectedPrice; }
+        public Object getConfirmedPrice() { return confirmedPrice; }
+        public void setConfirmedPrice(Object confirmedPrice) { this.confirmedPrice = confirmedPrice; }
         public SelectedPartnerEstimateItemDTO getSelectedPartnerEstimateItemDetail() { return selectedPartnerEstimateItemDetail; }
         public void setSelectedPartnerEstimateItemDetail(SelectedPartnerEstimateItemDTO selectedPartnerEstimateItemDetail) { this.selectedPartnerEstimateItemDetail = selectedPartnerEstimateItemDetail; }
         public Date getWriteDate() { return writeDate; }
@@ -333,6 +340,8 @@ public class SpEstimateDetailDTO {
     public void setMbTel(String mbTel) { this.mbTel = mbTel; }
     public String getMbHp() { return mbHp; }
     public void setMbHp(String mbHp) { this.mbHp = mbHp; }
+    public boolean isOrdered() { return ordered; }
+    public void setOrdered(boolean ordered) { this.ordered = ordered; }
     public List<EstimateItemDTO> getItems() { return items; }
     public void setItems(List<EstimateItemDTO> items) { this.items = items; }
     public List<FileDTO> getFiles() { return files; }

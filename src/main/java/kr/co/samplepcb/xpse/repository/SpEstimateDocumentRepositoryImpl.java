@@ -49,6 +49,13 @@ public class SpEstimateDocumentRepositoryImpl implements SpEstimateDocumentRepos
         QSpEstimateItem item = QSpEstimateItem.spEstimateItem;
 
         BooleanBuilder where = buildSearchCondition(searchParam, doc);
+        if (searchParam.getPartnerMbNo() != null) {
+            QSpPartnerEstimateDocument ped = QSpPartnerEstimateDocument.spPartnerEstimateDocument;
+            where.and(JPAExpressions.selectOne().from(ped)
+                    .where(ped.estimateDocument.eq(doc)
+                            .and(ped.mbNo.eq(searchParam.getPartnerMbNo().intValue())))
+                    .exists());
+        }
 
         return queryFactory
                 .select(Projections.bean(SpEstimateListDTO.class,
@@ -89,6 +96,13 @@ public class SpEstimateDocumentRepositoryImpl implements SpEstimateDocumentRepos
         QSpEstimateDocument doc = QSpEstimateDocument.spEstimateDocument;
 
         BooleanBuilder where = buildSearchCondition(searchParam, doc);
+        if (searchParam.getPartnerMbNo() != null) {
+            QSpPartnerEstimateDocument ped = QSpPartnerEstimateDocument.spPartnerEstimateDocument;
+            where.and(JPAExpressions.selectOne().from(ped)
+                    .where(ped.estimateDocument.eq(doc)
+                            .and(ped.mbNo.eq(searchParam.getPartnerMbNo().intValue())))
+                    .exists());
+        }
 
         Long count = queryFactory
                 .select(doc.count())
@@ -107,16 +121,6 @@ public class SpEstimateDocumentRepositoryImpl implements SpEstimateDocumentRepos
         if (StringUtils.isNotBlank(searchParam.getStatus())) {
             builder.and(doc.status.eq(searchParam.getStatus()));
         }
-        if (searchParam.getPartnerMbNo() != null) {
-            QSpPartnerEstimateDocument ped = QSpPartnerEstimateDocument.spPartnerEstimateDocument;
-            builder.and(JPAExpressions
-                    .selectOne()
-                    .from(ped)
-                    .where(ped.estimateDocument.eq(doc)
-                            .and(ped.mbNo.eq(searchParam.getPartnerMbNo().intValue())))
-                    .exists());
-        }
-
         return builder;
     }
 
@@ -281,10 +285,16 @@ public class SpEstimateDocumentRepositoryImpl implements SpEstimateDocumentRepos
         QSpPartnerOrderDocument pod = QSpPartnerOrderDocument.spPartnerOrderDocument;
         QG5Member partnerMember = new QG5Member("partnerMember");
 
+        BooleanBuilder orderWhere = new BooleanBuilder();
+        orderWhere.and(pod.estimateDocument.id.in(docIds));
+        if (searchParam.getPartnerMbNo() != null) {
+            orderWhere.and(pod.mbNo.eq(searchParam.getPartnerMbNo().intValue()));
+        }
+
         List<SpPartnerOrderDocument> pods = queryFactory
                 .selectFrom(pod)
                 .leftJoin(pod.member, partnerMember).fetchJoin()
-                .where(pod.estimateDocument.id.in(docIds))
+                .where(orderWhere)
                 .fetch();
 
         Map<Long, List<SpEstimateListDTO.PartnerOrderDTO>> orderMap = pods.stream()
@@ -316,6 +326,13 @@ public class SpEstimateDocumentRepositoryImpl implements SpEstimateDocumentRepos
         QSpEstimateItem item = QSpEstimateItem.spEstimateItem;
 
         BooleanBuilder where = buildSearchCondition(searchParam, doc);
+        if (searchParam.getPartnerMbNo() != null) {
+            QSpPartnerOrderDocument pod = QSpPartnerOrderDocument.spPartnerOrderDocument;
+            where.and(JPAExpressions.selectOne().from(pod)
+                    .where(pod.estimateDocument.eq(doc)
+                            .and(pod.mbNo.eq(searchParam.getPartnerMbNo().intValue())))
+                    .exists());
+        }
 
         return queryFactory
                 .select(Projections.bean(SpEstimateListDTO.class,
@@ -359,6 +376,13 @@ public class SpEstimateDocumentRepositoryImpl implements SpEstimateDocumentRepos
         QG5ShopOrder order = QG5ShopOrder.g5ShopOrder;
 
         BooleanBuilder where = buildSearchCondition(searchParam, doc);
+        if (searchParam.getPartnerMbNo() != null) {
+            QSpPartnerOrderDocument pod = QSpPartnerOrderDocument.spPartnerOrderDocument;
+            where.and(JPAExpressions.selectOne().from(pod)
+                    .where(pod.estimateDocument.eq(doc)
+                            .and(pod.mbNo.eq(searchParam.getPartnerMbNo().intValue())))
+                    .exists());
+        }
 
         Long count = queryFactory
                 .select(doc.count())

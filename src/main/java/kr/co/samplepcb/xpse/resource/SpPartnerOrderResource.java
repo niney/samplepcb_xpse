@@ -13,10 +13,12 @@ import kr.co.samplepcb.xpse.pojo.SpOrderSearchParam;
 import kr.co.samplepcb.xpse.pojo.SpPartnerOrderDetailDTO;
 import kr.co.samplepcb.xpse.pojo.SpPartnerOrderItemCreateDTO;
 import kr.co.samplepcb.xpse.security.JwtAuth;
+import kr.co.samplepcb.xpse.security.JwtUserPrincipal;
 import kr.co.samplepcb.xpse.service.SpEstimateService;
 import kr.co.samplepcb.xpse.service.SpOrderService;
 import kr.co.samplepcb.xpse.service.SpPartnerOrderService;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -48,7 +50,11 @@ public class SpPartnerOrderResource {
     @Operation(summary = "견적서 + 협력사 발주서 검색", description = "견적서 목록을 협력사 발주서 하위 리스트와 함께 페이징 조건으로 검색합니다")
     @JwtAuth
     @GetMapping("/_searchWithPartnerOrders")
-    public CCPagingResult<SpEstimateListDTO> searchWithPartnerOrders(Pageable pageable, SpEstimateSearchParam searchParam) {
+    public CCPagingResult<SpEstimateListDTO> searchWithPartnerOrders(Pageable pageable, SpEstimateSearchParam searchParam,
+                                                                       @AuthenticationPrincipal JwtUserPrincipal principal) {
+        if (principal.getMbLevel() != 10) {
+            searchParam.setPartnerMbNo(principal.getMbNo());
+        }
         return this.spEstimateService.searchWithPartnerOrders(pageable, searchParam);
     }
 

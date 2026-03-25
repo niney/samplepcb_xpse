@@ -11,4 +11,6 @@ public interface SpPartnerOrderDocumentRepository extends JpaRepository<SpPartne
     Optional<SpPartnerOrderDocument> findByEstimateDocumentIdAndMbNo(Long estimateDocumentId, int mbNo);
 
     List<SpPartnerOrderDocument> findByEstimateDocumentItId(String itId);
+
+    List<SpPartnerOrderDocument> findByEstimateDocumentItIdAndMbNo(String itId, int mbNo);
 }

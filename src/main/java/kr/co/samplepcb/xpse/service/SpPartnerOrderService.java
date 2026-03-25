@@ -79,8 +79,10 @@ public class SpPartnerOrderService {
      * 하나의 itId에 여러 협력사 발주서가 있을 수 있으므로 List 반환.
      */
     @Transactional(readOnly = true)
-    public CCObjectResult<List<SpPartnerOrderDetailDTO>> getOrderDetailByItId(String itId) {
-        List<SpPartnerOrderDocument> orderDocs = partnerOrderDocumentRepository.findByEstimateDocumentItId(itId);
+    public CCObjectResult<List<SpPartnerOrderDetailDTO>> getOrderDetailByItId(String itId, Long partnerMbNo) {
+        List<SpPartnerOrderDocument> orderDocs = partnerMbNo != null
+                ? partnerOrderDocumentRepository.findByEstimateDocumentItIdAndMbNo(itId, partnerMbNo.intValue())
+                : partnerOrderDocumentRepository.findByEstimateDocumentItId(itId);
         List<SpPartnerOrderDetailDTO> dtoList = orderDocs.stream()
                 .map(this::buildOrderDetailDTO)
                 .toList();

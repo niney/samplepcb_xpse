@@ -70,10 +70,15 @@ public class SpEstimateCreateDTO {
         @Schema(description = "선택된 가격 (JSON text)")
         private String selectedPrice;
 
+        @Schema(description = "항목 마진율")
+        private Integer itemMarginRate;
+
         public String getAnalysisMeta() { return analysisMeta; }
         public void setAnalysisMeta(String analysisMeta) { this.analysisMeta = analysisMeta; }
         public String getSelectedPrice() { return selectedPrice; }
         public void setSelectedPrice(String selectedPrice) { this.selectedPrice = selectedPrice; }
+        public Integer getItemMarginRate() { return itemMarginRate; }
+        public void setItemMarginRate(Integer itemMarginRate) { this.itemMarginRate = itemMarginRate; }
     }
 
     @Schema(description = "첨부파일 항목")

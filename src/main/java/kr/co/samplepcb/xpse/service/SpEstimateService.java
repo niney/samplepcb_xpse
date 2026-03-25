@@ -234,7 +234,7 @@ public class SpEstimateService {
     }
 
     private boolean isOrdered(SpEstimateDocument doc) {
-        return doc.getShopCart() != null && doc.getShopCart().getOdId() > 0;
+        return doc.getShopCart() != null && doc.getShopCart().getShopOrder() != null;
     }
 
     /**

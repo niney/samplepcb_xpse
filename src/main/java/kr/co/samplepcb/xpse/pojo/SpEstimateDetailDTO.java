@@ -60,6 +60,8 @@ public class SpEstimateDetailDTO {
         private Object selectedPrice;
         @Schema(description = "주문 확정 가격 (JSON)")
         private Object confirmedPrice;
+        @Schema(description = "항목 마진율")
+        private Integer itemMarginRate;
         @Schema(description = "선택된 협력사 견적 항목 상세")
         private SelectedPartnerEstimateItemDTO selectedPartnerEstimateItemDetail;
         @Schema(description = "작성일")
@@ -75,6 +77,8 @@ public class SpEstimateDetailDTO {
         public void setSelectedPrice(Object selectedPrice) { this.selectedPrice = selectedPrice; }
         public Object getConfirmedPrice() { return confirmedPrice; }
         public void setConfirmedPrice(Object confirmedPrice) { this.confirmedPrice = confirmedPrice; }
+        public Integer getItemMarginRate() { return itemMarginRate; }
+        public void setItemMarginRate(Integer itemMarginRate) { this.itemMarginRate = itemMarginRate; }
         public SelectedPartnerEstimateItemDTO getSelectedPartnerEstimateItemDetail() { return selectedPartnerEstimateItemDetail; }
         public void setSelectedPartnerEstimateItemDetail(SelectedPartnerEstimateItemDTO selectedPartnerEstimateItemDetail) { this.selectedPartnerEstimateItemDetail = selectedPartnerEstimateItemDetail; }
         public Date getWriteDate() { return writeDate; }

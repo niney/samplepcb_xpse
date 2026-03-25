@@ -226,10 +226,16 @@ public class SpEstimateDocumentRepositoryImpl implements SpEstimateDocumentRepos
         QSpPartnerEstimateDocument ped = QSpPartnerEstimateDocument.spPartnerEstimateDocument;
         QG5Member partnerMember = new QG5Member("partnerMember");
 
+        BooleanBuilder partnerWhere = new BooleanBuilder();
+        partnerWhere.and(ped.estimateDocument.id.in(docIds));
+        if (searchParam.getPartnerMbNo() != null) {
+            partnerWhere.and(ped.mbNo.eq(searchParam.getPartnerMbNo().intValue()));
+        }
+
         List<SpPartnerEstimateDocument> peds = queryFactory
                 .selectFrom(ped)
                 .leftJoin(ped.member, partnerMember).fetchJoin()
-                .where(ped.estimateDocument.id.in(docIds))
+                .where(partnerWhere)
                 .fetch();
 
         Map<Long, List<SpEstimateListDTO.PartnerEstimateDTO>> partnerMap = peds.stream()

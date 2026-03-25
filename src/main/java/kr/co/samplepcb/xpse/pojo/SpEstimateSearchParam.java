@@ -15,4 +15,10 @@ public class SpEstimateSearchParam extends SearchParam {
     public void setItId(String itId) { this.itId = itId; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    @Schema(description = "협력사 mbNo 필터 (JWT에서 자동 세팅)", hidden = true)
+    private Long partnerMbNo;
+
+    public Long getPartnerMbNo() { return partnerMbNo; }
+    public void setPartnerMbNo(Long partnerMbNo) { this.partnerMbNo = partnerMbNo; }
 }

@@ -124,7 +124,11 @@ public class SpEstimateResource {
     @Operation(summary = "견적서 + 협력사 견적서 검색", description = "견적서 목록을 협력사 견적서 하위 리스트와 함께 페이징 조건으로 검색합니다")
     @JwtAuth
     @GetMapping("/_searchWithPartners")
-    public CCPagingResult<SpEstimateListDTO> searchWithEstimate(Pageable pageable, SpEstimateSearchParam searchParam) {
+    public CCPagingResult<SpEstimateListDTO> searchWithEstimate(Pageable pageable, SpEstimateSearchParam searchParam,
+                                                                  @AuthenticationPrincipal JwtUserPrincipal principal) {
+        if (principal.getMbLevel() != 10) {
+            searchParam.setPartnerMbNo(principal.getMbNo());
+        }
         return this.spEstimateService.searchWithPartners(pageable, searchParam);
     }
 }

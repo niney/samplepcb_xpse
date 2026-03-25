@@ -107,6 +107,15 @@ public class SpEstimateDocumentRepositoryImpl implements SpEstimateDocumentRepos
         if (StringUtils.isNotBlank(searchParam.getStatus())) {
             builder.and(doc.status.eq(searchParam.getStatus()));
         }
+        if (searchParam.getPartnerMbNo() != null) {
+            QSpPartnerEstimateDocument ped = QSpPartnerEstimateDocument.spPartnerEstimateDocument;
+            builder.and(JPAExpressions
+                    .selectOne()
+                    .from(ped)
+                    .where(ped.estimateDocument.eq(doc)
+                            .and(ped.mbNo.eq(searchParam.getPartnerMbNo().intValue())))
+                    .exists());
+        }
 
         return builder;
     }

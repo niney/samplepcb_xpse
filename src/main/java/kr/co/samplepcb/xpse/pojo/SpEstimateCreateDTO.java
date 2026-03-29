@@ -53,6 +53,12 @@ public class SpEstimateCreateDTO {
     @Schema(description = "글로벌 마진율")
     private Integer globalMarginRate;
 
+    @Schema(description = "세트수량")
+    private Integer setQuantity;
+
+    @Schema(description = "예비수량")
+    private Integer spareQuantity;
+
     @Schema(description = "첨부파일 리스트")
     private List<FileDTO> files;
 
@@ -151,6 +157,10 @@ public class SpEstimateCreateDTO {
     public void setMemo(String memo) { this.memo = memo; }
     public Integer getGlobalMarginRate() { return globalMarginRate; }
     public void setGlobalMarginRate(Integer globalMarginRate) { this.globalMarginRate = globalMarginRate; }
+    public Integer getSetQuantity() { return setQuantity; }
+    public void setSetQuantity(Integer setQuantity) { this.setQuantity = setQuantity; }
+    public Integer getSpareQuantity() { return spareQuantity; }
+    public void setSpareQuantity(Integer spareQuantity) { this.spareQuantity = spareQuantity; }
     public List<FileDTO> getFiles() { return files; }
     public void setFiles(List<FileDTO> files) { this.files = files; }
     public List<EstimateItemDTO> getItems() { return items; }

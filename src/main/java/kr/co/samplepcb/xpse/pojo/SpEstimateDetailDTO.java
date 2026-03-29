@@ -30,6 +30,10 @@ public class SpEstimateDetailDTO {
     private String memo;
     @Schema(description = "글로벌 마진율")
     private Integer globalMarginRate;
+    @Schema(description = "세트수량")
+    private Integer setQuantity;
+    @Schema(description = "예비수량")
+    private Integer spareQuantity;
     @Schema(description = "작성일")
     private Date writeDate;
     @Schema(description = "수정일")
@@ -144,8 +148,8 @@ public class SpEstimateDetailDTO {
         private String manufacturerName;
         @Schema(description = "부품 패키징")
         private String partsPackaging;
-        @Schema(description = "패키징 상세")
-        private String packaging;
+        @Schema(description = "패키징 상세 (JSON)")
+        private Object packaging;
         @Schema(description = "최소주문수량")
         private Integer moq;
         @Schema(description = "가격")
@@ -207,6 +211,13 @@ public class SpEstimateDetailDTO {
         @Schema(description = "최종 수정일")
         private Date lastModifiedDate;
 
+        @Schema(description = "가격 리스트")
+        private List<PcbPartPriceDTO> prices;
+        @Schema(description = "이미지 리스트")
+        private List<PcbPartImageDTO> images;
+        @Schema(description = "스펙 리스트")
+        private List<PcbPartSpecDTO> specs;
+
         public Long getId() { return id; }
         public void setId(Long id) { this.id = id; }
         public String getDocId() { return docId; }
@@ -219,8 +230,8 @@ public class SpEstimateDetailDTO {
         public void setManufacturerName(String manufacturerName) { this.manufacturerName = manufacturerName; }
         public String getPartsPackaging() { return partsPackaging; }
         public void setPartsPackaging(String partsPackaging) { this.partsPackaging = partsPackaging; }
-        public String getPackaging() { return packaging; }
-        public void setPackaging(String packaging) { this.packaging = packaging; }
+        public Object getPackaging() { return packaging; }
+        public void setPackaging(Object packaging) { this.packaging = packaging; }
         public Integer getMoq() { return moq; }
         public void setMoq(Integer moq) { this.moq = moq; }
         public Integer getPrice() { return price; }
@@ -281,6 +292,116 @@ public class SpEstimateDetailDTO {
         public void setWriteDate(Date writeDate) { this.writeDate = writeDate; }
         public Date getLastModifiedDate() { return lastModifiedDate; }
         public void setLastModifiedDate(Date lastModifiedDate) { this.lastModifiedDate = lastModifiedDate; }
+        public List<PcbPartPriceDTO> getPrices() { return prices; }
+        public void setPrices(List<PcbPartPriceDTO> prices) { this.prices = prices; }
+        public List<PcbPartImageDTO> getImages() { return images; }
+        public void setImages(List<PcbPartImageDTO> images) { this.images = images; }
+        public List<PcbPartSpecDTO> getSpecs() { return specs; }
+        public void setSpecs(List<PcbPartSpecDTO> specs) { this.specs = specs; }
+    }
+
+    @Schema(description = "PCB 부품 가격")
+    public static class PcbPartPriceDTO {
+        @Schema(description = "가격 ID")
+        private Long id;
+        @Schema(description = "유통사")
+        private String distributor;
+        @Schema(description = "SKU")
+        private String sku;
+        @Schema(description = "재고")
+        private int stock;
+        @Schema(description = "최소주문수량")
+        private int moq;
+        @Schema(description = "패키징")
+        private String pkg;
+        @Schema(description = "갱신일")
+        private Date updatedDate;
+        @Schema(description = "구간 가격 리스트")
+        private List<PcbPartPriceStepDTO> priceSteps;
+
+        public Long getId() { return id; }
+        public void setId(Long id) { this.id = id; }
+        public String getDistributor() { return distributor; }
+        public void setDistributor(String distributor) { this.distributor = distributor; }
+        public String getSku() { return sku; }
+        public void setSku(String sku) { this.sku = sku; }
+        public int getStock() { return stock; }
+        public void setStock(int stock) { this.stock = stock; }
+        public int getMoq() { return moq; }
+        public void setMoq(int moq) { this.moq = moq; }
+        public String getPkg() { return pkg; }
+        public void setPkg(String pkg) { this.pkg = pkg; }
+        public Date getUpdatedDate() { return updatedDate; }
+        public void setUpdatedDate(Date updatedDate) { this.updatedDate = updatedDate; }
+        public List<PcbPartPriceStepDTO> getPriceSteps() { return priceSteps; }
+        public void setPriceSteps(List<PcbPartPriceStepDTO> priceSteps) { this.priceSteps = priceSteps; }
+    }
+
+    @Schema(description = "PCB 부품 구간 가격")
+    public static class PcbPartPriceStepDTO {
+        @Schema(description = "구간 ID")
+        private Long id;
+        @Schema(description = "구간 수량")
+        private int breakQuantity;
+        @Schema(description = "단가")
+        private int unitPrice;
+
+        public Long getId() { return id; }
+        public void setId(Long id) { this.id = id; }
+        public int getBreakQuantity() { return breakQuantity; }
+        public void setBreakQuantity(int breakQuantity) { this.breakQuantity = breakQuantity; }
+        public int getUnitPrice() { return unitPrice; }
+        public void setUnitPrice(int unitPrice) { this.unitPrice = unitPrice; }
+    }
+
+    @Schema(description = "PCB 부품 이미지")
+    public static class PcbPartImageDTO {
+        @Schema(description = "이미지 ID")
+        private Long id;
+        @Schema(description = "업로드된 파일명")
+        private String uploadFileName;
+        @Schema(description = "원본 파일명")
+        private String originFileName;
+        @Schema(description = "경로 토큰")
+        private String pathToken;
+        @Schema(description = "파일 크기")
+        private String size;
+
+        public Long getId() { return id; }
+        public void setId(Long id) { this.id = id; }
+        public String getUploadFileName() { return uploadFileName; }
+        public void setUploadFileName(String uploadFileName) { this.uploadFileName = uploadFileName; }
+        public String getOriginFileName() { return originFileName; }
+        public void setOriginFileName(String originFileName) { this.originFileName = originFileName; }
+        public String getPathToken() { return pathToken; }
+        public void setPathToken(String pathToken) { this.pathToken = pathToken; }
+        public String getSize() { return size; }
+        public void setSize(String size) { this.size = size; }
+    }
+
+    @Schema(description = "PCB 부품 스펙")
+    public static class PcbPartSpecDTO {
+        @Schema(description = "스펙 ID")
+        private Long id;
+        @Schema(description = "표시값")
+        private String displayValue;
+        @Schema(description = "속성 그룹")
+        private String attrGroup;
+        @Schema(description = "속성명")
+        private String attrName;
+        @Schema(description = "속성 약어")
+        private String attrShortname;
+
+        public Long getId() { return id; }
+        public void setId(Long id) { this.id = id; }
+        public String getDisplayValue() { return displayValue; }
+        public void setDisplayValue(String displayValue) { this.displayValue = displayValue; }
+        public String getAttrGroup() { return attrGroup; }
+        public void setAttrGroup(String attrGroup) { this.attrGroup = attrGroup; }
+        public String getAttrName() { return attrName; }
+        public void setAttrName(String attrName) { this.attrName = attrName; }
+        public String getAttrShortname() { return attrShortname; }
+        public void setAttrShortname(String attrShortname) { this.attrShortname = attrShortname; }
     }
 
     @Schema(description = "첨부파일")
@@ -332,6 +453,10 @@ public class SpEstimateDetailDTO {
     public void setMemo(String memo) { this.memo = memo; }
     public Integer getGlobalMarginRate() { return globalMarginRate; }
     public void setGlobalMarginRate(Integer globalMarginRate) { this.globalMarginRate = globalMarginRate; }
+    public Integer getSetQuantity() { return setQuantity; }
+    public void setSetQuantity(Integer setQuantity) { this.setQuantity = setQuantity; }
+    public Integer getSpareQuantity() { return spareQuantity; }
+    public void setSpareQuantity(Integer spareQuantity) { this.spareQuantity = spareQuantity; }
     public Date getWriteDate() { return writeDate; }
     public void setWriteDate(Date writeDate) { this.writeDate = writeDate; }
     public Date getModifyDate() { return modifyDate; }

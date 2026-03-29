@@ -51,6 +51,12 @@ public class SpEstimateDocument {
     @Column(name = "global_margin_rate")
     private Integer globalMarginRate;
 
+    @Column(name = "set_quantity")
+    private Integer setQuantity;
+
+    @Column(name = "spare_quantity")
+    private Integer spareQuantity;
+
     @Column(name = "write_date")
     private Date writeDate;
 
@@ -100,6 +106,12 @@ public class SpEstimateDocument {
 
     public Integer getGlobalMarginRate() { return globalMarginRate; }
     public void setGlobalMarginRate(Integer globalMarginRate) { this.globalMarginRate = globalMarginRate; }
+
+    public Integer getSetQuantity() { return setQuantity; }
+    public void setSetQuantity(Integer setQuantity) { this.setQuantity = setQuantity; }
+
+    public Integer getSpareQuantity() { return spareQuantity; }
+    public void setSpareQuantity(Integer spareQuantity) { this.spareQuantity = spareQuantity; }
 
     public Date getWriteDate() { return writeDate; }
     public void setWriteDate(Date writeDate) { this.writeDate = writeDate; }

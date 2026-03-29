@@ -1,6 +1,10 @@
 package kr.co.samplepcb.xpse.mapper;
 
 import kr.co.samplepcb.xpse.domain.entity.PcbParts;
+import kr.co.samplepcb.xpse.domain.entity.PcbPartsImage;
+import kr.co.samplepcb.xpse.domain.entity.PcbPartsPrice;
+import kr.co.samplepcb.xpse.domain.entity.PcbPartsPriceStep;
+import kr.co.samplepcb.xpse.domain.entity.PcbPartsSpec;
 import kr.co.samplepcb.xpse.domain.entity.SpEstimateDocument;
 import kr.co.samplepcb.xpse.domain.entity.SpEstimateItem;
 import kr.co.samplepcb.xpse.domain.entity.SpFile;
@@ -40,7 +44,16 @@ public interface SpEstimateMapper {
     @Mapping(target = "selectedPrice", source = "selectedPrice", qualifiedByName = "parseJson")
     SpEstimateDetailDTO.SelectedPartnerEstimateItemDTO toSelectedPartnerEstimateItemDTO(SpPartnerEstimateItem item);
 
+    @Mapping(target = "packaging", source = "packaging", qualifiedByName = "parseJson")
     SpEstimateDetailDTO.PcbPartDTO toPcbPartDTO(PcbParts pcbParts);
+
+    SpEstimateDetailDTO.PcbPartPriceDTO toPcbPartPriceDTO(PcbPartsPrice price);
+
+    SpEstimateDetailDTO.PcbPartPriceStepDTO toPcbPartPriceStepDTO(PcbPartsPriceStep step);
+
+    SpEstimateDetailDTO.PcbPartImageDTO toPcbPartImageDTO(PcbPartsImage image);
+
+    SpEstimateDetailDTO.PcbPartSpecDTO toPcbPartSpecDTO(PcbPartsSpec spec);
 
     SpEstimateDetailDTO.FileDTO toFileDTO(SpFile file);
 

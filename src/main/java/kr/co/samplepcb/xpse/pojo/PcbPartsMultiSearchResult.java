@@ -5,6 +5,7 @@ import java.util.List;
 public class PcbPartsMultiSearchResult {
     private SourceResult samplepcb;
     private SourceResult digikey;
+    private SourceResult unikeyic;
 
     public SourceResult getSamplepcb() {
         return samplepcb;
@@ -20,6 +21,14 @@ public class PcbPartsMultiSearchResult {
 
     public void setDigikey(SourceResult digikey) {
         this.digikey = digikey;
+    }
+
+    public SourceResult getUnikeyic() {
+        return unikeyic;
+    }
+
+    public void setUnikeyic(SourceResult unikeyic) {
+        this.unikeyic = unikeyic;
     }
 
     public static class SourceResult {

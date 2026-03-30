@@ -7,6 +7,8 @@ import kr.co.samplepcb.xpse.pojo.PcbPartsMultiSearchResult;
 import kr.co.samplepcb.xpse.pojo.PcbPartsSearchField;
 import kr.co.samplepcb.xpse.service.common.sub.DigikeyPartsParserSubService;
 import kr.co.samplepcb.xpse.service.common.sub.DigikeySubService;
+import kr.co.samplepcb.xpse.service.common.sub.UniKeyICPartsParserSubService;
+import kr.co.samplepcb.xpse.service.common.sub.UniKeyICSubService;
 import kr.co.samplepcb.xpse.util.CoolElasticUtils;
 import kr.co.samplepcb.xpse.util.PcbPartsUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -31,13 +33,19 @@ public class PcbPartsMultiSearchService {
     private final ElasticsearchOperations elasticsearchOperations;
     private final DigikeySubService digikeySubService;
     private final DigikeyPartsParserSubService digikeyPartsParserSubService;
+    private final UniKeyICSubService uniKeyICSubService;
+    private final UniKeyICPartsParserSubService uniKeyICPartsParserSubService;
 
     public PcbPartsMultiSearchService(ElasticsearchOperations elasticsearchOperations,
                                       DigikeySubService digikeySubService,
-                                      DigikeyPartsParserSubService digikeyPartsParserSubService) {
+                                      DigikeyPartsParserSubService digikeyPartsParserSubService,
+                                      UniKeyICSubService uniKeyICSubService,
+                                      UniKeyICPartsParserSubService uniKeyICPartsParserSubService) {
         this.elasticsearchOperations = elasticsearchOperations;
         this.digikeySubService = digikeySubService;
         this.digikeyPartsParserSubService = digikeyPartsParserSubService;
+        this.uniKeyICSubService = uniKeyICSubService;
+        this.uniKeyICPartsParserSubService = uniKeyICPartsParserSubService;
     }
 
     /**
@@ -77,12 +85,17 @@ public class PcbPartsMultiSearchService {
         Mono<PcbPartsMultiSearchResult.SourceResult> digikeyMono =
                 searchDigikey(searchWord, safeReferencePrefix);
 
-        // 두 소스를 병렬로 실행하고 결과를 합쳐서 반환
-        return Mono.zip(samplepcbMono, digikeyMono)
+        // UniKeyIC API 검색 — 논블로킹 WebClient 기반
+        Mono<PcbPartsMultiSearchResult.SourceResult> unikeyicMono =
+                searchUniKeyIC(searchWord);
+
+        // 세 소스를 병렬로 실행하고 결과를 합쳐서 반환
+        return Mono.zip(samplepcbMono, digikeyMono, unikeyicMono)
                 .map(tuple -> {
                     PcbPartsMultiSearchResult result = new PcbPartsMultiSearchResult();
                     result.setSamplepcb(tuple.getT1());
                     result.setDigikey(tuple.getT2());
+                    result.setUnikeyic(tuple.getT3());
                     return (CCResult) CCObjectResult.setSimpleData(result);
                 })
                 .onErrorResume(e -> {
@@ -171,6 +184,23 @@ public class PcbPartsMultiSearchService {
                     return new PcbPartsMultiSearchResult.SourceResult("keyword", Collections.emptyList());
                 })
                 .onErrorReturn(new PcbPartsMultiSearchResult.SourceResult("keyword", Collections.emptyList()));
+    }
+
+    /**
+     * UniKeyIC 검색: 부품번호 정확매칭
+     */
+    private Mono<PcbPartsMultiSearchResult.SourceResult> searchUniKeyIC(String searchWord) {
+        return uniKeyICSubService.searchByPartNumber(searchWord)
+                .map(response -> {
+                    if (response.isResult() && response.getData() != null) {
+                        List<PcbPartsSearch> products = uniKeyICPartsParserSubService.parseProducts(response.getData());
+                        if (!products.isEmpty()) {
+                            return new PcbPartsMultiSearchResult.SourceResult("exact", products);
+                        }
+                    }
+                    return new PcbPartsMultiSearchResult.SourceResult("exact", Collections.emptyList());
+                })
+                .onErrorReturn(new PcbPartsMultiSearchResult.SourceResult("exact", Collections.emptyList()));
     }
 
     /**

@@ -1,5 +1,6 @@
 package kr.co.samplepcb.xpse.service;
 
+import kr.co.samplepcb.xpse.domain.entity.PcbParts;
 import tools.jackson.databind.ObjectMapper;
 import coolib.common.CCObjectResult;
 import coolib.common.CCPagingResult;
@@ -909,6 +910,59 @@ public class PcbPartsService {
             }
         }
         return CCObjectResult.setSimpleData(savedList);
+    }
+
+    /**
+     * 외부 API 결과를 벌크로 색인합니다. serviceType + partName 기준으로 기존 데이터를 조회하여
+     * 있으면 업데이트, 없으면 신규 생성합니다.
+     *
+     * @param parts 외부 API에서 파싱된 PcbPartsSearch 리스트
+     * @return 색인된 PcbPartsSearch 리스트 (id 포함)
+     */
+    public List<PcbPartsSearch> indexExternalResults(List<PcbPartsSearch> parts) {
+        if (CollectionUtils.isEmpty(parts)) {
+            return Collections.emptyList();
+        }
+
+        String serviceType = parts.getFirst().getServiceType();
+        List<String> partNames = parts.stream()
+                .map(PcbPartsSearch::getPartName)
+                .filter(StringUtils::isNotEmpty)
+                .toList();
+
+        // 벌크 조회: serviceType + partNames
+        Map<String, PcbPartsSearch> existingMap = new HashMap<>();
+        if (!partNames.isEmpty()) {
+            List<PcbPartsSearch> existingList = this.pcbPartsSearchRepository.findByServiceTypeAndPartNameKeywordIn(serviceType, partNames);
+            for (PcbPartsSearch existing : existingList) {
+                existingMap.put(existing.getPartName(), existing);
+            }
+        }
+
+        List<PcbPartsSearch> savedList = new ArrayList<>();
+        for (PcbPartsSearch pcbPartsSearch : parts) {
+            if (StringUtils.isEmpty(pcbPartsSearch.getPartName())) {
+                continue;
+            }
+            PcbPartsSearch existing = existingMap.get(pcbPartsSearch.getPartName());
+            if (existing != null) {
+                pcbPartsSearch.setId(existing.getId());
+                this.pcbPartsRepository.findByDocId(existing.getId())
+                        .ifPresent(existingEntity -> {
+                            PcbParts updated = this.pcbPartsConvertSubService.toEntity(pcbPartsSearch);
+                            updated.setId(existingEntity.getId());
+                            updated.setDocId(existingEntity.getDocId());
+                            this.pcbPartsRepository.save(updated);
+                        });
+                savedList.add(this.pcbPartsSearchRepository.save(pcbPartsSearch));
+            } else {
+                PcbParts newEntity = this.pcbPartsConvertSubService.toEntity(pcbPartsSearch);
+                this.pcbPartsRepository.save(newEntity);
+                pcbPartsSearch.setId(newEntity.getDocId());
+                savedList.add(this.pcbPartsSearchRepository.save(pcbPartsSearch));
+            }
+        }
+        return savedList;
     }
 
     /**

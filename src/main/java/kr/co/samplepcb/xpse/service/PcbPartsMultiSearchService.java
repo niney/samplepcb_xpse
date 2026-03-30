@@ -5,6 +5,7 @@ import coolib.common.CCResult;
 import kr.co.samplepcb.xpse.domain.document.PcbPartsSearch;
 import kr.co.samplepcb.xpse.pojo.PcbPartsMultiSearchResult;
 import kr.co.samplepcb.xpse.pojo.PcbPartsSearchField;
+import kr.co.samplepcb.xpse.pojo.PcbPkgType;
 import kr.co.samplepcb.xpse.service.common.sub.DigikeyPartsParserSubService;
 import kr.co.samplepcb.xpse.service.common.sub.DigikeySubService;
 import kr.co.samplepcb.xpse.service.common.sub.UniKeyICPartsParserSubService;
@@ -35,17 +36,20 @@ public class PcbPartsMultiSearchService {
     private final DigikeyPartsParserSubService digikeyPartsParserSubService;
     private final UniKeyICSubService uniKeyICSubService;
     private final UniKeyICPartsParserSubService uniKeyICPartsParserSubService;
+    private final PcbPartsService pcbPartsService;
 
     public PcbPartsMultiSearchService(ElasticsearchOperations elasticsearchOperations,
                                       DigikeySubService digikeySubService,
                                       DigikeyPartsParserSubService digikeyPartsParserSubService,
                                       UniKeyICSubService uniKeyICSubService,
-                                      UniKeyICPartsParserSubService uniKeyICPartsParserSubService) {
+                                      UniKeyICPartsParserSubService uniKeyICPartsParserSubService,
+                                      PcbPartsService pcbPartsService) {
         this.elasticsearchOperations = elasticsearchOperations;
         this.digikeySubService = digikeySubService;
         this.digikeyPartsParserSubService = digikeyPartsParserSubService;
         this.uniKeyICSubService = uniKeyICSubService;
         this.uniKeyICPartsParserSubService = uniKeyICPartsParserSubService;
+        this.pcbPartsService = pcbPartsService;
     }
 
     /**
@@ -108,10 +112,14 @@ public class PcbPartsMultiSearchService {
      * 자체(samplepcb) ES 검색: 완전일치 → 없으면 파싱 키워드 검색
      */
     private PcbPartsMultiSearchResult.SourceResult searchSamplepcb(String searchWord, String referencePrefix) {
+        // samplepcb/eleparts serviceType만 조회
+        Criteria serviceTypeCriteria = new Criteria(PcbPartsSearchField.SERVICE_TYPE)
+                .in(PcbPkgType.SAMPLEPCB.getValue(), PcbPkgType.ELEPARTS.getValue());
+
         // 1. PART_NAME.keyword 완전일치
         Criteria exactCriteria = new Criteria(PcbPartsSearchField.PART_NAME + ".keyword").is(searchWord);
         HighlightQuery highlightQuery = CoolElasticUtils.createHighlightQuery(Set.of(PcbPartsSearchField.PART_NAME));
-        Query exactQuery = new CriteriaQuery(exactCriteria);
+        Query exactQuery = new CriteriaQuery(new Criteria().and(serviceTypeCriteria).and(exactCriteria));
         exactQuery.setHighlightQuery(highlightQuery);
 
         SearchHits<PcbPartsSearch> exactHits = elasticsearchOperations.search(exactQuery, PcbPartsSearch.class);
@@ -122,7 +130,7 @@ public class PcbPartsMultiSearchService {
 
         // 2. 파싱 ES 검색
         Map<String, List<String>> parsedKeywords = PcbPartsUtils.parseString(searchWord, referencePrefix);
-        Criteria parsedCriteria = new Criteria();
+        Criteria parsedCriteria = new Criteria().and(serviceTypeCriteria);
         Set<String> highlightFields = new HashSet<>();
         highlightFields.add(PcbPartsSearchField.PART_NAME);
 
@@ -140,7 +148,7 @@ public class PcbPartsMultiSearchService {
 
         // 3. part name 일반 텍스트 검색
         Criteria textCriteria = new Criteria(PcbPartsSearchField.PART_NAME).is(searchWord);
-        Query textQuery = new CriteriaQuery(textCriteria);
+        Query textQuery = new CriteriaQuery(new Criteria().and(serviceTypeCriteria).and(textCriteria));
         textQuery.setHighlightQuery(highlightQuery);
 
         SearchHits<PcbPartsSearch> textHits = elasticsearchOperations.search(textQuery, PcbPartsSearch.class);
@@ -158,8 +166,9 @@ public class PcbPartsMultiSearchService {
                     if (response.isResult() && response.getData() != null) {
                         CCObjectResult<PcbPartsSearch> parsed = digikeyPartsParserSubService.parseProduct(response.getData());
                         if (parsed.isResult() && parsed.getData() != null) {
-                            return Mono.just(new PcbPartsMultiSearchResult.SourceResult(
-                                    "exact", Collections.singletonList(parsed.getData())));
+                            List<PcbPartsSearch> items = pcbPartsService.indexExternalResults(
+                                    Collections.singletonList(parsed.getData()));
+                            return Mono.just(new PcbPartsMultiSearchResult.SourceResult("exact", items));
                         }
                     }
                     // 2. 실패 시 searchByKeyword 폴백
@@ -179,6 +188,7 @@ public class PcbPartsMultiSearchService {
                 .map(response -> {
                     if (response.isResult() && response.getData() != null) {
                         List<PcbPartsSearch> products = digikeyPartsParserSubService.parseAllProducts(response.getData());
+                        products = pcbPartsService.indexExternalResults(products);
                         return new PcbPartsMultiSearchResult.SourceResult("keyword", products);
                     }
                     return new PcbPartsMultiSearchResult.SourceResult("keyword", Collections.emptyList());
@@ -195,6 +205,7 @@ public class PcbPartsMultiSearchService {
                     if (response.isResult() && response.getData() != null) {
                         List<PcbPartsSearch> products = uniKeyICPartsParserSubService.parseProducts(response.getData());
                         if (!products.isEmpty()) {
+                            products = pcbPartsService.indexExternalResults(products);
                             return new PcbPartsMultiSearchResult.SourceResult("exact", products);
                         }
                     }

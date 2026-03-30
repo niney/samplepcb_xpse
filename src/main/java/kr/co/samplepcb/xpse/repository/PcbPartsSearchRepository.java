@@ -43,5 +43,16 @@ public interface PcbPartsSearchRepository extends ElasticsearchRepository<PcbPar
             """)
     PcbPartsSearch findByPartNameKeyword(String partName);
 
+    @Query("""
+            {
+              "bool": {
+                "must": [
+                  { "term": { "serviceType": "?0" } },
+                  { "terms": { "partName.keyword": ?1 } }
+                ]
+              }
+            }
+            """)
+    List<PcbPartsSearch> findByServiceTypeAndPartNameKeywordIn(String serviceType, List<String> partNames);
 
 }

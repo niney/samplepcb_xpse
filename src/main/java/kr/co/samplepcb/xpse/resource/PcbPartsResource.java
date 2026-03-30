@@ -12,6 +12,7 @@ import kr.co.samplepcb.xpse.service.PcbPartsIC114Service;
 import kr.co.samplepcb.xpse.service.PcbPartsMultiSearchService;
 import kr.co.samplepcb.xpse.service.PcbPartsService;
 import kr.co.samplepcb.xpse.service.common.sub.DigikeySubService;
+import kr.co.samplepcb.xpse.service.common.sub.UniKeyICSubService;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.PageRequest;
@@ -34,12 +35,14 @@ public class PcbPartsResource {
     private final PcbPartsIC114Service pcbPartsIC114Service;
     private final DigikeySubService digikeySubService;
     private final PcbPartsMultiSearchService pcbPartsMultiSearchService;
+    private final UniKeyICSubService uniKeyICSubService;
 
-    public PcbPartsResource(PcbPartsService pcbPartsService, PcbPartsIC114Service pcbPartsIC114Service, DigikeySubService digikeySubService, PcbPartsMultiSearchService pcbPartsMultiSearchService) {
+    public PcbPartsResource(PcbPartsService pcbPartsService, PcbPartsIC114Service pcbPartsIC114Service, DigikeySubService digikeySubService, PcbPartsMultiSearchService pcbPartsMultiSearchService, UniKeyICSubService uniKeyICSubService) {
         this.pcbPartsService = pcbPartsService;
         this.pcbPartsIC114Service = pcbPartsIC114Service;
         this.digikeySubService = digikeySubService;
         this.pcbPartsMultiSearchService = pcbPartsMultiSearchService;
+        this.uniKeyICSubService = uniKeyICSubService;
     }
 
     @Operation(summary = "Eleparts 파일 업로드", description = "Eleparts 형식의 부품 파일을 업로드하여 인덱싱합니다")
@@ -120,6 +123,14 @@ public class PcbPartsResource {
             @Parameter(description = "참조 접두사") @RequestParam(required = false) String referencePrefix) {
         return this.digikeySubService.searchByKeyword(referencePrefix, partNumber, 2, 0)
                 .flatMap(resultMap -> Mono.just(pcbPartsService.searchCandidateByDigikey(partNumber, referencePrefix, resultMap)));
+    }
+
+    @Operation(summary = "UniKeyIC 부품 검색 및 색인", description = "UniKeyIC API를 통해 부품번호로 검색하고 ES에 색인합니다")
+    @GetMapping("/_searchByUniKeyIC")
+    public Mono<CCResult> searchByUniKeyIC(
+            @Parameter(description = "부품번호") @RequestParam String partNumber) {
+        return this.uniKeyICSubService.searchByPartNumber(partNumber)
+                .map(resultMap -> pcbPartsService.indexingByUniKeyIC(resultMap));
     }
 
     @Operation(summary = "다중 소스 검색", description = "여러 소스에서 부품을 통합 검색합니다")

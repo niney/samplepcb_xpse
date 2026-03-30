@@ -13,6 +13,7 @@ public class ApplicationProperties {
     private final SpLinserver spLinserver = new SpLinserver();
     private final MlServer mlServer = new MlServer();
     private final Digikey digikey = new Digikey();
+    private final UniKeyIC unikeyic = new UniKeyIC();
 
     public CorsConfiguration getCors() {
         return cors;
@@ -32,6 +33,10 @@ public class ApplicationProperties {
 
     public Digikey getDigikey() {
         return digikey;
+    }
+
+    public UniKeyIC getUnikeyic() {
+        return unikeyic;
     }
 
     public static class SpLinserver {
@@ -67,6 +72,36 @@ public class ApplicationProperties {
 
         public void setSecret(String secret) {
             this.secret = secret;
+        }
+    }
+
+    public static class UniKeyIC {
+        private String baseUrl;
+        private String apiKey;
+        private int exchangeRate = 1350;
+
+        public String getBaseUrl() {
+            return baseUrl;
+        }
+
+        public void setBaseUrl(String baseUrl) {
+            this.baseUrl = baseUrl;
+        }
+
+        public String getApiKey() {
+            return apiKey;
+        }
+
+        public void setApiKey(String apiKey) {
+            this.apiKey = apiKey;
+        }
+
+        public int getExchangeRate() {
+            return exchangeRate;
+        }
+
+        public void setExchangeRate(int exchangeRate) {
+            this.exchangeRate = exchangeRate;
         }
     }
 

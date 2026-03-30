@@ -67,3 +67,7 @@ application:
         baseUrl: https://api.digikey.com
         clientId: input
         clientSecret: input
+    unikeyic:
+        baseUrl: https://openapi.unikeyic.com
+        apiKey: input
+        exchangeRate: 1350

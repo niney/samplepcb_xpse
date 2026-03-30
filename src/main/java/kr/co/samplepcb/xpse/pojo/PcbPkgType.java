@@ -5,7 +5,8 @@ public enum PcbPkgType {
     UNKNOWN("unknown"),
     DIGIKEY("digikey"),
     SAMPLEPCB("samplepcb"),
-    ELEPARTS("eleparts");
+    ELEPARTS("eleparts"),
+    UNIKEYIC("unikeyic");
 
     private final String value;
 

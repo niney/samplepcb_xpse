@@ -38,6 +38,7 @@ public class PcbPartsPrice {
     private Date updatedDate;
 
     @OneToMany(mappedBy = "pcbPartsPrice", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("breakQuantity ASC")
     private List<PcbPartsPriceStep> priceSteps = new ArrayList<>();
 
     // === getter / setter ===

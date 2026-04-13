@@ -64,6 +64,7 @@ public class SpEstimateDocument {
     private Date modifyDate;
 
     @OneToMany(mappedBy = "estimateDocument", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("id ASC")
     private List<SpEstimateItem> items = new ArrayList<>();
 
     @OneToMany(mappedBy = "estimateDocument")

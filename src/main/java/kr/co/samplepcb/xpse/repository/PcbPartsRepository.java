@@ -11,6 +11,8 @@ public interface PcbPartsRepository extends JpaRepository<PcbParts, Long>, JpaSp
 
     Optional<PcbParts> findByDocId(String docId);
 
+    List<PcbParts> findByDocIdIn(List<String> docIds);
+
     List<PcbParts> findByPartName(String partName);
 
     List<PcbParts> findByMemberId(String memberId);

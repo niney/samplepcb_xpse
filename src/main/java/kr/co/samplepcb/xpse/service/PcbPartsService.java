@@ -886,29 +886,7 @@ public class PcbPartsService {
             return CCResult.dataNotFound();
         }
 
-        List<PcbPartsSearch> savedList = new ArrayList<>();
-        for (PcbPartsSearch pcbPartsSearch : partsList) {
-            if (StringUtils.isEmpty(pcbPartsSearch.getPartName())) {
-                continue;
-            }
-            PcbPartsSearch existing = this.pcbPartsSearchRepository.findByPartNameKeyword(pcbPartsSearch.getPartName());
-            if (existing != null) {
-                pcbPartsSearch.setId(existing.getId());
-                this.pcbPartsRepository.findByDocId(existing.getId())
-                        .ifPresent(existingEntity -> {
-                            kr.co.samplepcb.xpse.domain.entity.PcbParts updated = this.pcbPartsConvertSubService.toEntity(pcbPartsSearch);
-                            updated.setId(existingEntity.getId());
-                            updated.setDocId(existingEntity.getDocId());
-                            this.pcbPartsRepository.save(updated);
-                        });
-                savedList.add(this.pcbPartsSearchRepository.save(pcbPartsSearch));
-            } else {
-                kr.co.samplepcb.xpse.domain.entity.PcbParts newEntity = this.pcbPartsConvertSubService.toEntity(pcbPartsSearch);
-                this.pcbPartsRepository.save(newEntity);
-                pcbPartsSearch.setId(newEntity.getDocId());
-                savedList.add(this.pcbPartsSearchRepository.save(pcbPartsSearch));
-            }
-        }
+        List<PcbPartsSearch> savedList = bulkIndexParts(partsList, PcbPkgType.UNIKEYIC.getValue());
         return CCObjectResult.setSimpleData(savedList);
     }
 
@@ -923,45 +901,63 @@ public class PcbPartsService {
         if (CollectionUtils.isEmpty(parts)) {
             return Collections.emptyList();
         }
+        return bulkIndexParts(parts, parts.getFirst().getServiceType());
+    }
 
-        String serviceType = parts.getFirst().getServiceType();
-        List<String> partNames = parts.stream()
+    /**
+     * 부품 리스트를 벌크로 색인합니다. serviceType + partName 기준으로 기존 데이터를 조회하여
+     * 있으면 업데이트, 없으면 신규 생성합니다. ES 저장은 Bulk API로 일괄 처리합니다.
+     */
+    private List<PcbPartsSearch> bulkIndexParts(List<PcbPartsSearch> partsList, String serviceType) {
+        List<String> partNames = partsList.stream()
                 .map(PcbPartsSearch::getPartName)
                 .filter(StringUtils::isNotEmpty)
                 .toList();
 
-        // 벌크 조회: serviceType + partNames
+        // ES 벌크 조회: serviceType + partNames
         Map<String, PcbPartsSearch> existingMap = new HashMap<>();
         if (!partNames.isEmpty()) {
-            List<PcbPartsSearch> existingList = this.pcbPartsSearchRepository.findByServiceTypeAndPartNameKeywordIn(serviceType, partNames);
-            for (PcbPartsSearch existing : existingList) {
+            for (PcbPartsSearch existing : this.pcbPartsSearchRepository.findByServiceTypeAndPartNameKeywordIn(serviceType, partNames)) {
                 existingMap.put(existing.getPartName(), existing);
             }
         }
 
-        List<PcbPartsSearch> savedList = new ArrayList<>();
-        for (PcbPartsSearch pcbPartsSearch : parts) {
+        // JPA 벌크 조회: 기존 ES 문서의 docId로 엔티티 일괄 조회
+        Map<String, PcbParts> existingEntityMap = new HashMap<>();
+        List<String> existingDocIds = existingMap.values().stream()
+                .map(PcbPartsSearch::getId)
+                .filter(Objects::nonNull)
+                .toList();
+        if (!existingDocIds.isEmpty()) {
+            for (PcbParts entity : this.pcbPartsRepository.findByDocIdIn(existingDocIds)) {
+                existingEntityMap.put(entity.getDocId(), entity);
+            }
+        }
+
+        List<PcbPartsSearch> esDocsToSave = new ArrayList<>();
+        for (PcbPartsSearch pcbPartsSearch : partsList) {
             if (StringUtils.isEmpty(pcbPartsSearch.getPartName())) {
                 continue;
             }
             PcbPartsSearch existing = existingMap.get(pcbPartsSearch.getPartName());
             if (existing != null) {
                 pcbPartsSearch.setId(existing.getId());
-                this.pcbPartsRepository.findByDocId(existing.getId())
-                        .ifPresent(existingEntity -> {
-                            PcbParts updated = this.pcbPartsConvertSubService.toEntity(pcbPartsSearch);
-                            updated.setId(existingEntity.getId());
-                            updated.setDocId(existingEntity.getDocId());
-                            this.pcbPartsRepository.save(updated);
-                        });
-                savedList.add(this.pcbPartsSearchRepository.save(pcbPartsSearch));
+                PcbParts existingEntity = existingEntityMap.get(existing.getId());
+                if (existingEntity != null) {
+                    PcbParts updated = this.pcbPartsConvertSubService.toEntity(pcbPartsSearch);
+                    updated.setId(existingEntity.getId());
+                    updated.setDocId(existingEntity.getDocId());
+                    this.pcbPartsRepository.save(updated);
+                }
             } else {
                 PcbParts newEntity = this.pcbPartsConvertSubService.toEntity(pcbPartsSearch);
                 this.pcbPartsRepository.save(newEntity);
                 pcbPartsSearch.setId(newEntity.getDocId());
-                savedList.add(this.pcbPartsSearchRepository.save(pcbPartsSearch));
             }
+            esDocsToSave.add(pcbPartsSearch);
         }
+        List<PcbPartsSearch> savedList = new ArrayList<>();
+        this.pcbPartsSearchRepository.saveAll(esDocsToSave).forEach(savedList::add);
         return savedList;
     }
 

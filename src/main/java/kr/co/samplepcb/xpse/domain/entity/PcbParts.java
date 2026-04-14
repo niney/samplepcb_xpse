@@ -1,6 +1,7 @@
 package kr.co.samplepcb.xpse.domain.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.BatchSize;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -135,12 +136,15 @@ public class PcbParts {
     @Column(name = "datasheet_url", columnDefinition = "text")
     private String datasheetUrl;
 
+    @BatchSize(size = 100)
     @OneToMany(mappedBy = "pcbParts", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PcbPartsPrice> prices = new ArrayList<>();
 
+    @BatchSize(size = 100)
     @OneToMany(mappedBy = "pcbParts", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PcbPartsImage> images = new ArrayList<>();
 
+    @BatchSize(size = 100)
     @OneToMany(mappedBy = "pcbParts", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PcbPartsSpec> specs = new ArrayList<>();
 

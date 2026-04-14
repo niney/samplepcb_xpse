@@ -1,6 +1,7 @@
 package kr.co.samplepcb.xpse.domain.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.BatchSize;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -37,6 +38,7 @@ public class PcbPartsPrice {
     @Column(name = "updated_date")
     private Date updatedDate;
 
+    @BatchSize(size = 100)
     @OneToMany(mappedBy = "pcbPartsPrice", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("breakQuantity ASC")
     private List<PcbPartsPriceStep> priceSteps = new ArrayList<>();

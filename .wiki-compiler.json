@@ -1,0 +1,30 @@
+{
+  "version": 2,
+  "mode": "codebase",
+  "name": "samplepcb_xpse",
+  "sources": [
+    { "path": "./", "exclude": ["node_modules/", "dist/", ".git/", "xpse-wiki/", "vendor/", "__pycache__/", ".build/", "target/", ".next/", "coverage/", ".gradle/", "build/", "out/", "generated/"] }
+  ],
+  "output": "xpse-wiki/",
+  "service_discovery": "auto",
+  "knowledge_files": [
+    "README.md", "CLAUDE.md", "AGENTS.md", "ARCHITECTURE.md", "CONTRIBUTING.md",
+    "*.proto", "*.graphql", "openapi.yaml", "openapi.json",
+    "ADR-*.md", "docs/adr/*.md",
+    "docker-compose.yml", "Dockerfile",
+    ".env.example", "CHANGELOG.md"
+  ],
+  "deep_scan": false,
+  "auto_update": "prompt",
+  "article_sections": [
+    { "name": "Purpose", "description": "이 모듈/서비스가 하는 일과 의존하는 컴포넌트", "required": true },
+    { "name": "Architecture", "description": "주요 파일, 구조, 진입점" },
+    { "name": "Talks To", "description": "의존성, 통신 패턴, 서비스 간 호출" },
+    { "name": "API Surface", "description": "엔드포인트, 외부 노출 함수 또는 인터페이스" },
+    { "name": "Data", "description": "테이블, 컬렉션, 큐, 캐시, 소유 상태" },
+    { "name": "Key Decisions", "description": "이렇게 구축한 이유, ADR 및 README 기반" },
+    { "name": "Gotchas", "description": "알려진 이슈, 엣지 케이스, 장애 모드" },
+    { "name": "Sources", "description": "기여 파일에 대한 역링크", "required": true }
+  ],
+  "link_style": "markdown"
+}

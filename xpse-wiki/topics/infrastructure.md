@@ -21,6 +21,7 @@
 | `MlServer` | `application.mlServer.serverUrl` | ML 서버 URL |
 | `Digikey` | `application.digikey.*` | DigiKey API 인증 정보 (`baseUrl`, `clientId`, `clientSecret`) |
 | `UniKeyIC` | `application.unikeyic.*` | UniKeyIC API 인증 정보 (`baseUrl`, `apiKey`, `exchangeRate`) |
+| `ExternalCache` | `application.external-cache.*` | 외부 API 결과 ES 캐시 TTL (`ttlHours`, 기본 24시간) |
 
 `CorsConfiguration` 역시 이 클래스에서 `application.cors.*` 설정으로 관리된다.
 
@@ -35,14 +36,15 @@
 
 #### 3. `CacheConfig` -- Caffeine 캐시 설정
 
-`@EnableCaching` 활성화 후 `CaffeineCacheManager`를 비동기 모드(`setAsyncCacheMode(true)`)로 구성한다. 두 개의 캐시 영역을 등록한다:
+`@EnableCaching` 활성화 후 `CaffeineCacheManager`를 비동기 모드(`setAsyncCacheMode(true)`)로 구성한다.
 
 | 캐시 이름 | 상수 | 최대 크기 | TTL | 용도 |
 |---|---|---|---|---|
-| `searchResults` | `CacheConfig.SEARCH_RESULTS` | 500 | 30분 | 검색 결과 캐싱 |
-| `productDetails` | `CacheConfig.PRODUCT_DETAILS` | 1,000 | 1시간 | 제품 상세 정보 캐싱 |
+| `searchResults` | `CacheConfig.SEARCH_RESULTS` | 500 | 30분 | Digi-Key 키워드 검색 결과 캐싱 (`@Cacheable`) |
 
-두 캐시 모두 `recordStats()`가 활성화되어 히트율 등 통계 수집이 가능하다.
+`recordStats()`가 활성화되어 히트율 등 통계 수집이 가능하다.
+
+**참고:** Caffeine 캐시와 별도로 ES 색인 기반 캐시도 운용된다. `ApplicationProperties.ExternalCache.ttlHours`(기본 24시간)가 ES에 색인된 외부 API 결과의 유효 기간을 제어하며, `PcbPartsMultiSearchService.findFreshCachedResults()`에서 `lastModifiedDate` 기반으로 신선도를 판별한다.
 
 #### 4. `SecurityConfig` -- Spring Security 및 JWT 인증
 
@@ -251,7 +253,7 @@ Elasticsearch 인덱스 이름 상수를 정의한다:
 
 3. **N-gram 다단계 토크나이저:** 부품명(6-gram), 제조사명(4-gram), 일반 필드(2-gram)로 검색 정밀도를 분리했다. 긴 식별자에는 높은 gram, 짧은 일반 텍스트에는 낮은 gram을 사용하여 검색 품질과 인덱스 크기를 절충한다.
 
-4. **비동기 Caffeine 캐시:** `setAsyncCacheMode(true)`로 비동기 캐시를 활성화하여 WebFlux/WebClient 기반 외부 API 호출 결과를 논블로킹으로 캐싱한다.
+4. **이중 캐싱 전략 (Caffeine + ES):** `setAsyncCacheMode(true)`로 비동기 Caffeine 캐시를 활성화하여 WebFlux/WebClient 기반 외부 API 호출 결과를 논블로킹으로 캐싱한다. 추가로 `ExternalCache.ttlHours`(기본 24시간) 기반의 ES 색인 캐시가 Caffeine 캐시 만료 후에도 불필요한 외부 API 호출을 방지한다.
 
 5. **벡터 검색 지원:** `pcbcolumn` 인덱스에 `dense_vector(512)` 필드를 설정하여 ML 서버에서 생성한 임베딩 벡터를 활용한 유사도 검색을 지원한다.
 

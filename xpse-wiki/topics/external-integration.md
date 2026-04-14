@@ -51,15 +51,24 @@ Controller (PcbPartsResource)
 
 ```
 [자체(samplepcb/eleparts)]              [Digi-Key]                    [UniKeyIC]
-  1. PART_NAME.keyword 완전일치           1. getProductDetails           1. searchByPartNumber
-     -> searchType="exact"                   완전일치                       정확매칭
-  2. 파싱 ES 키워드 검색                     -> searchType="exact"          -> searchType="exact"
+  1. PART_NAME.keyword 완전일치           0. ES 캐시 확인 (TTL 내)        0. ES 캐시 확인 (TTL 내)
+     -> searchType="exact"                  → 히트 시 API 생략               → 히트 시 API 생략
+  2. 파싱 ES 키워드 검색                  1. getProductDetails           1. searchByPartNumber
+     -> searchType="keyword"                 완전일치                       정확매칭
+  3. part name 일반 텍스트 검색              -> searchType="exact"          -> searchType="exact"
      -> searchType="keyword"            2. searchByKeyword 폴백
-  3. part name 일반 텍스트 검색              -> searchType="keyword"
-     -> searchType="keyword"
+                                            -> searchType="keyword"
 
                     === Mono.zip 병렬 완료 후 합산 응답 ===
 ```
+
+### ES 캐시 우선 전략
+
+Digi-Key와 UniKeyIC 채널에서 외부 API 호출 전에 **ES 캐시 확인**을 수행한다. `PcbPartsMultiSearchService.findFreshCachedResults()`가 `pcbparts` 인덱스에서 `serviceType + partName.keyword` 조건으로 기존 색인 데이터를 조회하고, `lastModifiedDate`가 TTL(`application.external-cache.ttl-hours`, 기본 24시간) 이내이면 캐시 히트로 판정하여 외부 API 호출을 완전히 생략한다.
+
+이 전략은 두 레벨 캐싱의 일부이다:
+- **Caffeine 인메모리 캐시** (`searchResults`, 500건/30분): `DigikeySubService.searchByKeyword()`의 `@Cacheable`로 동일 키워드 반복 호출을 인메모리에서 처리한다.
+- **ES 색인 캐시** (TTL 24시간): Caffeine 캐시 만료 후에도 ES에 색인된 데이터가 TTL 이내이면 API 호출을 생략한다.
 
 ### 데이터 저장 전략 (이중 저장)
 
@@ -351,15 +360,18 @@ Digi-Key 인덱싱 시 API 응답이 실패하면 해당 부품번호를 `nondig
 
 `DigikeySubService`는 Digi-Key OAuth2 토큰을 파일 시스템(`${app.storage.path}/digikey/token.json`)에 직렬화하여, 애플리케이션 재시작 후에도 유효한 토큰을 재사용한다. WebClient 필터에서 API 경로가 `/oauth2/token`이 아닌 경우 자동으로 유효한 토큰을 가져와 `Authorization: Bearer` 헤더에 주입한다.
 
-### 7. 캐시 전략
+### 7. 이중 캐시 전략 (Caffeine + ES TTL)
 
-Caffeine 비동기 캐시를 적용하여 Digi-Key API 호출 부하를 줄인다:
-- `searchResults`: 최대 500건, 30분 만료 (키워드 검색)
-- `productDetails`: 최대 1000건, 1시간 만료 (상세 조회)
+외부 API 호출 최적화를 위해 두 레벨의 캐싱이 적용된다:
 
-캐시 키는 `@Cacheable` 어노테이션의 `key` 속성으로 결정된다:
-- `searchByKeyword`: `#keyword + '_' + #limit + '_' + #offset + '_' + #parsedKeywordsStr`
-- `getProductDetails`: `#partNumber + '_' + #manufacturerId`
+**Caffeine 인메모리 캐시:**
+- `searchResults`: 최대 500건, 30분 만료 — `DigikeySubService.searchByKeyword()`에 `@Cacheable` 적용
+- 캐시 키: `#keyword + '_' + #limit + '_' + #offset + '_' + #parsedKeywordsStr`
+
+**ES 색인 기반 캐시 (TTL 24시간):**
+- `PcbPartsMultiSearchService.findFreshCachedResults()`가 `pcbparts` 인덱스에서 `serviceType + partName.keyword` 조건으로 기존 색인 데이터를 조회
+- `lastModifiedDate`가 `application.external-cache.ttl-hours`(기본 24시간) 이내이면 캐시 히트
+- Caffeine 캐시 만료 후에도 ES에 색인된 데이터가 TTL 이내이면 외부 API 호출을 생략하여 비용과 지연을 절감
 
 ### 8. USD -> KRW 환율 변환
 

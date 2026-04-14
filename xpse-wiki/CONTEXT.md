@@ -77,3 +77,7 @@ kr.co.samplepcb.xpse
 3. **레거시 G5 테이블**: `g5_shop_*` 테이블은 외부 쇼핑몰 스키마로 읽기 전용 사용
 4. **매핑 파일 규약**: `src/main/resources/mapping/*.txt` 첫 줄은 인덱스 설정, 이후 필드 매핑
 5. **프로파일**: `dev`(로컬), `prod`(운영) — ES/DB/API URL이 다름
+6. **이중 캐싱**: Caffeine(30분) + ES 색인 TTL(24시간) 이중 캐시 — [multi-level-caching](concepts/multi-level-caching.md) 참조
+
+## Stats
+Compiled: 2026-04-15 | Topics: 8 | Concepts: 1 | Sources: 160+ | Auto-updates on session start

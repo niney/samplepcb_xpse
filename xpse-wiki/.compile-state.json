@@ -1,5 +1,5 @@
 {
-  "lastCompiled": "2026-04-14T00:00:00Z",
+  "last_compiled": "2026-04-15",
   "topics": [
     "pcb-parts",
     "pcb-search-index",
@@ -10,5 +10,11 @@
     "security",
     "infrastructure"
   ],
-  "sourceHashes": {}
+  "concepts": [
+    "multi-level-caching"
+  ],
+  "source_locations": [
+    "src/main/java/kr/co/samplepcb/xpse"
+  ],
+  "total_sources_scanned": 160
 }

@@ -29,7 +29,6 @@ import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.Map;
 
-import static kr.co.samplepcb.xpse.config.CacheConfig.PRODUCT_DETAILS;
 import static kr.co.samplepcb.xpse.config.CacheConfig.SEARCH_RESULTS;
 import static org.apache.logging.log4j.message.ParameterizedMessage.ERROR_PREFIX;
 
@@ -223,7 +222,6 @@ public class DigikeySubService {
                 .onErrorResume(Exception.class, this::createFailureResult);
     }
 
-    @Cacheable(value = PRODUCT_DETAILS, key = "#partNumber + '_' + #manufacturerId")
     public Mono<CCObjectResult<Map<String, Object>>> getProductDetails(String partNumber, Integer manufacturerId) {
         WebClient.RequestHeadersSpec<?> requestSpec = webClientBuilder.build()
                 .get()

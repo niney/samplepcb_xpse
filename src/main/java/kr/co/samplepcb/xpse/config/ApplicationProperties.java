@@ -14,6 +14,7 @@ public class ApplicationProperties {
     private final MlServer mlServer = new MlServer();
     private final Digikey digikey = new Digikey();
     private final UniKeyIC unikeyic = new UniKeyIC();
+    private final ExternalCache externalCache = new ExternalCache();
 
     public CorsConfiguration getCors() {
         return cors;
@@ -37,6 +38,10 @@ public class ApplicationProperties {
 
     public UniKeyIC getUnikeyic() {
         return unikeyic;
+    }
+
+    public ExternalCache getExternalCache() {
+        return externalCache;
     }
 
     public static class SpLinserver {
@@ -102,6 +107,18 @@ public class ApplicationProperties {
 
         public void setExchangeRate(int exchangeRate) {
             this.exchangeRate = exchangeRate;
+        }
+    }
+
+    public static class ExternalCache {
+        private int ttlHours = 24;
+
+        public int getTtlHours() {
+            return ttlHours;
+        }
+
+        public void setTtlHours(int ttlHours) {
+            this.ttlHours = ttlHours;
         }
     }
 

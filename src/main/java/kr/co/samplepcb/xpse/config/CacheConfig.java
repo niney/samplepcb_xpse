@@ -18,7 +18,6 @@ import java.util.List;
 public class CacheConfig {
 
     public static final String SEARCH_RESULTS = "searchResults";
-    public static final String PRODUCT_DETAILS = "productDetails";
 
     @Bean
     public CacheManager cacheManager() {
@@ -29,13 +28,6 @@ public class CacheConfig {
                 Caffeine.newBuilder()
                         .maximumSize(500)
                         .expireAfterWrite(Duration.ofMinutes(30))
-                        .recordStats()
-                        .buildAsync());
-
-        cacheManager.registerCustomCache("productDetails",
-                Caffeine.newBuilder()
-                        .maximumSize(1000)
-                        .expireAfterWrite(Duration.ofHours(1))
                         .recordStats()
                         .buildAsync());
 

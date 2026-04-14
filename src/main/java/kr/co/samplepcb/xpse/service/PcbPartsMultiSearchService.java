@@ -2,10 +2,12 @@ package kr.co.samplepcb.xpse.service;
 
 import coolib.common.CCObjectResult;
 import coolib.common.CCResult;
+import kr.co.samplepcb.xpse.config.ApplicationProperties;
 import kr.co.samplepcb.xpse.domain.document.PcbPartsSearch;
 import kr.co.samplepcb.xpse.pojo.PcbPartsMultiSearchResult;
 import kr.co.samplepcb.xpse.pojo.PcbPartsSearchField;
 import kr.co.samplepcb.xpse.pojo.PcbPkgType;
+import kr.co.samplepcb.xpse.repository.PcbPartsSearchRepository;
 import kr.co.samplepcb.xpse.service.common.sub.DigikeyPartsParserSubService;
 import kr.co.samplepcb.xpse.service.common.sub.DigikeySubService;
 import kr.co.samplepcb.xpse.service.common.sub.UniKeyICPartsParserSubService;
@@ -24,6 +26,7 @@ import org.springframework.data.elasticsearch.core.query.Query;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
 import java.util.*;
 
 @Service
@@ -37,19 +40,25 @@ public class PcbPartsMultiSearchService {
     private final UniKeyICSubService uniKeyICSubService;
     private final UniKeyICPartsParserSubService uniKeyICPartsParserSubService;
     private final PcbPartsService pcbPartsService;
+    private final PcbPartsSearchRepository pcbPartsSearchRepository;
+    private final ApplicationProperties applicationProperties;
 
     public PcbPartsMultiSearchService(ElasticsearchOperations elasticsearchOperations,
                                       DigikeySubService digikeySubService,
                                       DigikeyPartsParserSubService digikeyPartsParserSubService,
                                       UniKeyICSubService uniKeyICSubService,
                                       UniKeyICPartsParserSubService uniKeyICPartsParserSubService,
-                                      PcbPartsService pcbPartsService) {
+                                      PcbPartsService pcbPartsService,
+                                      PcbPartsSearchRepository pcbPartsSearchRepository,
+                                      ApplicationProperties applicationProperties) {
         this.elasticsearchOperations = elasticsearchOperations;
         this.digikeySubService = digikeySubService;
         this.digikeyPartsParserSubService = digikeyPartsParserSubService;
         this.uniKeyICSubService = uniKeyICSubService;
         this.uniKeyICPartsParserSubService = uniKeyICPartsParserSubService;
         this.pcbPartsService = pcbPartsService;
+        this.pcbPartsSearchRepository = pcbPartsSearchRepository;
+        this.applicationProperties = applicationProperties;
     }
 
     /**
@@ -157,26 +166,33 @@ public class PcbPartsMultiSearchService {
     }
 
     /**
-     * 디지키 검색: getProductDetails 완전일치 → 없으면 searchByKeyword
+     * 디지키 검색: ES 캐시 확인 → getProductDetails 완전일치 → 없으면 searchByKeyword
      */
     private Mono<PcbPartsMultiSearchResult.SourceResult> searchDigikey(String searchWord, String referencePrefix) {
-        // 1. getProductDetails 완전일치
-        return digikeySubService.getProductDetails(searchWord, null)
-                .flatMap(response -> {
-                    if (response.isResult() && response.getData() != null) {
-                        CCObjectResult<PcbPartsSearch> parsed = digikeyPartsParserSubService.parseProduct(response.getData());
-                        if (parsed.isResult() && parsed.getData() != null) {
-                            List<PcbPartsSearch> items = pcbPartsService.indexExternalResults(
-                                    Collections.singletonList(parsed.getData()));
-                            return Mono.just(new PcbPartsMultiSearchResult.SourceResult("exact", items));
-                        }
+        // ES 캐시 확인 (TTL 이내 색인된 데이터가 있으면 API 호출 생략)
+        return Mono.fromCallable(() -> findFreshCachedResults(PcbPkgType.DIGIKEY.getValue(), searchWord))
+                .flatMap(cached -> {
+                    if (!cached.isEmpty()) {
+                        log.debug("디지키 ES 캐시 히트: {}", searchWord);
+                        return Mono.just(new PcbPartsMultiSearchResult.SourceResult("exact", cached));
                     }
-                    // 2. 실패 시 searchByKeyword 폴백
-                    return searchDigikeyByKeyword(searchWord, referencePrefix);
-                })
-                .onErrorResume(e -> {
-                    log.warn("디지키 ProductDetails 검색 실패, keyword 검색으로 폴백: {}", e.getMessage());
-                    return searchDigikeyByKeyword(searchWord, referencePrefix);
+                    // 캐시 미스 → getProductDetails 완전일치
+                    return digikeySubService.getProductDetails(searchWord, null)
+                            .flatMap(response -> {
+                                if (response.isResult() && response.getData() != null) {
+                                    CCObjectResult<PcbPartsSearch> parsed = digikeyPartsParserSubService.parseProduct(response.getData());
+                                    if (parsed.isResult() && parsed.getData() != null) {
+                                        List<PcbPartsSearch> items = pcbPartsService.indexExternalResults(
+                                                Collections.singletonList(parsed.getData()));
+                                        return Mono.just(new PcbPartsMultiSearchResult.SourceResult("exact", items));
+                                    }
+                                }
+                                return searchDigikeyByKeyword(searchWord, referencePrefix);
+                            })
+                            .onErrorResume(e -> {
+                                log.warn("디지키 ProductDetails 검색 실패, keyword 검색으로 폴백: {}", e.getMessage());
+                                return searchDigikeyByKeyword(searchWord, referencePrefix);
+                            });
                 });
     }
 
@@ -197,21 +213,53 @@ public class PcbPartsMultiSearchService {
     }
 
     /**
-     * UniKeyIC 검색: 부품번호 정확매칭
+     * UniKeyIC 검색: ES 캐시 확인 → 부품번호 정확매칭
      */
     private Mono<PcbPartsMultiSearchResult.SourceResult> searchUniKeyIC(String searchWord) {
-        return uniKeyICSubService.searchByPartNumber(searchWord)
-                .map(response -> {
-                    if (response.isResult() && response.getData() != null) {
-                        List<PcbPartsSearch> products = uniKeyICPartsParserSubService.parseProducts(response.getData());
-                        if (!products.isEmpty()) {
-                            products = pcbPartsService.indexExternalResults(products);
-                            return new PcbPartsMultiSearchResult.SourceResult("exact", products);
-                        }
+        // ES 캐시 확인 (TTL 이내 색인된 데이터가 있으면 API 호출 생략)
+        return Mono.fromCallable(() -> findFreshCachedResults(PcbPkgType.UNIKEYIC.getValue(), searchWord))
+                .flatMap(cached -> {
+                    if (!cached.isEmpty()) {
+                        log.debug("UniKeyIC ES 캐시 히트: {}", searchWord);
+                        return Mono.just(new PcbPartsMultiSearchResult.SourceResult("exact", cached));
                     }
-                    return new PcbPartsMultiSearchResult.SourceResult("exact", Collections.emptyList());
-                })
-                .onErrorReturn(new PcbPartsMultiSearchResult.SourceResult("exact", Collections.emptyList()));
+                    // 캐시 미스 → 외부 API 호출
+                    return uniKeyICSubService.searchByPartNumber(searchWord)
+                            .map(response -> {
+                                if (response.isResult() && response.getData() != null) {
+                                    List<PcbPartsSearch> products = uniKeyICPartsParserSubService.parseProducts(response.getData());
+                                    if (!products.isEmpty()) {
+                                        products = pcbPartsService.indexExternalResults(products);
+                                        return new PcbPartsMultiSearchResult.SourceResult("exact", products);
+                                    }
+                                }
+                                return new PcbPartsMultiSearchResult.SourceResult("exact", Collections.emptyList());
+                            })
+                            .onErrorReturn(new PcbPartsMultiSearchResult.SourceResult("exact", Collections.emptyList()));
+                });
+    }
+
+    /**
+     * @param serviceType 서비스 유형 (e.g., "digikey", "unikeyic")
+     * @param searchWord  검색어 (부품명)
+     * @return 캐시 히트 (TTL 유효) 시 결과, 캐시 미스 시 빈 리스트
+     */
+    private List<PcbPartsSearch> findFreshCachedResults(String serviceType, String searchWord) {
+        List<PcbPartsSearch> cached = pcbPartsSearchRepository
+                .findByServiceTypeAndPartNameKeywordIn(serviceType, List.of(searchWord));
+
+        if (cached.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        long ttlMillis = Duration.ofHours(applicationProperties.getExternalCache().getTtlHours()).toMillis();
+        long now = System.currentTimeMillis();
+
+        boolean allFresh = cached.stream()
+                .allMatch(part -> part.getLastModifiedDate() != null
+                        && (now - part.getLastModifiedDate().getTime()) < ttlMillis);
+
+        return allFresh ? cached : Collections.emptyList();
     }
 
     /**

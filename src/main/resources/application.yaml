@@ -71,3 +71,5 @@ application:
         baseUrl: https://openapi.unikeyic.com
         apiKey: input
         exchangeRate: 1350
+    external-cache:
+        ttl-hours: 24

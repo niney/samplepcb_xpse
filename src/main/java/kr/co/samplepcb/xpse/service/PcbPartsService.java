@@ -908,6 +908,14 @@ public class PcbPartsService {
      * 부품 리스트를 벌크로 색인합니다. serviceType + partName 기준으로 기존 데이터를 조회하여
      * 있으면 업데이트, 없으면 신규 생성합니다. ES 저장은 Bulk API로 일괄 처리합니다.
      */
+    /** 동일 데이터 재색인 방지 옵션. true이면 기존 데이터와 동일한 경우 ES/JPA 쓰기를 건너뜀 */
+    private static final boolean SKIP_IDENTICAL_INDEX = true;
+
+    private boolean isIdentical(PcbPartsSearch existing, PcbPartsSearch incoming) {
+        return Objects.equals(existing.getDescription(), incoming.getDescription())
+                && Objects.equals(existing.getManufacturerName(), incoming.getManufacturerName());
+    }
+
     private List<PcbPartsSearch> bulkIndexParts(List<PcbPartsSearch> partsList, String serviceType) {
         List<String> partNames = partsList.stream()
                 .map(PcbPartsSearch::getPartName)
@@ -935,6 +943,7 @@ public class PcbPartsService {
         }
 
         List<PcbPartsSearch> esDocsToSave = new ArrayList<>();
+        List<PcbPartsSearch> resultList = new ArrayList<>();
         for (PcbPartsSearch pcbPartsSearch : partsList) {
             if (StringUtils.isEmpty(pcbPartsSearch.getPartName())) {
                 continue;
@@ -942,6 +951,11 @@ public class PcbPartsService {
             PcbPartsSearch existing = existingMap.get(pcbPartsSearch.getPartName());
             if (existing != null) {
                 pcbPartsSearch.setId(existing.getId());
+                // 동일 데이터면 재색인 건너뜀
+                if (SKIP_IDENTICAL_INDEX && isIdentical(existing, pcbPartsSearch)) {
+                    resultList.add(existing);
+                    continue;
+                }
                 PcbParts existingEntity = existingEntityMap.get(existing.getId());
                 if (existingEntity != null) {
                     PcbParts updated = this.pcbPartsConvertSubService.toEntity(pcbPartsSearch);
@@ -956,9 +970,10 @@ public class PcbPartsService {
             }
             esDocsToSave.add(pcbPartsSearch);
         }
-        List<PcbPartsSearch> savedList = new ArrayList<>();
-        this.pcbPartsSearchRepository.saveAll(esDocsToSave).forEach(savedList::add);
-        return savedList;
+        if (!esDocsToSave.isEmpty()) {
+            this.pcbPartsSearchRepository.saveAll(esDocsToSave).forEach(resultList::add);
+        }
+        return resultList;
     }
 
     /**

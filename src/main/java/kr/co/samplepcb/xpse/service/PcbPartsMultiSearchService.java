@@ -82,9 +82,12 @@ public class PcbPartsMultiSearchService {
      * @param referencePrefix 참조 접두사 (선택, 예: "R", "C", "L")
      * @return 소스별 검색 결과를 담은 CCResult
      */
-    public Mono<CCResult> searchMultiSource(String searchWord, String referencePrefix) {
+    public Mono<CCObjectResult<PcbPartsMultiSearchResult>> searchMultiSource(String searchWord, String referencePrefix) {
         if (StringUtils.isEmpty(searchWord)) {
-            return Mono.just(CCResult.dataNotFound());
+            CCObjectResult<PcbPartsMultiSearchResult> notFound = new CCObjectResult<>();
+            notFound.setResult(false);
+            notFound.setMessage("data not found");
+            return Mono.just(notFound);
         }
 
         String safeReferencePrefix = StringUtils.defaultString(referencePrefix);
@@ -109,11 +112,17 @@ public class PcbPartsMultiSearchService {
                     result.setSamplepcb(tuple.getT1());
                     result.setDigikey(tuple.getT2());
                     result.setUnikeyic(tuple.getT3());
-                    return (CCResult) CCObjectResult.setSimpleData(result);
+                    CCObjectResult<PcbPartsMultiSearchResult> response = new CCObjectResult<>();
+                    response.setResult(true);
+                    response.setData(result);
+                    return response;
                 })
                 .onErrorResume(e -> {
                     log.error("멀티 소스 검색 실패", e);
-                    return Mono.just(CCResult.exceptionSimpleMsg((Exception) e));
+                    CCObjectResult<PcbPartsMultiSearchResult> error = new CCObjectResult<>();
+                    error.setResult(false);
+                    error.setMessage(e.getMessage());
+                    return Mono.just(error);
                 });
     }
 

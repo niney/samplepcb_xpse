@@ -6,6 +6,7 @@ import coolib.common.QueryParam;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import kr.co.samplepcb.xpse.pojo.PcbPartsMultiSearchResult;
 import kr.co.samplepcb.xpse.pojo.PcbPartsSearchField;
 import kr.co.samplepcb.xpse.pojo.PcbPartsSearchVM;
 import kr.co.samplepcb.xpse.service.PcbPartsIC114Service;
@@ -135,7 +136,7 @@ public class PcbPartsResource {
 
     @Operation(summary = "다중 소스 검색", description = "여러 소스에서 부품을 통합 검색합니다")
     @GetMapping("/_searchMultiSource")
-    public Mono<CCResult> searchMultiSource(
+    public Mono<CCObjectResult<PcbPartsMultiSearchResult>> searchMultiSource(
             @Parameter(description = "검색어") @RequestParam String searchWord,
             @Parameter(description = "참조 접두사") @RequestParam(required = false) String referencePrefix) {
         return this.pcbPartsMultiSearchService.searchMultiSource(searchWord, referencePrefix);

@@ -1,7 +1,6 @@
 package kr.co.samplepcb.xpse.service;
 
 import coolib.common.CCObjectResult;
-import coolib.common.CCResult;
 import kr.co.samplepcb.xpse.config.ApplicationProperties;
 import kr.co.samplepcb.xpse.domain.document.PcbPartsSearch;
 import kr.co.samplepcb.xpse.pojo.PcbPartsMultiSearchResult;
@@ -80,14 +79,13 @@ class PcbPartsMultiSearchServiceTest {
         when(elasticsearchOperations.search(any(Query.class), eq(PcbPartsSearch.class))).thenReturn(emptyHits);
 
         // when
-        CCResult result = service.searchMultiSource("LM358", null).block();
+        CCObjectResult<PcbPartsMultiSearchResult> result = service.searchMultiSource("LM358", null).block();
 
         // then
         assertThat(result).isNotNull();
         assertThat(result.isResult()).isTrue();
 
-        PcbPartsMultiSearchResult data = (PcbPartsMultiSearchResult)
-                ((CCObjectResult<?>) result).getData();
+        PcbPartsMultiSearchResult data = result.getData();
 
         assertThat(data.getDigikey().getSearchType()).isEqualTo("exact");
         assertThat(data.getDigikey().getItems()).hasSize(1);

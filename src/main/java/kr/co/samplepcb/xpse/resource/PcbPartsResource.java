@@ -142,4 +142,13 @@ public class PcbPartsResource {
         return this.pcbPartsMultiSearchService.searchMultiSource(searchWord, referencePrefix);
     }
 
+    @Operation(summary = "다중 소스 순차 검색 (first-hit)",
+            description = "자체 → 디지키 → UniKeyIC 순으로 순차 검색하며, 결과가 존재하는 첫 번째 소스를 반환합니다")
+    @GetMapping("/_searchMultiSourceFirstHit")
+    public Mono<CCObjectResult<PcbPartsMultiSearchResult>> searchMultiSourceFirstHit(
+            @Parameter(description = "검색어") @RequestParam String searchWord,
+            @Parameter(description = "참조 접두사") @RequestParam(required = false) String referencePrefix) {
+        return this.pcbPartsMultiSearchService.searchMultiSourceFirstHit(searchWord, referencePrefix);
+    }
+
 }

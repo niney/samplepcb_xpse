@@ -127,6 +127,96 @@ public class PcbPartsMultiSearchService {
     }
 
     /**
+     * 자체(samplepcb) → 디지키(digikey) → UniKeyIC 순으로 순차 검색하며,
+     * 결과가 존재하는 첫 번째 소스를 반환합니다(조기 종료).
+     *
+     * <pre>
+     * 검색 흐름 (순차 실행, first-hit 조기 종료):
+     *
+     * 1. 자체(samplepcb) ES 검색 → items 존재 시 samplepcb 필드에만 담아 반환
+     * 2. 없으면 디지키 ES 캐시 → API 검색 → items 존재 시 digikey 필드에만 담아 반환
+     * 3. 없으면 UniKeyIC ES 캐시 → API 검색 → unikeyic 필드에만 담아 반환
+     * 4. 모두 비어 있으면 세 필드 모두 빈 SourceResult로 반환
+     * </pre>
+     *
+     * 응답 구조는 {@link #searchMultiSource}와 동일하며, 히트한 소스만 데이터가 채워지고
+     * 나머지 소스는 null로 남습니다.
+     *
+     * @param searchWord      검색어 (필수)
+     * @param referencePrefix 참조 접두사 (선택)
+     * @return 첫 번째 히트 소스의 결과를 담은 CCResult
+     */
+    public Mono<CCObjectResult<PcbPartsMultiSearchResult>> searchMultiSourceFirstHit(String searchWord, String referencePrefix) {
+        if (StringUtils.isEmpty(searchWord)) {
+            CCObjectResult<PcbPartsMultiSearchResult> notFound = new CCObjectResult<>();
+            notFound.setResult(false);
+            notFound.setMessage("data not found");
+            return Mono.just(notFound);
+        }
+
+        String safeReferencePrefix = StringUtils.defaultString(referencePrefix);
+
+        Mono<PcbPartsMultiSearchResult.SourceResult> samplepcbMono = Mono.fromCallable(() ->
+                searchSamplepcb(searchWord, safeReferencePrefix)
+        ).onErrorResume(e -> {
+            log.warn("samplepcb 검색 실패, 다음 소스로 진행: {}", e.getMessage());
+            return Mono.just(emptySourceResult());
+        });
+
+        return samplepcbMono
+                .flatMap(samplepcbResult -> {
+                    if (hasItems(samplepcbResult)) {
+                        PcbPartsMultiSearchResult r = new PcbPartsMultiSearchResult();
+                        r.setSamplepcb(samplepcbResult);
+                        return Mono.just(r);
+                    }
+                    return searchDigikey(searchWord, safeReferencePrefix)
+                            .onErrorResume(e -> {
+                                log.warn("digikey 검색 실패, 다음 소스로 진행: {}", e.getMessage());
+                                return Mono.just(emptySourceResult());
+                            })
+                            .flatMap(digikeyResult -> {
+                                if (hasItems(digikeyResult)) {
+                                    PcbPartsMultiSearchResult r = new PcbPartsMultiSearchResult();
+                                    r.setDigikey(digikeyResult);
+                                    return Mono.just(r);
+                                }
+                                return searchUniKeyIC(searchWord)
+                                        .onErrorResume(e -> {
+                                            log.warn("unikeyic 검색 실패, 빈 결과 반환: {}", e.getMessage());
+                                            return Mono.just(emptySourceResult());
+                                        })
+                                        .map(unikeyicResult -> {
+                                            PcbPartsMultiSearchResult r = new PcbPartsMultiSearchResult();
+                                            r.setUnikeyic(unikeyicResult);
+                                            return r;
+                                        });
+                            });
+                })
+                .map(result -> {
+                    CCObjectResult<PcbPartsMultiSearchResult> response = new CCObjectResult<>();
+                    response.setResult(true);
+                    response.setData(result);
+                    return response;
+                })
+                .onErrorResume(e -> {
+                    log.error("멀티 소스 first-hit 검색 실패", e);
+                    CCObjectResult<PcbPartsMultiSearchResult> error = new CCObjectResult<>();
+                    error.setResult(false);
+                    error.setMessage(e.getMessage());
+                    return Mono.just(error);
+                });
+    }
+
+    private static boolean hasItems(PcbPartsMultiSearchResult.SourceResult r) {
+        return r != null && r.getItems() != null && !r.getItems().isEmpty();
+    }
+
+    private static PcbPartsMultiSearchResult.SourceResult emptySourceResult() {
+        return new PcbPartsMultiSearchResult.SourceResult(null, Collections.emptyList());
+    }
+
+/**
      * 자체(samplepcb) ES 검색: 완전일치 → 없으면 파싱 키워드 검색
      */
     private PcbPartsMultiSearchResult.SourceResult searchSamplepcb(String searchWord, String referencePrefix) {

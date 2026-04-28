@@ -38,6 +38,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.SearchHits;
@@ -1021,8 +1022,26 @@ public class PcbPartsService {
                 }
             } else {
                 PcbParts newEntity = this.pcbPartsConvertSubService.toEntity(pcbPartsSearch);
-                this.pcbPartsRepository.save(newEntity);
-                pcbPartsSearch.setId(newEntity.getDocId());
+                try {
+                    this.pcbPartsRepository.save(newEntity);
+                    pcbPartsSearch.setId(newEntity.getDocId());
+                } catch (DataIntegrityViolationException e) {
+                    // (service_type, part_name) UNIQUE 위반 — 동시 insert race / ES-RDB 정합성 깨짐 케이스
+                    // RDB 쪽에 이미 row 가 있으니 그것을 가져와 update 경로로 fallback
+                    PcbParts conflict = this.pcbPartsRepository
+                            .findByServiceTypeAndPartName(serviceType, pcbPartsSearch.getPartName())
+                            .orElse(null);
+                    if (conflict == null) {
+                        log.warn("RDB UNIQUE 충돌 후 row 재조회 실패 (serviceType={}, partName={})",
+                                serviceType, pcbPartsSearch.getPartName());
+                        continue;
+                    }
+                    PcbParts updated = this.pcbPartsConvertSubService.toEntity(pcbPartsSearch);
+                    updated.setId(conflict.getId());
+                    updated.setDocId(conflict.getDocId());
+                    this.pcbPartsRepository.save(updated);
+                    pcbPartsSearch.setId(conflict.getDocId());
+                }
             }
             esDocsToSave.add(pcbPartsSearch);
         }

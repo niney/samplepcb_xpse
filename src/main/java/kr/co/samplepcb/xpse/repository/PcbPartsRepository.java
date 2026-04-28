@@ -18,4 +18,6 @@ public interface PcbPartsRepository extends JpaRepository<PcbParts, Long>, JpaSp
     List<PcbParts> findByMemberId(String memberId);
 
     List<PcbParts> findByServiceType(String serviceType);
+
+    Optional<PcbParts> findByServiceTypeAndPartName(String serviceType, String partName);
 }

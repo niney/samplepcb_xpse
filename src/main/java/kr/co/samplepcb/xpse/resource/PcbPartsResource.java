@@ -6,6 +6,7 @@ import coolib.common.QueryParam;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import kr.co.samplepcb.xpse.domain.document.PcbPartsSearch;
 import kr.co.samplepcb.xpse.pojo.PcbPartsMultiSearchResult;
 import kr.co.samplepcb.xpse.pojo.PcbPartsSearchField;
 import kr.co.samplepcb.xpse.pojo.PcbPartsSearchVM;
@@ -50,6 +51,18 @@ public class PcbPartsResource {
     @PostMapping(value = "/_uploadItemFileByEleparts")
     public CCResult uploadItemFileByEleparts(@RequestParam("file") MultipartFile file/*, HttpServletRequest request*/) {
         return this.pcbPartsService.indexAllByEleparts(file);
+    }
+
+    @Operation(summary = "단일 부품 저장", description = "PcbPartsSearch 객체를 받아 색인/업데이트합니다 (serviceType + partName 기준 upsert)")
+    @PostMapping("/_savePart")
+    public CCResult savePart(@RequestBody PcbPartsSearch part) {
+        return this.pcbPartsService.savePart(part);
+    }
+
+    @Operation(summary = "다중 부품 저장", description = "여러 부품을 일괄 색인/업데이트합니다 (serviceType별 그룹 벌크 처리)")
+    @PostMapping("/_saveParts")
+    public CCResult saveParts(@RequestBody List<PcbPartsSearch> parts) {
+        return this.pcbPartsService.saveParts(parts);
     }
 
     @Operation(summary = "IC114 파일 업로드", description = "IC114 형식의 부품 파일을 업로드하여 인덱싱합니다")

@@ -905,6 +905,61 @@ public class PcbPartsService {
     }
 
     /**
+     * 단일 부품을 색인/업데이트합니다. serviceType + partName 기준 upsert.
+     *
+     * @param part 저장할 부품
+     * @return 저장된 부품을 담은 CCResult. partName/serviceType 누락 시 dataNotFound
+     */
+    public CCResult savePart(PcbPartsSearch part) {
+        if (part == null || StringUtils.isEmpty(part.getPartName())) {
+            CCResult ccResult = CCResult.dataNotFound();
+            ccResult.setMessage("partName is required");
+            return ccResult;
+        }
+        if (StringUtils.isEmpty(part.getServiceType())) {
+            CCResult ccResult = CCResult.dataNotFound();
+            ccResult.setMessage("serviceType is required");
+            return ccResult;
+        }
+        List<PcbPartsSearch> saved = bulkIndexParts(new ArrayList<>(List.of(part)), part.getServiceType());
+        if (CollectionUtils.isEmpty(saved)) {
+            return CCResult.dataNotFound();
+        }
+        return CCObjectResult.setSimpleData(saved.getFirst());
+    }
+
+    /**
+     * 다중 부품을 색인/업데이트합니다. serviceType 별로 그룹화하여 벌크 처리합니다.
+     *
+     * @param parts 저장할 부품 리스트
+     * @return 저장된 부품 리스트를 담은 CCResult
+     */
+    public CCResult saveParts(List<PcbPartsSearch> parts) {
+        if (CollectionUtils.isEmpty(parts)) {
+            return CCResult.dataNotFound();
+        }
+        for (PcbPartsSearch part : parts) {
+            if (part == null || StringUtils.isEmpty(part.getPartName())) {
+                CCResult ccResult = CCResult.dataNotFound();
+                ccResult.setMessage("partName is required");
+                return ccResult;
+            }
+            if (StringUtils.isEmpty(part.getServiceType())) {
+                CCResult ccResult = CCResult.dataNotFound();
+                ccResult.setMessage("serviceType is required");
+                return ccResult;
+            }
+        }
+        Map<String, List<PcbPartsSearch>> grouped = parts.stream()
+                .collect(Collectors.groupingBy(PcbPartsSearch::getServiceType));
+        List<PcbPartsSearch> result = new ArrayList<>();
+        for (Map.Entry<String, List<PcbPartsSearch>> entry : grouped.entrySet()) {
+            result.addAll(bulkIndexParts(entry.getValue(), entry.getKey()));
+        }
+        return CCObjectResult.setSimpleData(result);
+    }
+
+    /**
      * 부품 리스트를 벌크로 색인합니다. serviceType + partName 기준으로 기존 데이터를 조회하여
      * 있으면 업데이트, 없으면 신규 생성합니다. ES 저장은 Bulk API로 일괄 처리합니다.
      */

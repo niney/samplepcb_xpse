@@ -1,5 +1,5 @@
 {
-  "last_compiled": "2026-04-15",
+  "last_compiled": "2026-04-29",
   "topics": [
     "pcb-parts",
     "pcb-search-index",
@@ -14,7 +14,8 @@
     "multi-level-caching"
   ],
   "source_locations": [
-    "src/main/java/kr/co/samplepcb/xpse"
+    "src/main/java/kr/co/samplepcb/xpse",
+    "src/main/resources/db/migration"
   ],
-  "total_sources_scanned": 160
+  "total_sources_scanned": 165
 }

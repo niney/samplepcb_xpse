@@ -1,5 +1,17 @@
 # Wiki Compile Log
 
+## 2026-04-29 — 증분 컴파일
+
+- **분석 커밋 범위**: 6903133..eba88b1 (9개 커밋, 2026-04-22 ~ 2026-04-29)
+- **토픽 업데이트**: 3개
+  - pcb-parts: API Surface 에 `_savePart`/`_saveParts`/`_searchExternalBatch`/`_searchMultiSourceFirstHit` 추가, `(service_type, part_name)` UNIQUE 제약 + DataIntegrityViolationException 폴백 / 동일 데이터 시 `lastModifiedDate` touch 의사결정 추가
+  - external-integration: 멀티 소스 검색 모드 3종 (병렬 / first-hit / 외부 일괄 batch) 흐름 정리, `_searchMultiSourceFirstHit` / `_searchExternalBatch` 엔드포인트 추가, partName 단위 에러 격리 정책 반영
+  - sp-estimate: 필수 협력사(Digikey 6035 / UniKeyIC 6036) PED+PEI 자동 보장(`ensureRequiredPartners`), 외부 시세 자동 동기화(`syncExternalSelectedPrices`, 24h TTL, `external_synced_at` 컬럼) 의사결정 + Gotchas 추가, `SelectedPriceCalculator`/`SelectedPriceVO` 헬퍼 등록
+- **컨셉 업데이트**: 1개
+  - multi-level-caching: 연결 토픽에 `sp-estimate` 추가, instance 2건 추가 (lastModifiedDate touch / external_synced_at TTL 가드)
+- **신규 토픽/컨셉**: 없음
+- **변경 소스**: 12개 (PcbPartsResource, PcbPartsService, PcbPartsRepository, PcbPartsMultiSearchService, PcbPartsMultiSearchServiceTest, PcbPartsExternalBatchResult, SpEstimateService, SpPartnerEstimateItem, SpPartnerEstimateItemRepository, SelectedPriceCalculator, SelectedPriceVO, alter_sp_pcb_parts_unique_key.sql, alter_sp_partner_estimate_item_external_synced_at.sql)
+
 ## 2026-04-15 — 증분 컴파일
 
 - **커밋 분석**: c6fe828 (ES 캐시 우선 전략)

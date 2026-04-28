@@ -2,8 +2,8 @@
 
 > Spring Boot 4.1 / Java 21 기반 PCB 부품 검색 및 견적 관리 시스템
 
-Last compiled: 2026-04-15
-Total topics: 8 | Total concepts: 1 | Total sources: 154+
+Last compiled: 2026-04-29
+Total topics: 8 | Total concepts: 1 | Total sources: 160+
 
 ## 토픽
 
@@ -34,7 +34,7 @@ Total topics: 8 | Total concepts: 1 | Total sources: 154+
 
 | Concept | Connects | Last Updated |
 |---------|----------|-------------|
-| [다층 캐싱 전략](concepts/multi-level-caching.md) | pcb-parts, external-integration, infrastructure | 2026-04-15 |
+| [다층 캐싱 전략](concepts/multi-level-caching.md) | pcb-parts, external-integration, infrastructure, sp-estimate | 2026-04-29 |
 
 ## 기술 스택
 
@@ -73,5 +73,6 @@ Total topics: 8 | Total concepts: 1 | Total sources: 154+
 
 ## Recent Changes
 
+- 2026-04-29: pcb-parts(외부 일괄검색·first-hit·UNIQUE 제약·lastModifiedDate touch), external-integration(searchExternalBatch + searchMultiSourceFirstHit), sp-estimate(필수 협력사 PED/PEI 자동 보장 + 외부 selectedPrice 24h 동기화) 업데이트. multi-level-caching 컨셉에 sp-estimate 인스턴스 추가.
 - 2026-04-15: pcb-parts, external-integration, infrastructure 토픽 업데이트 — ES 캐시 우선 전략 반영. concept `multi-level-caching` 생성. schema.md 초기 생성.
 - 2026-04-14: 최초 컴파일 — 8개 토픽 생성

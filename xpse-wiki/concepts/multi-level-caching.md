@@ -1,7 +1,7 @@
 ---
 concept: 다층 캐싱 전략 (Caffeine + ES TTL)
-last_compiled: 2026-04-15
-topics_connected: [pcb-parts, external-integration, infrastructure]
+last_compiled: 2026-04-29
+topics_connected: [pcb-parts, external-integration, infrastructure, sp-estimate]
 status: active
 ---
 
@@ -18,6 +18,8 @@ status: active
 - **2026-04-15** in [pcb-parts](../topics/pcb-parts.md): `PcbPartsMultiSearchService.findFreshCachedResults()`가 Digikey/UniKeyIC 검색 전에 ES 인덱스를 캐시로 확인한다. `lastModifiedDate` 기반으로 24시간 TTL을 판별하며, 캐시 히트 시 외부 API 호출을 완전히 생략한다.
 - **2026-04-15** in [external-integration](../topics/external-integration.md): `DigikeySubService.searchByKeyword()`에 `@Cacheable(searchResults)` 적용으로 Caffeine 인메모리 캐시(500건/30분)가 동일 키워드 반복 호출을 처리한다. ES TTL 캐시는 Caffeine 만료 후에도 API 호출을 방지한다.
 - **2026-04-15** in [infrastructure](../topics/infrastructure.md): `CacheConfig`에서 Caffeine 비동기 캐시 관리, `ApplicationProperties.ExternalCache.ttlHours`에서 ES 캐시 TTL 제어. 두 캐시 계층의 설정이 서로 다른 설정 클래스에 분산되어 있다.
+- **2026-04-28** in [pcb-parts](../topics/pcb-parts.md): `bulkIndexParts()` 가 동일 데이터 재색인 시 `lastModifiedDate` 만 `new Date()` 로 touch 한다. RDB/본문 쓰기는 건너뛰면서 외부 캐시 TTL(24h) 만 갱신해, "캐시는 살아있지만 데이터는 변경 없음" 상태를 유지한다.
+- **2026-04-29** in [sp-estimate](../topics/sp-estimate.md): `syncExternalSelectedPrices()` 가 견적서 응답 시점에 필수 협력사 PEI 의 `external_synced_at` 컬럼을 또 하나의 24h TTL 가드로 사용한다. `searchExternalBatch` → ES 캐시 → (필요 시) 외부 API 의 3단 구조 위에 PEI 단위 동기화 시각이 추가 레이어로 얹혀, 동일 견적의 반복 조회가 외부 API 까지 도달하지 않도록 막는다. ES 캐시(24h) 와 동일 주기로 통일.
 
 ## What This Means
 
@@ -33,3 +35,4 @@ ES를 캐시 레이어로 활용하는 설계는 "이중 저장"의 부산물이
 - [pcb-parts](../topics/pcb-parts.md)
 - [external-integration](../topics/external-integration.md)
 - [infrastructure](../topics/infrastructure.md)
+- [sp-estimate](../topics/sp-estimate.md)

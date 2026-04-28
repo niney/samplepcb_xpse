@@ -4,6 +4,7 @@ import coolib.common.CCObjectResult;
 import coolib.common.CCResult;
 import kr.co.samplepcb.xpse.config.ApplicationProperties;
 import kr.co.samplepcb.xpse.domain.document.PcbPartsSearch;
+import kr.co.samplepcb.xpse.pojo.PcbPartsExternalBatchResult;
 import kr.co.samplepcb.xpse.pojo.PcbPartsMultiSearchResult;
 import kr.co.samplepcb.xpse.pojo.PcbPartsSearchField;
 import kr.co.samplepcb.xpse.pojo.PcbPkgType;
@@ -24,6 +25,7 @@ import org.springframework.data.elasticsearch.core.query.CriteriaQuery;
 import org.springframework.data.elasticsearch.core.query.HighlightQuery;
 import org.springframework.data.elasticsearch.core.query.Query;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
@@ -208,6 +210,85 @@ public class PcbPartsMultiSearchService {
                 });
     }
 
+    /**
+     * 외부 공급사(Digikey + UniKeyIC) 일괄 검색.
+     *
+     * <pre>
+     * 검색 흐름:
+     *
+     * [Digikey 트랙 (concatMap, partName 순차)]   [UniKeyIC 트랙 (concatMap, partName 순차)]
+     *   PART_A → PART_B → PART_C                    PART_A → PART_B → PART_C
+     *   각 단계: ES 캐시 → getProductDetails 완전일치  각 단계: ES 캐시 → searchByPartNumber 완전일치
+     *           (키워드 폴백 없음)
+     *
+     * → 두 트랙은 Mono.zip 으로 병렬 실행
+     * → 각 트랙 내부는 concatMap 으로 입력 순서 보존
+     * → partName 단위 onErrorResume 으로 1개 실패가 트랙 전체 중단을 막음
+     * → partName 이 정확한 부품번호라는 가정 하에 Digikey 키워드 검색은 수행하지 않음 (노이즈/추가 API 호출 회피)
+     * </pre>
+     *
+     * @param partNames 조회할 부품명 리스트 (필수, 비어있을 수 없음)
+     * @return Digikey/UniKeyIC 각 소스별 누적 items 를 담은 결과
+     */
+    public Mono<CCObjectResult<PcbPartsExternalBatchResult>> searchExternalBatch(List<String> partNames) {
+        if (partNames == null || partNames.isEmpty()) {
+            CCObjectResult<PcbPartsExternalBatchResult> notFound = new CCObjectResult<>();
+            notFound.setResult(false);
+            notFound.setMessage("data not found");
+            return Mono.just(notFound);
+        }
+
+        Mono<PcbPartsMultiSearchResult.SourceResult> digikeyMono = Flux.fromIterable(partNames)
+                .concatMap(name -> searchDigikeyExactOnly(name)
+                        .onErrorResume(e -> {
+                            log.warn("digikey batch 검색 실패 (partName={}): {}", name, e.getMessage());
+                            return Mono.just(emptySourceResult());
+                        }))
+                .collectList()
+                .map(this::mergeSourceResults);
+
+        Mono<PcbPartsMultiSearchResult.SourceResult> unikeyicMono = Flux.fromIterable(partNames)
+                .concatMap(name -> searchUniKeyIC(name)
+                        .onErrorResume(e -> {
+                            log.warn("unikeyic batch 검색 실패 (partName={}): {}", name, e.getMessage());
+                            return Mono.just(emptySourceResult());
+                        }))
+                .collectList()
+                .map(this::mergeSourceResults);
+
+        return Mono.zip(digikeyMono, unikeyicMono)
+                .map(tuple -> {
+                    PcbPartsExternalBatchResult result = new PcbPartsExternalBatchResult();
+                    result.setDigikey(tuple.getT1());
+                    result.setUnikeyic(tuple.getT2());
+                    CCObjectResult<PcbPartsExternalBatchResult> response = new CCObjectResult<>();
+                    response.setResult(true);
+                    response.setData(result);
+                    return response;
+                })
+                .onErrorResume(e -> {
+                    log.error("외부 공급사 일괄 검색 실패", e);
+                    CCObjectResult<PcbPartsExternalBatchResult> error = new CCObjectResult<>();
+                    error.setResult(false);
+                    error.setMessage(e.getMessage());
+                    return Mono.just(error);
+                });
+    }
+
+    /**
+     * partName 별 SourceResult 들을 입력 순서대로 단일 SourceResult 로 병합한다.
+     * batch 응답에서는 partName 마다 exact/keyword 가 다를 수 있으므로 searchType 은 null.
+     */
+    private PcbPartsMultiSearchResult.SourceResult mergeSourceResults(List<PcbPartsMultiSearchResult.SourceResult> partResults) {
+        List<Object> merged = new ArrayList<>();
+        for (PcbPartsMultiSearchResult.SourceResult r : partResults) {
+            if (r != null && r.getItems() != null) {
+                merged.addAll(r.getItems());
+            }
+        }
+        return new PcbPartsMultiSearchResult.SourceResult(null, merged);
+    }
+
     private static boolean hasItems(PcbPartsMultiSearchResult.SourceResult r) {
         return r != null && r.getItems() != null && !r.getItems().isEmpty();
     }
@@ -291,6 +372,36 @@ public class PcbPartsMultiSearchService {
                             .onErrorResume(e -> {
                                 log.warn("디지키 ProductDetails 검색 실패, keyword 검색으로 폴백: {}", e.getMessage());
                                 return searchDigikeyByKeyword(searchWord, referencePrefix);
+                            });
+                });
+    }
+
+    /**
+     * 디지키 완전일치 전용 검색: ES 캐시 → getProductDetails (키워드 폴백 없음).
+     * partName 이 정확한 부품번호인 batch 호출에 사용된다. 키워드 검색의 노이즈/오탐 및 추가 API 호출을 제거한다.
+     */
+    private Mono<PcbPartsMultiSearchResult.SourceResult> searchDigikeyExactOnly(String searchWord) {
+        return Mono.fromCallable(() -> findFreshCachedResults(PcbPkgType.DIGIKEY.getValue(), searchWord))
+                .flatMap(cached -> {
+                    if (!cached.isEmpty()) {
+                        log.debug("디지키 ES 캐시 히트 (exactOnly): {}", searchWord);
+                        return Mono.just(new PcbPartsMultiSearchResult.SourceResult("exact", cached));
+                    }
+                    return digikeySubService.getProductDetails(searchWord, null)
+                            .flatMap(response -> {
+                                if (response.isResult() && response.getData() != null) {
+                                    CCObjectResult<PcbPartsSearch> parsed = digikeyPartsParserSubService.parseProduct(response.getData());
+                                    if (parsed.isResult() && parsed.getData() != null) {
+                                        List<PcbPartsSearch> items = pcbPartsService.indexExternalResults(
+                                                Collections.singletonList(parsed.getData()));
+                                        return Mono.just(new PcbPartsMultiSearchResult.SourceResult("exact", items));
+                                    }
+                                }
+                                return Mono.just(new PcbPartsMultiSearchResult.SourceResult("exact", Collections.emptyList()));
+                            })
+                            .onErrorResume(e -> {
+                                log.warn("디지키 ProductDetails 검색 실패 (exactOnly, partName={}): {}", searchWord, e.getMessage());
+                                return Mono.just(new PcbPartsMultiSearchResult.SourceResult("exact", Collections.emptyList()));
                             });
                 });
     }

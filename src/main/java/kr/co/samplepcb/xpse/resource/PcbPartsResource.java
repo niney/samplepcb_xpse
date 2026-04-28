@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import kr.co.samplepcb.xpse.domain.document.PcbPartsSearch;
+import kr.co.samplepcb.xpse.pojo.PcbPartsExternalBatchResult;
 import kr.co.samplepcb.xpse.pojo.PcbPartsMultiSearchResult;
 import kr.co.samplepcb.xpse.pojo.PcbPartsSearchField;
 import kr.co.samplepcb.xpse.pojo.PcbPartsSearchVM;
@@ -153,6 +154,15 @@ public class PcbPartsResource {
             @Parameter(description = "검색어") @RequestParam String searchWord,
             @Parameter(description = "참조 접두사") @RequestParam(required = false) String referencePrefix) {
         return this.pcbPartsMultiSearchService.searchMultiSource(searchWord, referencePrefix);
+    }
+
+    @Operation(summary = "외부 공급사 일괄 검색 (Digikey + UniKeyIC 병렬)",
+            description = "여러 partName 으로 Digikey/UniKeyIC 를 병렬 조회합니다. " +
+                    "두 공급사 트랙은 병렬로 실행되며, 각 트랙 내부는 partName 입력 순서대로 순차 조회합니다 (ES 캐시 우선).")
+    @PostMapping("/_searchExternalBatch")
+    public Mono<CCObjectResult<PcbPartsExternalBatchResult>> searchExternalBatch(
+            @RequestBody List<String> partNames) {
+        return this.pcbPartsMultiSearchService.searchExternalBatch(partNames);
     }
 
     @Operation(summary = "다중 소스 순차 검색 (first-hit)",

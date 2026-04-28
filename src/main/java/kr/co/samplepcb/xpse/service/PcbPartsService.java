@@ -1006,9 +1006,10 @@ public class PcbPartsService {
             PcbPartsSearch existing = existingMap.get(pcbPartsSearch.getPartName());
             if (existing != null) {
                 pcbPartsSearch.setId(existing.getId());
-                // 동일 데이터면 재색인 건너뜀
+                // 동일 데이터면 RDB/본문 재색인은 건너뛰되, lastModifiedDate 만 touch 하여 외부 캐시 TTL 갱신
                 if (SKIP_IDENTICAL_INDEX && isIdentical(existing, pcbPartsSearch)) {
-                    resultList.add(existing);
+                    existing.setLastModifiedDate(new Date());
+                    esDocsToSave.add(existing);
                     continue;
                 }
                 PcbParts existingEntity = existingEntityMap.get(existing.getId());

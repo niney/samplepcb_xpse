@@ -3,6 +3,7 @@ package kr.co.samplepcb.xpse.service;
 import coolib.common.CCObjectResult;
 import coolib.common.CCPagingResult;
 import coolib.common.CCResult;
+import kr.co.samplepcb.xpse.domain.document.PcbPartsSearch;
 import kr.co.samplepcb.xpse.domain.entity.G5ShopCart;
 import kr.co.samplepcb.xpse.domain.entity.G5ShopItem;
 import kr.co.samplepcb.xpse.domain.entity.SpEstimateDocument;
@@ -11,6 +12,8 @@ import kr.co.samplepcb.xpse.domain.entity.SpEstimateItem;
 import kr.co.samplepcb.xpse.domain.entity.SpPartnerEstimateDocument;
 import kr.co.samplepcb.xpse.domain.entity.SpPartnerEstimateItem;
 import kr.co.samplepcb.xpse.mapper.SpEstimateMapper;
+import kr.co.samplepcb.xpse.pojo.PcbPartsExternalBatchResult;
+import kr.co.samplepcb.xpse.pojo.PcbPartsMultiSearchResult;
 import kr.co.samplepcb.xpse.pojo.SpEstimateCreateDTO;
 import kr.co.samplepcb.xpse.pojo.SpEstimateDetailDTO;
 import kr.co.samplepcb.xpse.pojo.SpEstimateListDTO;
@@ -33,6 +36,9 @@ import kr.co.samplepcb.xpse.repository.SpEstimateItemRepository;
 import kr.co.samplepcb.xpse.repository.SpFileRepository;
 import kr.co.samplepcb.xpse.repository.SpPartnerEstimateDocumentRepository;
 import kr.co.samplepcb.xpse.repository.SpPartnerEstimateItemRepository;
+import kr.co.samplepcb.xpse.service.PcbPartsMultiSearchService;
+import kr.co.samplepcb.xpse.service.helper.SelectedPriceCalculator;
+import kr.co.samplepcb.xpse.service.helper.SelectedPriceVO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -40,11 +46,17 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -59,13 +71,20 @@ public class SpEstimateService {
     private static final String DEFAULT_STATUS = "협력사 견적접수";
     private static final String PARTNER_ESTIMATE_ITEM_REF_TYPE = "partner_estimate_item";
     /**
-     * 필수 협력사 mbNo 하드코딩 목록.
-     * 모든 견적서/견적항목은 이 협력사들의 PED(협력사 견적서) + PEI(협력사 견적항목) 행을 보유해야 한다.
-     * 협력사 추가 시 이 리스트에 mbNo 만 추가하면 된다.
-     * - 6035: Digikey
-     * - 6036: UniKeyIC
+     * 필수 협력사 mbNo 하드코딩.
+     * 모든 견적서/견적항목은 이 협력사들의 PED + PEI 행을 보유해야 하며, 외부 시세 자동 동기화 대상이기도 하다.
+     * 협력사 추가 시 상수 추가 + REQUIRED_PARTNER_MB_NOS 에 포함시키면 된다.
      */
-    private static final List<Integer> REQUIRED_PARTNER_MB_NOS = List.of(6035, 6036);
+    private static final int MB_NO_DIGIKEY = 6035;
+    private static final int MB_NO_UNIKEYIC = 6036;
+    private static final List<Integer> REQUIRED_PARTNER_MB_NOS = List.of(MB_NO_DIGIKEY, MB_NO_UNIKEYIC);
+    /** 외부 시세 동기화 TTL — 이 시간 안에 sync 한 PEI 는 외부 호출/UPDATE 를 스킵한다. ES 캐시(24h) 와 동일 주기. */
+    private static final long EXTERNAL_SYNC_TTL_MILLIS = Duration.ofHours(24).toMillis();
+    /** _searchExternalBatch.block(...) 타임아웃 */
+    private static final Duration EXTERNAL_SYNC_TIMEOUT = Duration.ofSeconds(15);
+
+    private static final ObjectMapper EXTERNAL_SYNC_MAPPER = JsonMapper.builder().build();
+    private static final SelectedPriceCalculator SELECTED_PRICE_CALCULATOR = new SelectedPriceCalculator();
 
     private final G5ShopItemRepository shopItemRepository;
     private final G5ShopCartRepository shopCartRepository;
@@ -75,6 +94,7 @@ public class SpEstimateService {
     private final SpPartnerEstimateDocumentRepository partnerEstimateDocumentRepository;
     private final SpFileRepository spFileRepository;
     private final SpEstimateMapper spEstimateMapper;
+    private final PcbPartsMultiSearchService pcbPartsMultiSearchService;
 
     public SpEstimateService(G5ShopItemRepository shopItemRepository,
                              G5ShopCartRepository shopCartRepository,
@@ -83,7 +103,8 @@ public class SpEstimateService {
                              SpPartnerEstimateItemRepository partnerEstimateItemRepository,
                              SpPartnerEstimateDocumentRepository partnerEstimateDocumentRepository,
                              SpFileRepository spFileRepository,
-                             SpEstimateMapper spEstimateMapper) {
+                             SpEstimateMapper spEstimateMapper,
+                             PcbPartsMultiSearchService pcbPartsMultiSearchService) {
         this.shopItemRepository = shopItemRepository;
         this.shopCartRepository = shopCartRepository;
         this.estimateDocumentRepository = estimateDocumentRepository;
@@ -92,6 +113,7 @@ public class SpEstimateService {
         this.partnerEstimateDocumentRepository = partnerEstimateDocumentRepository;
         this.spFileRepository = spFileRepository;
         this.spEstimateMapper = spEstimateMapper;
+        this.pcbPartsMultiSearchService = pcbPartsMultiSearchService;
     }
 
     /**
@@ -257,6 +279,122 @@ public class SpEstimateService {
                     newDoc.setModifyDate(now);
                     return partnerEstimateDocumentRepository.save(newDoc);
                 });
+    }
+
+    /**
+     * mbNo=6035(Digikey) / 6036(UniKeyIC) 협력사 PEI 의 selectedPrice / dateCode 를
+     * _searchExternalBatch 의 최신 시세로 갱신한다.
+     * - EXTERNAL_SYNC_TTL_MILLIS 안에 sync 한 PEI 는 외부 호출 없이 스킵
+     * - 매칭/계산 결과가 기존 값과 동일하면 UPDATE 스킵
+     * - 외부 호출/매칭 실패는 호출 측에서 catch 하여 응답을 막지 않는다.
+     */
+    private void syncExternalSelectedPrices(List<SpPartnerEstimateDocument> peds) {
+        List<Long> requiredPedIds = peds.stream()
+                .filter(p -> REQUIRED_PARTNER_MB_NOS.contains(p.getMbNo()))
+                .map(SpPartnerEstimateDocument::getId)
+                .toList();
+        if (requiredPedIds.isEmpty()) {
+            return;
+        }
+        List<SpPartnerEstimateItem> targets = partnerEstimateItemRepository
+                .findByPartnerEstimateDocumentIdInWithPart(requiredPedIds);
+        if (targets.isEmpty()) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        List<SpPartnerEstimateItem> ttlGated = targets.stream()
+                .filter(p -> p.getExternalSyncedAt() == null
+                        || (now - p.getExternalSyncedAt().getTime()) >= EXTERNAL_SYNC_TTL_MILLIS)
+                .toList();
+        if (ttlGated.isEmpty()) {
+            return;
+        }
+        Set<String> partNames = ttlGated.stream()
+                .map(p -> p.getEstimateItem().getPcbPart() == null ? null : p.getEstimateItem().getPcbPart().getPartName())
+                .filter(s -> s != null && !s.isBlank())
+                .map(String::trim)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        if (partNames.isEmpty()) {
+            return;
+        }
+        PcbPartsExternalBatchResult external = pcbPartsMultiSearchService
+                .searchExternalBatch(new ArrayList<>(partNames))
+                .map(CCObjectResult::getData)
+                .block(EXTERNAL_SYNC_TIMEOUT);
+        if (external == null) {
+            return;
+        }
+        Map<Integer, Map<String, PcbPartsSearch>> indexByMbNo = Map.of(
+                MB_NO_DIGIKEY, indexByPartName(external.getDigikey()),
+                MB_NO_UNIKEYIC, indexByPartName(external.getUnikeyic())
+        );
+
+        Date nowDate = new Date(now);
+        List<SpPartnerEstimateItem> toSave = new ArrayList<>();
+        for (SpPartnerEstimateItem pei : ttlGated) {
+            SpEstimateItem item = pei.getEstimateItem();
+            if (item == null || item.getPcbPart() == null) continue;
+            String partName = item.getPcbPart().getPartName();
+            if (partName == null || partName.isBlank()) continue;
+            Integer qtyBox = item.getQty();
+            if (qtyBox == null || qtyBox <= 0) continue;
+
+            Map<String, PcbPartsSearch> index = indexByMbNo.get(pei.getMbNo());
+            if (index == null) continue;
+            PcbPartsSearch matched = index.get(partName.trim());
+            if (matched == null) continue;
+
+            Optional<SelectedPriceVO> calculated = SELECTED_PRICE_CALCULATOR.calculate(matched, qtyBox);
+            if (calculated.isEmpty()) continue;
+            SelectedPriceVO newVo = calculated.get();
+            SelectedPriceVO oldVo = parseSelectedPriceVo(pei.getSelectedPrice());
+
+            String newDateCode = matched.getDateCode();
+            boolean priceUnchanged = Objects.equals(oldVo, newVo);
+            boolean dateCodeUnchanged = newDateCode == null || Objects.equals(pei.getDateCode(), newDateCode);
+
+            if (priceUnchanged && dateCodeUnchanged) {
+                pei.setExternalSyncedAt(nowDate);
+                toSave.add(pei);
+                continue;
+            }
+            try {
+                pei.setSelectedPrice(EXTERNAL_SYNC_MAPPER.writeValueAsString(newVo));
+            } catch (JacksonException e) {
+                log.warn("selectedPrice 직렬화 실패 (peiId={}): {}", pei.getId(), e.getMessage());
+                continue;
+            }
+            if (newDateCode != null) {
+                pei.setDateCode(newDateCode);
+            }
+            pei.setModifyDate(nowDate);
+            pei.setExternalSyncedAt(nowDate);
+            toSave.add(pei);
+        }
+        if (!toSave.isEmpty()) {
+            partnerEstimateItemRepository.saveAll(toSave);
+        }
+    }
+
+    private Map<String, PcbPartsSearch> indexByPartName(PcbPartsMultiSearchResult.SourceResult source) {
+        if (source == null || source.getItems() == null || source.getItems().isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Map<String, PcbPartsSearch> index = new HashMap<>();
+        for (Object o : source.getItems()) {
+            if (!(o instanceof PcbPartsSearch p) || p.getPartName() == null) continue;
+            index.putIfAbsent(p.getPartName().trim(), p);
+        }
+        return index;
+    }
+
+    private SelectedPriceVO parseSelectedPriceVo(String json) {
+        if (json == null || json.isBlank()) return null;
+        try {
+            return EXTERNAL_SYNC_MAPPER.readValue(json, SelectedPriceVO.class);
+        } catch (JacksonException e) {
+            return null;
+        }
     }
 
     /**
@@ -611,6 +749,11 @@ public class SpEstimateService {
         List<SpPartnerEstimateDocument> pedList = partnerEstimateDocumentRepository.findByEstimateDocumentId(id);
         if (pedList.isEmpty()) {
             return dataNotFound();
+        }
+        try {
+            syncExternalSelectedPrices(pedList);
+        } catch (Exception e) {
+            log.warn("외부 시세 동기화 실패 (id={}): 기존 값으로 응답. cause={}", id, e.getMessage());
         }
 
         List<SpPartnerEstimateDocDetailDTO> resultList = new ArrayList<>();

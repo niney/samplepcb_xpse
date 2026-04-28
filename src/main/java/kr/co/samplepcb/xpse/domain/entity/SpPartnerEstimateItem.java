@@ -54,6 +54,9 @@ public class SpPartnerEstimateItem {
     @Column(name = "modify_date", nullable = false)
     private Date modifyDate;
 
+    @Column(name = "external_synced_at")
+    private Date externalSyncedAt;
+
     // === getter / setter ===
 
     public Long getId() { return id; }
@@ -91,4 +94,7 @@ public class SpPartnerEstimateItem {
 
     public Date getModifyDate() { return modifyDate; }
     public void setModifyDate(Date modifyDate) { this.modifyDate = modifyDate; }
+
+    public Date getExternalSyncedAt() { return externalSyncedAt; }
+    public void setExternalSyncedAt(Date externalSyncedAt) { this.externalSyncedAt = externalSyncedAt; }
 }

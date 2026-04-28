@@ -19,7 +19,7 @@ This file defines the structure and conventions for this knowledge base wiki. It
 
 ## Concepts
 
-- multi-level-caching: Caffeine 인메모리 캐시 + ES 색인 TTL 캐시 이중 전략 — connects [pcb-parts, external-integration, infrastructure]
+- multi-level-caching: Caffeine 인메모리 캐시 + ES 색인 TTL 캐시 + (sp-estimate) PEI 단위 24h 동기화 가드의 다층 캐시 전략 — connects [pcb-parts, external-integration, infrastructure, sp-estimate]
 
 ## Article Structure
 
@@ -53,3 +53,4 @@ Coverage tags: `[coverage: high -- N sources]`, `[coverage: medium -- N sources]
 
 - 2026-04-14: Initial schema implied from first compile — 8 topics created
 - 2026-04-15: Schema file generated. Added concept `multi-level-caching` from ES cache-first strategy changes
+- 2026-04-29: `multi-level-caching` 컨셉에 sp-estimate 연결 추가 (sp_partner_estimate_item.external_synced_at 24h TTL 가드가 ES 캐시 위에 또 한 겹 캐시 레이어로 동작). 토픽/컨셉 신규 추가 없음.

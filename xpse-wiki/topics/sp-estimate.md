@@ -45,6 +45,7 @@ SpEstimateMapper                               -- Entity <-> DTO 변환
 | Repository | `SpEstimateDocumentRepository` | `JpaRepository` + `SpEstimateDocumentRepositoryCustom` (QueryDSL) |
 | Repository | `SpPartnerEstimateItemRepositoryImpl` | QueryDSL 기반 동적 검색 |
 | Mapper | `SpEstimateMapper` | Entity-DTO 변환 매퍼 |
+| Helper | `SelectedPriceCalculator` / `SelectedPriceVO` | 외부 공급사 `PcbPartsSearch` 응답에서 `qty` 기준 `selectedPrice` (unitPrice/breakQuantity/pkg/moq/stock) 계산. 프론트의 `pickPriceStep`/`pickBestExternalOverride` 와 동일 알고리즘 |
 
 ### 보안
 
@@ -62,6 +63,7 @@ SpEstimateMapper                               -- Entity <-> DTO 변환
 | `G5Member` | FK (`mb_no`) | 협력사 회원 정보. 견적 항목/문서에서 회원 정보를 조인하여 반환한다. |
 | `PcbParts` (`sp_pcb_parts`) | FK (`pcb_part_doc_id` -> `doc_id`) | 견적 항목이 참조하는 PCB 부품 마스터 데이터. |
 | `SpFile` (`sp_file`) | 다형성 참조 (`ref_type` + `ref_id`) | 견적서 및 협력사 견적 항목의 첨부파일. `ref_type`으로 `estimate_document`, `partner_estimate_item`을 구분한다. |
+| `PcbPartsMultiSearchService` | 서비스 호출 (외부 시세 동기화) | `getEstimateDocDetailForAllPartners` 응답 시점에 `searchExternalBatch(partNames)` 으로 Digikey/UniKeyIC 시세를 가져와 필수 협력사 PEI 의 `selectedPrice`/`dateCode` 를 갱신한다. `block(15s)` 타임아웃, TTL 24h. |
 
 ## API Surface
 
@@ -215,6 +217,7 @@ SpFile (sp_file)  -- 다형성 참조 (ref_type + ref_id)
 | `memo` | `TEXT` | 메모 (ALTER 추가) |
 | `date_code` | `VARCHAR(100)` | Date Code (ALTER 추가) |
 | `delivery_date` | `DATETIME` | 납기일 (ALTER 추가) |
+| `external_synced_at` | `DATETIME` | 외부 공급사 시세 동기화 시각. TTL(24h) 가드용 (ALTER 추가) |
 | `write_date` | `DATETIME` (NOT NULL) | 작성일 |
 | `modify_date` | `DATETIME` (NOT NULL) | 수정일 |
 
@@ -242,6 +245,7 @@ SpFile (sp_file)  -- 다형성 참조 (ref_type + ref_id)
 | `alter_sp_partner_estimate_item.sql` | `sp_partner_estimate_item`에 `status`, `memo`, `date_code`, `delivery_date` 컬럼 추가. `sp_partner_estimate_document`에 `delivery_date` 추가. |
 | `alter_sp_estimate_item_confirmed_price.sql` | `sp_estimate_item`에 `confirmed_price`, `item_margin_rate` 컬럼 추가. |
 | `alter_sp_estimate_document_quantity.sql` | `sp_estimate_document`에 `set_quantity`, `spare_quantity` 컬럼 추가. |
+| `alter_sp_partner_estimate_item_external_synced_at.sql` | `sp_partner_estimate_item`에 `external_synced_at DATETIME NULL` 추가. 외부 시세 자동 동기화 TTL(24h) 가드용. ES 캐시 주기와 동일. |
 
 ### JPA 관계 매핑 요약
 
@@ -286,6 +290,22 @@ SpFile (sp_file)  -- 다형성 참조 (ref_type + ref_id)
 - 해당 항목의 첨부파일 삭제
 - 협력사 견적서 문서에 남은 항목이 없으면 문서 자체도 삭제
 
+### 10. 필수 협력사(Digikey/UniKeyIC) PED/PEI 자동 보장
+
+견적서가 생성/수정될 때마다(`SpEstimateService.create()` 종료 시점) 그리고 협력사용 통합 상세 조회(`getEstimateDocDetailForAllPartners`) 시작 시점에 `ensureRequiredPartners()` 가 호출된다. `REQUIRED_PARTNER_MB_NOS = [6035 (Digikey), 6036 (UniKeyIC)]` 에 대해 PED 가 없으면 생성하고, 각 견적 항목 × 필수 mbNo 조합에 대해 PEI 가 없으면 `DEFAULT_STATUS = "협력사 견적접수"` 로 생성한다. 이미 존재하는 PEI 는 건드리지 않는다. 협력사 추가 시 상수와 리스트만 확장하면 된다.
+
+### 11. 외부 공급사 selectedPrice 자동 동기화 (24h TTL + 변경 감지)
+
+`getEstimateDocDetailForAllPartners` 응답 직전에 `syncExternalSelectedPrices()` 가 필수 협력사 PEI 들의 `selectedPrice` / `dateCode` 를 외부 공급사 최신 시세로 갱신한다. 흐름은 다음과 같다:
+
+1. 필수 PED 산하 PEI 중 `external_synced_at` 이 24h(EXTERNAL_SYNC_TTL_MILLIS) 이전인 것만 후보로 추출.
+2. 후보들의 `partName` 집합으로 `PcbPartsMultiSearchService.searchExternalBatch(...)` 호출 (`block(15s)` 타임아웃).
+3. 각 PEI 의 `qty` 와 매칭 부품 응답을 `SelectedPriceCalculator` 에 통과시켜 `SelectedPriceVO(unitPrice, breakQuantity, pkg, moq, stock, qty)` 계산.
+4. 기존 selectedPrice JSON 과 신규 VO 가 동일하고 `dateCode` 도 변경 없으면 UPDATE 스킵, `external_synced_at` 만 touch.
+5. 다르면 selectedPrice JSON 직렬화 + dateCode 반영 + `external_synced_at` 갱신 후 `saveAll`.
+
+외부 호출/매칭/직렬화 실패는 호출 측에서 catch 하여 응답을 막지 않으며 (`log.warn` 후 기존 값 유지), TTL 가드 덕분에 동일 견적의 반복 조회는 외부 API/DB UPDATE 부담이 없다.
+
 ## Gotchas
 
 ### 1. 견적서와 상품의 강결합
@@ -312,6 +332,18 @@ SpFile (sp_file)  -- 다형성 참조 (ref_type + ref_id)
 ### 8. 배치 삭제의 cascade 정리
 `deletePartnerOrderBatch()`는 단순 삭제가 아니라 다음의 연쇄 정리를 수행한다: (1) `selectedPartnerEstimateItem` 참조 해제, (2) 첨부파일 삭제, (3) 항목 삭제, (4) 빈 문서 삭제. 이 중 하나라도 실패하면 트랜잭션이 롤백된다.
 
+### 9. 필수 협력사 mbNo 하드코딩
+`MB_NO_DIGIKEY = 6035`, `MB_NO_UNIKEYIC = 6036` 가 `SpEstimateService` 의 상수로 직접 박혀 있다. `g5_member` 테이블에서 해당 회원이 변경/삭제되거나 운영 환경별 회원번호가 다르면 자동 보장과 외부 시세 동기화가 모두 깨진다. 협력사 추가/변경 시 코드 수정 + 재배포가 필요하다.
+
+### 10. `ensureRequiredPartners` 가 매 create 마다 동작
+`create()` 호출 종료 직전에 항상 `ensureRequiredPartners(savedDoc)` 가 실행된다. 항목 수가 많은 견적서를 자주 수정하면 각 호출마다 PED/PEI 존재 확인 SELECT 가 늘어난다. 다행히 이미 있는 PEI 는 INSERT 를 건너뛰지만, lookup 비용은 발생한다.
+
+### 11. 외부 시세 동기화의 부분 실패 가시성 부재
+`syncExternalSelectedPrices` 는 외부 API/타임아웃/직렬화 실패를 모두 `log.warn` 후 무시하고 응답을 진행한다. 즉, 응답 본문에는 "기존 값"이 그대로 노출되며 클라이언트는 동기화가 실제로 일어났는지/실패했는지 구분할 수 없다. `external_synced_at` 컬럼을 직접 봐야 마지막 sync 시각 추적이 가능하다.
+
+### 12. selectedPrice JSON 양 끝 비교 비대칭
+변경 감지 시 신규 값은 `SelectedPriceCalculator` 결과의 `SelectedPriceVO` 와 비교하지만, 기존 값은 JSON 문자열 → `SelectedPriceVO` 로 역직렬화한 결과와 비교한다(`parseSelectedPriceVo`). 프론트가 다른 스키마의 JSON(예: 추가 필드, 다른 필드명)을 저장한 경우 역직렬화에서 `null` 이 되어 항상 "변경됨"으로 판정되고 매번 UPDATE 가 발생할 수 있다.
+
 ## Sources
 
 | 파일 경로 |
@@ -319,6 +351,9 @@ SpFile (sp_file)  -- 다형성 참조 (ref_type + ref_id)
 | `src/main/java/kr/co/samplepcb/xpse/resource/SpEstimateResource.java` |
 | `src/main/java/kr/co/samplepcb/xpse/resource/SpPartnerEstimateResource.java` |
 | `src/main/java/kr/co/samplepcb/xpse/service/SpEstimateService.java` |
+| `src/main/java/kr/co/samplepcb/xpse/service/helper/SelectedPriceCalculator.java` |
+| `src/main/java/kr/co/samplepcb/xpse/service/helper/SelectedPriceVO.java` |
+| `src/main/java/kr/co/samplepcb/xpse/repository/SpPartnerEstimateItemRepository.java` |
 | `src/main/java/kr/co/samplepcb/xpse/domain/entity/SpEstimateDocument.java` |
 | `src/main/java/kr/co/samplepcb/xpse/domain/entity/SpEstimateItem.java` |
 | `src/main/java/kr/co/samplepcb/xpse/domain/entity/SpPartnerEstimateDocument.java` |
@@ -346,3 +381,4 @@ SpFile (sp_file)  -- 다형성 참조 (ref_type + ref_id)
 | `src/main/resources/db/migration/alter_sp_partner_estimate_item.sql` |
 | `src/main/resources/db/migration/alter_sp_estimate_item_confirmed_price.sql` |
 | `src/main/resources/db/migration/alter_sp_estimate_document_quantity.sql` |
+| `src/main/resources/db/migration/alter_sp_partner_estimate_item_external_synced_at.sql` |

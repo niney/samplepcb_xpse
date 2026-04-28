@@ -80,4 +80,4 @@ kr.co.samplepcb.xpse
 6. **이중 캐싱**: Caffeine(30분) + ES 색인 TTL(24시간) 이중 캐시 — [multi-level-caching](concepts/multi-level-caching.md) 참조
 
 ## Stats
-Compiled: 2026-04-15 | Topics: 8 | Concepts: 1 | Sources: 160+ | Auto-updates on session start
+Compiled: 2026-04-29 | Topics: 8 | Concepts: 1 | Sources: 165+ | Auto-updates on session start

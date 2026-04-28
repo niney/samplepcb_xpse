@@ -58,6 +58,14 @@ public class SpEstimateService {
     private static final Logger log = LoggerFactory.getLogger(SpEstimateService.class);
     private static final String DEFAULT_STATUS = "협력사 견적접수";
     private static final String PARTNER_ESTIMATE_ITEM_REF_TYPE = "partner_estimate_item";
+    /**
+     * 필수 협력사 mbNo 하드코딩 목록.
+     * 모든 견적서/견적항목은 이 협력사들의 PED(협력사 견적서) + PEI(협력사 견적항목) 행을 보유해야 한다.
+     * 협력사 추가 시 이 리스트에 mbNo 만 추가하면 된다.
+     * - 6035: Digikey
+     * - 6036: UniKeyIC
+     */
+    private static final List<Integer> REQUIRED_PARTNER_MB_NOS = List.of(6035, 6036);
 
     private final G5ShopItemRepository shopItemRepository;
     private final G5ShopCartRepository shopCartRepository;
@@ -192,7 +200,63 @@ public class SpEstimateService {
             savedFiles = spFileRepository.saveAll(spFiles);
         }
 
+        // ── 6. 필수 협력사(PED/PEI) 보장 ──
+        ensureRequiredPartners(savedDoc);
+
         return CCObjectResult.setSimpleData(spEstimateMapper.toDetailDTO(savedDoc, savedFiles));
+    }
+
+    /**
+     * 필수 협력사(REQUIRED_PARTNER_MB_NOS) 의 PED + PEI 가 모두 존재하도록 보장한다.
+     * - PED 가 없으면 생성 (estimate_document_id, mb_no UNIQUE)
+     * - 각 estimate_item × mb_no 조합의 PEI 가 없으면 생성 (이미 있는 항목은 건드리지 않음)
+     */
+    private void ensureRequiredPartners(SpEstimateDocument doc) {
+        if (doc == null || doc.getId() == null) {
+            return;
+        }
+        List<SpEstimateItem> items = estimateItemRepository.findByEstimateDocumentId(doc.getId());
+        if (items.isEmpty()) {
+            return;
+        }
+        Date now = new Date();
+        List<SpPartnerEstimateItem> newPeis = new ArrayList<>();
+        for (int mbNo : REQUIRED_PARTNER_MB_NOS) {
+            SpPartnerEstimateDocument ped = upsertPartnerDoc(doc, mbNo, now);
+            Set<Long> existingItemIds = partnerEstimateItemRepository.findByPartnerEstimateDocumentId(ped.getId()).stream()
+                    .map(p -> p.getEstimateItem().getId())
+                    .collect(Collectors.toSet());
+            for (SpEstimateItem item : items) {
+                if (existingItemIds.contains(item.getId())) {
+                    continue;
+                }
+                SpPartnerEstimateItem pei = new SpPartnerEstimateItem();
+                pei.setEstimateItem(item);
+                pei.setPartnerEstimateDocument(ped);
+                pei.setMbNo(mbNo);
+                pei.setStatus(DEFAULT_STATUS);
+                pei.setWriteDate(now);
+                pei.setModifyDate(now);
+                newPeis.add(pei);
+            }
+        }
+        if (!newPeis.isEmpty()) {
+            partnerEstimateItemRepository.saveAll(newPeis);
+        }
+    }
+
+    private SpPartnerEstimateDocument upsertPartnerDoc(SpEstimateDocument doc, int mbNo, Date now) {
+        return partnerEstimateDocumentRepository
+                .findByEstimateDocumentIdAndMbNo(doc.getId(), mbNo)
+                .orElseGet(() -> {
+                    SpPartnerEstimateDocument newDoc = new SpPartnerEstimateDocument();
+                    newDoc.setEstimateDocument(doc);
+                    newDoc.setMbNo(mbNo);
+                    newDoc.setStatus(DEFAULT_STATUS);
+                    newDoc.setWriteDate(now);
+                    newDoc.setModifyDate(now);
+                    return partnerEstimateDocumentRepository.save(newDoc);
+                });
     }
 
     /**
@@ -358,17 +422,7 @@ public class SpEstimateService {
         Date now = new Date();
 
         // SpPartnerEstimateDocument upsert (estimate_document_id + mb_no)
-        SpPartnerEstimateDocument partnerDoc = partnerEstimateDocumentRepository
-                .findByEstimateDocumentIdAndMbNo(estimateDocument.getId(), createDTO.getMbNo())
-                .orElseGet(() -> {
-                    SpPartnerEstimateDocument newDoc = new SpPartnerEstimateDocument();
-                    newDoc.setEstimateDocument(estimateDocument);
-                    newDoc.setMbNo(createDTO.getMbNo());
-                    newDoc.setStatus(DEFAULT_STATUS);
-                    newDoc.setWriteDate(now);
-                    newDoc.setModifyDate(now);
-                    return partnerEstimateDocumentRepository.save(newDoc);
-                });
+        SpPartnerEstimateDocument partnerDoc = upsertPartnerDoc(estimateDocument, createDTO.getMbNo(), now);
 
         // SpPartnerEstimateItem upsert (estimate_item_id + partner_estimate_document_id)
         Optional<SpPartnerEstimateItem> optPartner =
@@ -546,8 +600,14 @@ public class SpEstimateService {
      * 협력사용 견적서 상세 조회 (estimateDocument 기준 전체 조회).
      */
     @SuppressWarnings("unchecked")
-    @Transactional(readOnly = true)
+    @Transactional
     public CCObjectResult<List<SpPartnerEstimateDocDetailDTO>> getEstimateDocDetailForAllPartners(Long id) {
+        Optional<SpEstimateDocument> optDoc = estimateDocumentRepository.findById(id);
+        if (optDoc.isEmpty()) {
+            return dataNotFound();
+        }
+        ensureRequiredPartners(optDoc.get());
+
         List<SpPartnerEstimateDocument> pedList = partnerEstimateDocumentRepository.findByEstimateDocumentId(id);
         if (pedList.isEmpty()) {
             return dataNotFound();
